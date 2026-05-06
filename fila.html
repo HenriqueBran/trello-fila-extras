@@ -197,7 +197,6 @@
           <span class="dragHandle" title="Arrastar">☰</span>
           <div style="flex:1"><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small><small>${p.trelloUsername ? '@' + escapeHtml(p.trelloUsername) : 'Usuário Trello não vinculado'}</small></div>
           <div class="miniBtns">
-            ${real===0 ? '' : `<button class="top" onclick="colocarEmPrimeiro('${p.id}')">Colocar em 1º</button>`}
             <button onclick="editarUsuario('${p.id}')">Editar usuário</button>
             <button class="remove" onclick="removePessoa('${p.id}')">Remover</button>
           </div>
