@@ -1,0 +1,8 @@
+{
+  "name": "trello-fila-extras-v15-api-central",
+  "version": "15.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}

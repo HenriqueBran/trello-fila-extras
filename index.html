@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fila de Extras</title></head>
+<body>
+<script src="https://p.trellocdn.com/power-up.min.js"></script>
+<script>
+const baseUrl = window.location.origin;
+const icon = baseUrl + '/icon.svg';
+const openFila = function(t){
+  return t.modal({ title:'Fila de Extras', url:'./fila.html', height:740, fullscreen:false, accentColor:'#111827' });
+};
+window.TrelloPowerUp.initialize({
+  'board-buttons': function(t){ return [{ text:'Fila de Extras', icon, callback:openFila, condition:'always' }]; },
+  'card-buttons': function(t){ return [{ text:'Fila de Extras', icon, callback:openFila, condition:'always' }]; },
+  'show-settings': function(t){ return t.modal({ title:'Configurações - Fila de Extras', url:'./fila.html?settings=1', height:740, fullscreen:false, accentColor:'#111827' }); },
+  'card-badges': function(t){ return []; }
+}, { appKey:'fila-extras-powerup' });
+</script>
+</body></html>

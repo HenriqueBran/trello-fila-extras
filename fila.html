@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fila de Extras</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbarInternal">
+      <button id="trocarModoBtn" class="btn linklike hide">← Voltar</button>
+      <span id="trocarModoHint" class="muted small hide">Trocar modo de acesso: Coordenador ou Membro</span>
+      <span id="syncStatus" class="syncStatus">Carregando...</span>
+    </div>
+
+    <header class="hero">
+      <div><h1>Fila de Extras</h1></div>
+      <span id="modoBadge" class="badge">Carregando...</span>
+    </header>
+
+    <section id="configInicial" class="card hide">
+      <h2>Configuração de acesso</h2>
+      <p class="muted">Escolha como esta conta vai usar o painel neste quadro.</p>
+      <div class="row gap">
+        <button class="btn primary" id="setCoordenador">Usar como Modo Coordenador</button>
+        <button class="btn dark" id="setMembro">Usar como Modo Membro</button>
+      </div>
+    </section>
+
+    <main id="coordenador" class="grid hide">
+      <section class="card">
+        <h2>Pessoa da vez</h2>
+        <div id="pessoaDaVez" class="person">Nenhuma pessoa cadastrada</div>
+        <div id="extraStatus" class="status muted">Nenhuma extra ativa.</div>
+        <div class="actions">
+          <button class="btn green" id="gerarExtra">Gerar extra</button>
+          <button class="btn orange" id="pularVez">Pular vez</button>
+        </div>
+        <p class="muted small">Pular vez exige motivo. O cancelamento fica disponível no histórico conforme o status da solicitação.</p>
+      </section>
+
+      <section class="card">
+        <h2>Gerenciar fila</h2>
+        <div class="inputRow">
+          <input id="novoNome" placeholder="Nome da pessoa. Ex: João Silva" />
+          <button class="btn dark" id="addPessoa">Adicionar</button>
+        </div>
+        <div id="listaCoordenador" class="list"></div>
+        <div id="paginacaoCoordenador" class="pagination"></div>
+      </section>
+
+      <section class="card full">
+        <div class="row between">
+          <h2>Histórico completo</h2>
+          <span class="muted small">Histórico permanente</span>
+        </div>
+        <div id="historicoCoordenador" class="history"></div>
+        <div id="paginacaoHistCoordenador" class="pagination"></div>
+      </section>
+    </main>
+
+    <main id="membro" class="grid hide">
+      <section class="card">
+        <h2>Fila pública</h2>
+        <div id="listaMembro" class="list public"></div>
+        <div id="paginacaoMembro" class="pagination"></div>
+      </section>
+
+      <section class="card">
+        <h2>Extras ativas</h2>
+        <div id="membroExtraBox"></div>
+      </section>
+
+      <section class="card full">
+        <div class="row between">
+          <h2>Histórico público</h2>
+          <span class="muted small">Histórico permanente</span>
+        </div>
+        <div id="historicoMembro" class="history"></div>
+        <div id="paginacaoHistMembro" class="pagination"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="appDialog" class="dialogOverlay hide">
+    <div class="dialogBox">
+      <div class="dialogTitle" id="dialogTitle">Aviso</div>
+      <div class="dialogText" id="dialogText"></div>
+      <input id="dialogInput" class="dialogInput hide" />
+      <textarea id="dialogTextarea" class="dialogTextarea hide"></textarea>
+      <div class="dialogActions">
+        <button class="btn dark hide" id="dialogCancel">Cancelar</button>
+        <button class="btn primary" id="dialogOk">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://p.trellocdn.com/power-up.min.js"></script>
+  <script>
+    const t = window.TrelloPowerUp.iframe();
+    const DEFAULT_DATA = { fila: [], extrasAtivas: [], historico: [], extrasAceitasCancelaveis: {}, userModes: {} };
+    let data = structuredClone(DEFAULT_DATA);
+    let board = null;
+    let member = null;
+    let mode = '';
+    let coordPage = 1, membroPage = 1, histCoordPage = 1, histMembroPage = 1;
+    const pageSize = 3, histPageSize = 4;
+    let dragId = null;
+
+    const $ = (id) => document.getElementById(id);
+    const now = () => new Date().toLocaleString('pt-BR');
+    const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+    function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+    function normalize(d){
+      const b = Object.assign(structuredClone(DEFAULT_DATA), d || {});
+      b.fila = Array.isArray(b.fila) ? b.fila : [];
+      b.extrasAtivas = Array.isArray(b.extrasAtivas) ? b.extrasAtivas : [];
+      b.historico = Array.isArray(b.historico) ? b.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
+      b.extrasAceitasCancelaveis = b.extrasAceitasCancelaveis && typeof b.extrasAceitasCancelaveis === 'object' ? b.extrasAceitasCancelaveis : {};
+      b.userModes = b.userModes && typeof b.userModes === 'object' ? b.userModes : {};
+      return b;
+    }
+    function memberKey(){ return member?.id || member?.username || 'usuario'; }
+
+    async function apiGet(){
+      const res = await fetch(`/api/store?boardId=${encodeURIComponent(board.id)}&ts=${Date.now()}`);
+      if(!res.ok) throw new Error(await res.text());
+      data = normalize(await res.json());
+      mode = data.userModes[memberKey()] || '';
+    }
+    async function apiSave(){
+      data = normalize(data);
+      const res = await fetch(`/api/store?boardId=${encodeURIComponent(board.id)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ data }) });
+      if(!res.ok) throw new Error(await res.text());
+      const json = await res.json();
+      data = normalize(json.data || data);
+      mode = data.userModes[memberKey()] || mode;
+    }
+    async function persistAndRender(){ await apiSave(); render(); }
+    function log(acao, texto, meta = {}){ data.historico.unshift({ id: uid(), acao, texto, usuario: member?.fullName || member?.username || 'Usuário', data: now(), ...meta }); }
+    function pessoaDaVez(){ return data.fila[0] || null; }
+
+    async function init(){
+      board = await t.board('id', 'name');
+      try { member = await t.member('id', 'fullName', 'username'); } catch(e){ member = { id: 'sem-id', fullName: 'Usuário Trello' }; }
+      try { await apiGet(); $('syncStatus').textContent = 'Dados compartilhados'; } catch(e){ $('syncStatus').textContent = 'Erro ao carregar dados'; await infoDialog('Erro', 'Não foi possível carregar os dados compartilhados.'); }
+      render();
+    }
+
+    function render(){
+      $('modoBadge').textContent = mode ? mode.toUpperCase() : 'CONFIGURAR';
+      $('configInicial').classList.toggle('hide', !!mode);
+      $('coordenador').classList.toggle('hide', mode !== 'coordenador');
+      $('membro').classList.toggle('hide', mode !== 'membro');
+      $('trocarModoBtn').classList.toggle('hide', !mode);
+      $('trocarModoHint').classList.toggle('hide', !mode);
+      if(mode === 'coordenador') renderCoordenador();
+      if(mode === 'membro') renderMembro();
+      t.sizeTo('#document');
+    }
+    function ensurePage(total, current, size){ const pages = Math.max(1, Math.ceil(total / size)); return Math.min(Math.max(1, current), pages); }
+    function pageButtons(containerId, total, current, size, fn){
+      const pages = Math.ceil(total / size); const el = $(containerId); if(!el) return;
+      if(pages <= 1){ el.innerHTML = ''; return; }
+      el.innerHTML = Array.from({length:pages}, (_,i)=>`<button class="pageBtn ${i+1===current?'active':''}" onclick="${fn}(${i+1})">${i+1}</button>`).join('');
+    }
+    window.setCoordPage = p => { coordPage = p; render(); };
+    window.setMembroPage = p => { membroPage = p; render(); };
+    window.setHistCoordPage = p => { histCoordPage = p; render(); };
+    window.setHistMembroPage = p => { histMembroPage = p; render(); };
+
+    function renderCoordenador(){
+      const vez = pessoaDaVez();
+      $('pessoaDaVez').textContent = vez ? vez.nome : 'Nenhuma pessoa cadastrada';
+      $('extraStatus').innerHTML = data.extrasAtivas.length ? `<b>${data.extrasAtivas.length}</b> extra(s) aguardando resposta.` : 'Nenhuma extra ativa.';
+      const total = data.fila.length; coordPage = ensurePage(total, coordPage, pageSize);
+      const start = (coordPage - 1) * pageSize;
+      const itens = data.fila.slice(start, start + pageSize);
+      $('listaCoordenador').innerHTML = itens.map((p, idx) => {
+        const real = start + idx;
+        return `<div class="item ${real===0?'first':''}" draggable="true" data-id="${p.id}">
+          <span class="dragHandle" title="Arrastar">☰</span>
+          <div style="flex:1"><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small></div>
+          <div class="miniBtns"><button class="remove" onclick="removePessoa('${p.id}')">Remover</button></div>
+        </div>`;
+      }).join('') || '<p class="muted">Nenhuma pessoa cadastrada.</p>';
+      pageButtons('paginacaoCoordenador', total, coordPage, pageSize, 'setCoordPage');
+      bindDrag(); renderHistory('historicoCoordenador', 'paginacaoHistCoordenador', true);
+    }
+    function renderMembro(){
+      const total = data.fila.length; membroPage = ensurePage(total, membroPage, pageSize);
+      const start = (membroPage - 1) * pageSize;
+      $('listaMembro').innerHTML = data.fila.slice(start, start + pageSize).map((p, idx)=>{
+        const real = start + idx;
+        return `<div class="item ${real===0?'first':''}"><div><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small></div></div>`;
+      }).join('') || '<p class="muted">Fila ainda não cadastrada.</p>';
+      pageButtons('paginacaoMembro', total, membroPage, pageSize, 'setMembroPage');
+      if(!data.extrasAtivas.length){ $('membroExtraBox').innerHTML = '<p class="muted">Nenhuma extra disponível no momento.</p>'; }
+      else {
+        $('membroExtraBox').innerHTML = `<div class="extrasList">${data.extrasAtivas.map(e=>`<div class="extraCard"><div class="notice"><b>${escapeHtml(e.pessoaNome)}</b>, você foi chamado para uma extra.</div><p><b>Descrição:</b> ${escapeHtml(e.descricao || 'Extra gerada pelo coordenador.')}</p><div class="actions"><button class="btn green" onclick="aceitarExtra('${e.id}')">Aceitar extra</button><button class="btn red" onclick="recusarExtra('${e.id}')">Recusar extra</button></div></div>`).join('')}</div>`;
+      }
+      renderHistory('historicoMembro', 'paginacaoHistMembro', false);
+    }
+    function histClass(acao){ if(acao==='EXTRA ACEITA') return 'ok'; if(acao==='EXTRA RECUSADA'||acao==='EXTRA CANCELADA') return 'danger'; if(acao==='VEZ PULADA') return 'warn'; return 'neutral'; }
+    function renderHistory(target, pager, isCoord){
+      const items = data.historico || [];
+      let page = isCoord ? histCoordPage : histMembroPage;
+      page = ensurePage(items.length, page, histPageSize); if(isCoord) histCoordPage = page; else histMembroPage = page;
+      const start = (page - 1) * histPageSize;
+      $(target).innerHTML = items.slice(start, start + histPageSize).map(h => {
+        const pending = isCoord && h.acao === 'EXTRA GERADA' && data.extrasAtivas.some(e => e.id === h.extraId);
+        const accepted = isCoord && h.acao === 'EXTRA ACEITA' && data.extrasAceitasCancelaveis[h.extraId];
+        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div>${pending ? `<button class="btn red miniAction" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}</div></div>`;
+      }).join('') || '<p class="muted">Nenhuma ação registrada.</p>';
+      pageButtons(pager, items.length, page, histPageSize, isCoord ? 'setHistCoordPage' : 'setHistMembroPage');
+    }
+
+    function bindDrag(){
+      document.querySelectorAll('#listaCoordenador .item').forEach(el => {
+        el.addEventListener('dragstart', () => { dragId = el.dataset.id; el.classList.add('dragging'); });
+        el.addEventListener('dragend', () => el.classList.remove('dragging'));
+        el.addEventListener('dragover', e => e.preventDefault());
+        el.addEventListener('drop', async e => { e.preventDefault(); const targetId = el.dataset.id; if(dragId && targetId && dragId !== targetId) await reorderByDrag(dragId, targetId); dragId = null; });
+      });
+    }
+    async function reorderByDrag(fromId, toId){
+      const from = data.fila.findIndex(p=>p.id===fromId), to = data.fila.findIndex(p=>p.id===toId);
+      if(from<0||to<0||from===to) return;
+      const moved = data.fila[from]; const motivo = await promptDialog('Justificar alteração da fila', `Motivo para mover ${moved.nome} para a posição ${to+1}:`, '');
+      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Justificativa obrigatória.');
+      data.fila.splice(from,1); data.fila.splice(to,0,moved);
+      log('ORDEM ALTERADA', `${moved.nome} foi movido manualmente para a posição ${to+1}. Justificativa: ${motivo.trim()}`);
+      await persistAndRender();
+    }
+
+    function moveOneDownFirst(){ if(data.fila.length > 1){ const first = data.fila.shift(); data.fila.splice(1,0,first); } }
+    function advanceQueueAfterGenerate(){ if(data.fila.length > 1) data.fila.push(data.fila.shift()); }
+    function movePersonToTop(id){ const idx = data.fila.findIndex(p=>p.id===id); if(idx>0){ const item=data.fila.splice(idx,1)[0]; data.fila.unshift(item); } }
+
+    async function gerarExtra(){
+      const p = pessoaDaVez(); if(!p) return infoDialog('Atenção','Cadastre pessoas na fila primeiro.');
+      const descricao = await promptDialog('Gerar extra', 'Descreva a extra que será lançada:', 'Extra disponível para atendimento.');
+      if(descricao === null) return;
+      const extra = { id: uid(), pessoaId:p.id, pessoaNome:p.nome, descricao, status:'AGUARDANDO', criadaEm:now() };
+      data.extrasAtivas.push(extra); log('EXTRA GERADA', `Extra gerada para ${p.nome}.`, { extraId: extra.id }); advanceQueueAfterGenerate(); await persistAndRender();
+    }
+    async function pularVez(){
+      const p = pessoaDaVez(); if(!p) return infoDialog('Atenção','Não há pessoa na fila.');
+      const motivo = await promptDialog('Pular vez', `Motivo para pular a vez de ${p.nome}:`, '');
+      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      log('VEZ PULADA', `${p.nome} teve a vez pulada. Motivo: ${motivo.trim()}`); moveOneDownFirst(); await persistAndRender();
+    }
+    window.aceitarExtra = async function(extraId){
+      const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
+      log('EXTRA ACEITA', `${extra.pessoaNome} aceitou a extra.`, { extraId: extra.id });
+      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); data.extrasAceitasCancelaveis[extraId] = extra; await persistAndRender();
+    }
+    window.recusarExtra = async function(extraId){
+      const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
+      const motivo = await promptDialog('Recusar extra','Motivo da recusa:', '');
+      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      log('EXTRA RECUSADA', `${extra.pessoaNome} recusou a extra. Motivo: ${motivo.trim()}`, { extraId });
+      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); await persistAndRender();
+    }
+    window.cancelarSolicitacao = async function(extraId){
+      const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
+      const motivo = await promptDialog('Cancelar solicitação','Motivo do cancelamento:', '');
+      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      log('EXTRA CANCELADA', `Solicitação de ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
+      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); movePersonToTop(extra.pessoaId); await persistAndRender();
+    }
+    window.cancelarAceita = async function(extraId){
+      const extra = data.extrasAceitasCancelaveis[extraId]; if(!extra) return;
+      const motivo = await promptDialog('Cancelar extra aceita','Motivo do cancelamento:', '');
+      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      log('EXTRA CANCELADA', `Extra aceita por ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
+      movePersonToTop(extra.pessoaId); delete data.extrasAceitasCancelaveis[extraId]; await persistAndRender();
+    }
+    window.removePessoa = async function(id){
+      const p = data.fila.find(x=>x.id===id); if(!p) return;
+      const motivo = await promptDialog('Remover pessoa', `Motivo para remover ${p.nome} da fila:`, '');
+      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      data.fila = data.fila.filter(x=>x.id!==id); log('MEMBRO REMOVIDO', `${p.nome} foi removido da fila. Motivo: ${motivo.trim()}`); await persistAndRender();
+    }
+
+    $('setCoordenador').addEventListener('click', async()=>{ data.userModes[memberKey()]='coordenador'; mode='coordenador'; await persistAndRender(); });
+    $('setMembro').addEventListener('click', async()=>{ data.userModes[memberKey()]='membro'; mode='membro'; await persistAndRender(); });
+    $('trocarModoBtn').addEventListener('click', async()=>{ const ok=await confirmDialog('Trocar modo','Deseja trocar o modo de acesso desta conta?'); if(!ok) return; delete data.userModes[memberKey()]; mode=''; await persistAndRender(); });
+    $('addPessoa').addEventListener('click', async()=>{ const nome=$('novoNome').value.trim(); if(!nome) return infoDialog('Atenção','Informe o nome da pessoa.'); data.fila.push({id:uid(),nome}); $('novoNome').value=''; log('MEMBRO ADICIONADO', `${nome} foi adicionado à fila.`); coordPage = ensurePage(data.fila.length, 999, pageSize); await persistAndRender(); });
+    $('gerarExtra').addEventListener('click', gerarExtra); $('pularVez').addEventListener('click', pularVez);
+
+    function openDialog({title,text='',mode='info',initialValue=''}){ return new Promise(resolve=>{
+      $('dialogTitle').textContent=title||'Aviso'; $('dialogText').textContent=text||''; $('dialogInput').classList.add('hide'); $('dialogTextarea').classList.add('hide'); $('dialogCancel').classList.toggle('hide', mode==='info');
+      $('dialogCancel').onclick=()=>close(null); $('dialogOk').onclick=()=>{ if(mode==='prompt') return close($('dialogInput').value); if(mode==='textarea') return close($('dialogTextarea').value); close(true); };
+      if(mode==='prompt'){ $('dialogInput').classList.remove('hide'); $('dialogInput').value=initialValue||''; setTimeout(()=>$('dialogInput').focus(),30); }
+      if(mode==='textarea'){ $('dialogTextarea').classList.remove('hide'); $('dialogTextarea').value=initialValue||''; setTimeout(()=>$('dialogTextarea').focus(),30); }
+      $('appDialog').classList.remove('hide'); t.sizeTo('#document');
+      function close(value){ $('appDialog').classList.add('hide'); resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
+    }); }
+    const infoDialog=(title,text)=>openDialog({title,text,mode:'info'});
+    const confirmDialog=(title,text)=>openDialog({title,text,mode:'confirm'});
+    const promptDialog=(title,text,initialValue='')=>openDialog({title,text,mode:'prompt',initialValue});
+
+    init();
+  </script>
+</body>
+</html>
