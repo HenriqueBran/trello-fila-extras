@@ -44,7 +44,16 @@
         <h2>Gerenciar fila</h2>
         <div class="inputRow">
           <input id="novoNome" placeholder="Nome da pessoa. Ex: João Silva" />
+          <input id="novoUsuario" placeholder="Usuário Trello. Ex: henriquebrandaodearruda" />
           <button class="btn dark" id="addPessoa">Adicionar</button>
+        </div>
+        <div class="quickTopBox">
+          <label for="puxarPessoaSelect">Puxar qualquer pessoa para o 1º lugar</label>
+          <div class="quickTopRow">
+            <select id="puxarPessoaSelect"></select>
+            <button class="btn primary" id="puxarPessoaBtn">Colocar em 1º</button>
+          </div>
+          <p class="muted small">Use para chamar alguém que está em outra aba da fila, sem precisar pular pessoa por pessoa.</p>
         </div>
         <div id="listaCoordenador" class="list"></div>
         <div id="paginacaoCoordenador" class="pagination"></div>
@@ -111,11 +120,13 @@
     const $ = (id) => document.getElementById(id);
     const now = () => new Date().toLocaleString('pt-BR');
     const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const cleanUsername = (v) => String(v || '').trim().replace(/^@+/, '').toLowerCase();
+    const currentUsername = () => cleanUsername(member?.username || '');
 
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
     function normalize(d){
       const b = Object.assign(structuredClone(DEFAULT_DATA), d || {});
-      b.fila = Array.isArray(b.fila) ? b.fila : [];
+      b.fila = Array.isArray(b.fila) ? b.fila.map(p => ({...p, trelloUsername: cleanUsername(p.trelloUsername || p.username || '')})) : [];
       b.extrasAtivas = Array.isArray(b.extrasAtivas) ? b.extrasAtivas : [];
       b.historico = Array.isArray(b.historico) ? b.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
       b.extrasAceitasCancelaveis = b.extrasAceitasCancelaveis && typeof b.extrasAceitasCancelaveis === 'object' ? b.extrasAceitasCancelaveis : {};
@@ -128,7 +139,7 @@
       const res = await fetch(`/api/store?boardId=${encodeURIComponent(board.id)}&ts=${Date.now()}`);
       if(!res.ok) throw new Error(await res.text());
       data = normalize(await res.json());
-      mode = data.userModes[memberKey()] || '';
+      mode = '';
     }
     async function apiSave(){
       data = normalize(data);
@@ -136,7 +147,8 @@
       if(!res.ok) throw new Error(await res.text());
       const json = await res.json();
       data = normalize(json.data || data);
-      mode = data.userModes[memberKey()] || mode;
+      // O modo de acesso não é salvo; toda abertura começa no menu inicial.
+      mode = mode || '';
     }
     async function persistAndRender(){ await apiSave(); render(); }
     function log(acao, texto, meta = {}){ data.historico.unshift({ id: uid(), acao, texto, usuario: member?.fullName || member?.username || 'Usuário', data: now(), ...meta }); }
@@ -175,6 +187,7 @@
       const vez = pessoaDaVez();
       $('pessoaDaVez').textContent = vez ? vez.nome : 'Nenhuma pessoa cadastrada';
       $('extraStatus').innerHTML = data.extrasAtivas.length ? `<b>${data.extrasAtivas.length}</b> extra(s) aguardando resposta.` : 'Nenhuma extra ativa.';
+      renderQuickTopSelect();
       const total = data.fila.length; coordPage = ensurePage(total, coordPage, pageSize);
       const start = (coordPage - 1) * pageSize;
       const itens = data.fila.slice(start, start + pageSize);
@@ -182,24 +195,55 @@
         const real = start + idx;
         return `<div class="item ${real===0?'first':''}" draggable="true" data-id="${p.id}">
           <span class="dragHandle" title="Arrastar">☰</span>
-          <div style="flex:1"><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small></div>
-          <div class="miniBtns"><button class="remove" onclick="removePessoa('${p.id}')">Remover</button></div>
+          <div style="flex:1"><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small><small>${p.trelloUsername ? '@' + escapeHtml(p.trelloUsername) : 'Usuário Trello não vinculado'}</small></div>
+          <div class="miniBtns">
+            ${real===0 ? '' : `<button class="top" onclick="colocarEmPrimeiro('${p.id}')">Colocar em 1º</button>`}
+            <button onclick="editarUsuario('${p.id}')">Editar usuário</button>
+            <button class="remove" onclick="removePessoa('${p.id}')">Remover</button>
+          </div>
         </div>`;
       }).join('') || '<p class="muted">Nenhuma pessoa cadastrada.</p>';
       pageButtons('paginacaoCoordenador', total, coordPage, pageSize, 'setCoordPage');
       bindDrag(); renderHistory('historicoCoordenador', 'paginacaoHistCoordenador', true);
     }
+    function renderQuickTopSelect(){
+      const select = $('puxarPessoaSelect');
+      if(!select) return;
+      if(!data.fila.length){
+        select.innerHTML = '<option value="">Nenhuma pessoa cadastrada</option>';
+        select.disabled = true;
+        $('puxarPessoaBtn').disabled = true;
+        return;
+      }
+      select.disabled = false;
+      $('puxarPessoaBtn').disabled = false;
+      select.innerHTML = data.fila.map((p, i) => {
+        const label = `${i+1}. ${p.nome}${i === 0 ? ' (atual)' : ''}`;
+        return `<option value="${p.id}" ${i===0 ? 'disabled' : ''}>${escapeHtml(label)}</option>`;
+      }).join('');
+      if(data.fila.length > 1){
+        select.value = data.fila[1].id;
+      }
+    }
+
     function renderMembro(){
       const total = data.fila.length; membroPage = ensurePage(total, membroPage, pageSize);
       const start = (membroPage - 1) * pageSize;
       $('listaMembro').innerHTML = data.fila.slice(start, start + pageSize).map((p, idx)=>{
         const real = start + idx;
-        return `<div class="item ${real===0?'first':''}"><div><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small></div></div>`;
+        const myUser = currentUsername();
+        const vinculado = p.trelloUsername && p.trelloUsername === myUser;
+        const semVinculo = !p.trelloUsername;
+        return `<div class="item ${real===0?'first':''}"><div><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small><small>${vinculado ? 'Vinculado a você: @' + escapeHtml(myUser) : (p.trelloUsername ? '@' + escapeHtml(p.trelloUsername) : 'Usuário Trello não vinculado')}</small></div>${semVinculo && myUser ? `<button class="btn ghost miniAction" onclick="vincularMinhaConta('${p.id}')">Sou eu</button>` : ''}</div>`;
       }).join('') || '<p class="muted">Fila ainda não cadastrada.</p>';
       pageButtons('paginacaoMembro', total, membroPage, pageSize, 'setMembroPage');
-      if(!data.extrasAtivas.length){ $('membroExtraBox').innerHTML = '<p class="muted">Nenhuma extra disponível no momento.</p>'; }
+      const minhasExtras = data.extrasAtivas.filter(e => cleanUsername(e.pessoaUsername) === currentUsername());
+      if(!minhasExtras.length){
+        const totalOutras = data.extrasAtivas.length;
+        $('membroExtraBox').innerHTML = `<p class="muted">Nenhuma extra disponível para você no momento.</p>${totalOutras ? '<p class="muted small">Existe solicitação ativa para outro membro da fila.</p>' : ''}`;
+      }
       else {
-        $('membroExtraBox').innerHTML = `<div class="extrasList">${data.extrasAtivas.map(e=>`<div class="extraCard"><div class="notice"><b>${escapeHtml(e.pessoaNome)}</b>, você foi chamado para uma extra.</div><p><b>Descrição:</b> ${escapeHtml(e.descricao || 'Extra gerada pelo coordenador.')}</p><div class="actions"><button class="btn green" onclick="aceitarExtra('${e.id}')">Aceitar extra</button><button class="btn red" onclick="recusarExtra('${e.id}')">Recusar extra</button></div></div>`).join('')}</div>`;
+        $('membroExtraBox').innerHTML = `<div class="extrasList">${minhasExtras.map(e=>`<div class="extraCard"><div class="notice"><b>${escapeHtml(e.pessoaNome)}</b>, você foi chamado para uma extra.</div><p><b>Descrição:</b> ${escapeHtml(e.descricao || 'Extra gerada pelo coordenador.')}</p><div class="actions"><button class="btn green" onclick="aceitarExtra('${e.id}')">Aceitar extra</button><button class="btn red" onclick="recusarExtra('${e.id}')">Recusar extra</button></div></div>`).join('')}</div>`;
       }
       renderHistory('historicoMembro', 'paginacaoHistMembro', false);
     }
@@ -241,9 +285,10 @@
 
     async function gerarExtra(){
       const p = pessoaDaVez(); if(!p) return infoDialog('Atenção','Cadastre pessoas na fila primeiro.');
+      if(!p.trelloUsername) return infoDialog('Atenção', `Vincule o usuário Trello de ${p.nome} antes de gerar a extra. Assim o aceite aparece somente para essa pessoa.`);
       const descricao = await promptDialog('Gerar extra', 'Descreva a extra que será lançada:', 'Extra disponível para atendimento.');
       if(descricao === null) return;
-      const extra = { id: uid(), pessoaId:p.id, pessoaNome:p.nome, descricao, status:'AGUARDANDO', criadaEm:now() };
+      const extra = { id: uid(), pessoaId:p.id, pessoaNome:p.nome, pessoaUsername:p.trelloUsername, descricao, status:'AGUARDANDO', criadaEm:now() };
       data.extrasAtivas.push(extra); log('EXTRA GERADA', `Extra gerada para ${p.nome}.`, { extraId: extra.id }); advanceQueueAfterGenerate(); await persistAndRender();
     }
     async function pularVez(){
@@ -278,6 +323,46 @@
       log('EXTRA CANCELADA', `Extra aceita por ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
       movePersonToTop(extra.pessoaId); delete data.extrasAceitasCancelaveis[extraId]; await persistAndRender();
     }
+
+    window.colocarEmPrimeiro = async function(id){
+      const idx = data.fila.findIndex(p=>p.id===id);
+      if(idx <= 0) return;
+      const p = data.fila[idx];
+      const motivo = await promptDialog('Colocar em 1º', `Justificativa para colocar ${p.nome} em primeiro lugar:`, '');
+      if(motivo===null) return;
+      if(!motivo.trim()) return infoDialog('Atenção','Justificativa obrigatória.');
+      data.fila.splice(idx,1);
+      data.fila.unshift(p);
+      coordPage = 1;
+      log('ORDEM ALTERADA', `${p.nome} foi colocado em 1º lugar. Justificativa: ${motivo.trim()}`);
+      await persistAndRender();
+    }
+
+
+    window.editarUsuario = async function(id){
+      const p = data.fila.find(x=>x.id===id); if(!p) return;
+      const usuario = await promptDialog('Vincular usuário Trello', `Informe o usuário Trello de ${p.nome} sem @:`, p.trelloUsername || '');
+      if(usuario === null) return;
+      const limpo = cleanUsername(usuario);
+      if(!limpo) return infoDialog('Atenção', 'Informe um usuário Trello válido. Ex: henriquebrandaodearruda');
+      const antigo = p.trelloUsername || 'sem vínculo';
+      p.trelloUsername = limpo;
+      log('USUÁRIO VINCULADO', `${p.nome} foi vinculado ao usuário @${limpo}. Anterior: ${antigo}.`);
+      await persistAndRender();
+    }
+
+    window.vincularMinhaConta = async function(id){
+      const p = data.fila.find(x=>x.id===id); if(!p) return;
+      const myUser = currentUsername();
+      if(!myUser) return infoDialog('Atenção', 'Não foi possível identificar seu usuário Trello.');
+      const ok = await confirmDialog('Vincular minha conta', `Deseja vincular sua conta @${myUser} ao nome ${p.nome}?`);
+      if(!ok) return;
+      if(p.trelloUsername && p.trelloUsername !== myUser) return infoDialog('Atenção', `${p.nome} já está vinculado a outro usuário.`);
+      p.trelloUsername = myUser;
+      log('USUÁRIO VINCULADO', `${p.nome} vinculou a própria conta Trello @${myUser}.`);
+      await persistAndRender();
+    }
+
     window.removePessoa = async function(id){
       const p = data.fila.find(x=>x.id===id); if(!p) return;
       const motivo = await promptDialog('Remover pessoa', `Motivo para remover ${p.nome} da fila:`, '');
@@ -285,10 +370,11 @@
       data.fila = data.fila.filter(x=>x.id!==id); log('MEMBRO REMOVIDO', `${p.nome} foi removido da fila. Motivo: ${motivo.trim()}`); await persistAndRender();
     }
 
-    $('setCoordenador').addEventListener('click', async()=>{ data.userModes[memberKey()]='coordenador'; mode='coordenador'; await persistAndRender(); });
-    $('setMembro').addEventListener('click', async()=>{ data.userModes[memberKey()]='membro'; mode='membro'; await persistAndRender(); });
-    $('trocarModoBtn').addEventListener('click', async()=>{ const ok=await confirmDialog('Trocar modo','Deseja trocar o modo de acesso desta conta?'); if(!ok) return; delete data.userModes[memberKey()]; mode=''; await persistAndRender(); });
-    $('addPessoa').addEventListener('click', async()=>{ const nome=$('novoNome').value.trim(); if(!nome) return infoDialog('Atenção','Informe o nome da pessoa.'); data.fila.push({id:uid(),nome}); $('novoNome').value=''; log('MEMBRO ADICIONADO', `${nome} foi adicionado à fila.`); coordPage = ensurePage(data.fila.length, 999, pageSize); await persistAndRender(); });
+    $('setCoordenador').addEventListener('click', async()=>{ mode='coordenador'; render(); });
+    $('setMembro').addEventListener('click', async()=>{ mode='membro'; render(); });
+    $('trocarModoBtn').addEventListener('click', async()=>{ const ok=await confirmDialog('Trocar modo','Deseja trocar o modo de acesso desta conta?'); if(!ok) return; mode=''; render(); });
+    $('addPessoa').addEventListener('click', async()=>{ const nome=$('novoNome').value.trim(); const trelloUsername = cleanUsername($('novoUsuario').value); if(!nome) return infoDialog('Atenção','Informe o nome da pessoa.'); data.fila.push({id:uid(),nome,trelloUsername}); $('novoNome').value=''; $('novoUsuario').value=''; log('MEMBRO ADICIONADO', `${nome} foi adicionado à fila${trelloUsername ? ' e vinculado a @' + trelloUsername : ''}.`); coordPage = ensurePage(data.fila.length, 999, pageSize); await persistAndRender(); });
+    $('puxarPessoaBtn').addEventListener('click', async()=>{ const id = $('puxarPessoaSelect').value; if(!id) return infoDialog('Atenção','Selecione uma pessoa.'); await colocarEmPrimeiro(id); });
     $('gerarExtra').addEventListener('click', gerarExtra); $('pularVez').addEventListener('click', pularVez);
 
     function openDialog({title,text='',mode='info',initialValue=''}){ return new Promise(resolve=>{
