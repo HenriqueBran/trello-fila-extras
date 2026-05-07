@@ -14,8 +14,12 @@
       <span id="syncStatus" class="syncStatus">Carregando...</span>
     </div>
 
-    <header class="hero heroCentered">
-      <h1>Fila de Extras</h1>
+    <header id="heroBox" class="hero heroCentered">
+      <div>
+        <h1>Fila de Extras</h1>
+        <p id="heroSubtitle" class="heroSubtitle hide">Controle de extras com modo Coordenador e modo Membro.</p>
+      </div>
+      <span id="modoBadge" class="badge hide">CONFIGURAR</span>
     </header>
 
     <section id="configInicial" class="card hide">
@@ -161,11 +165,16 @@
     }
 
     function render(){
+      const isConfig = !mode;
       $('configInicial').classList.toggle('hide', !!mode);
       $('coordenador').classList.toggle('hide', mode !== 'coordenador');
       $('membro').classList.toggle('hide', mode !== 'membro');
       $('trocarModoBtn').classList.toggle('hide', !mode);
       $('trocarModoHint').classList.toggle('hide', !mode);
+      $('heroBox').classList.toggle('heroCentered', isConfig);
+      $('heroSubtitle').classList.toggle('hide', isConfig);
+      $('modoBadge').classList.toggle('hide', isConfig);
+      $('modoBadge').textContent = mode === 'coordenador' ? 'COORDENADOR' : mode === 'membro' ? 'MEMBRO' : '';
       if(mode === 'coordenador') renderCoordenador();
       if(mode === 'membro') renderMembro();
       t.sizeTo('#document');
