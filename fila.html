@@ -172,7 +172,7 @@
       $('trocarModoBtn').classList.toggle('hide', !mode);
       $('trocarModoHint').classList.toggle('hide', !mode);
       $('heroBox').classList.toggle('heroCentered', isConfig);
-      $('heroSubtitle').classList.toggle('hide', isConfig);
+      $('heroSubtitle').classList.add('hide');
       $('modoBadge').classList.toggle('hide', isConfig);
       $('modoBadge').textContent = mode === 'coordenador' ? 'COORDENADOR' : mode === 'membro' ? 'MEMBRO' : '';
       if(mode === 'coordenador') renderCoordenador();
