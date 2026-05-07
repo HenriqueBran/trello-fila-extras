@@ -1,27 +1,60 @@
-# Fila de Extras v15 - API Central
+# Instalação - Fila de Extras Trello Power-Up
 
-Esta versão usa uma API central na Vercel para todos os usuários do mesmo quadro enxergarem a mesma fila.
+## 1. Subir o projeto
 
-## Importante
-Para persistência real entre contas e deploys, configure um KV/Redis na Vercel/Upstash e adicione estas variáveis de ambiente no projeto da Vercel:
+Suba estes arquivos no GitHub e conecte o repositório à Vercel.
 
-- `KV_REST_API_URL`
-- `KV_REST_API_TOKEN`
+Depois do deploy, use no Trello:
 
-Sem essas variáveis, a API usa memória temporária do servidor. Serve apenas para teste rápido e pode perder dados.
-
-## URLs no Trello
-
+```txt
 Iframe connector URL:
-`https://SUA-URL.vercel.app/index.html`
+https://SUA-URL-VERCEL.vercel.app/index.html
+```
 
-Manifest URL:
-`https://SUA-URL.vercel.app/manifest.json`
+## 2. Variáveis obrigatórias para uso real
 
-## Como usar
+Para manter os dados salvos de forma persistente, configure o KV/Upstash na Vercel e adicione:
 
-1. Suba este projeto na Vercel.
-2. Configure as variáveis KV se quiser persistência real.
-3. Atualize o Power-Up no Trello.
-4. Abra o quadro e clique em Fila de Extras.
-5. Cada usuário escolhe seu modo: Coordenador ou Membro.
+```txt
+KV_REST_API_URL
+KV_REST_API_TOKEN
+```
+
+## 3. Coordenadores autorizados
+
+Para bloquear o acesso ao Modo Coordenador, configure na Vercel:
+
+```txt
+COORDENADORES_TRELLO
+```
+
+Exemplo de valor:
+
+```txt
+henriquebrandaodearruda,danilo.operacao,joao.coordenador
+```
+
+Regras:
+
+- use o usuário Trello sem `@`;
+- se tiver mais de um coordenador, separe por vírgula;
+- depois de editar essa variável, faça **Redeploy** na Vercel;
+- quem não estiver nessa lista não conseguirá entrar como Coordenador;
+- o Modo Membro continua liberado para todos.
+
+## 4. Ativar recursos no Trello
+
+No painel do Power-Up, ative:
+
+```txt
+Botões do quadro
+Botões do cartão
+Mostrar configurações
+```
+
+## 5. Teste recomendado
+
+1. Entre com uma conta autorizada e clique em **Modo Coordenador**.
+2. Entre com uma conta não autorizada e tente clicar em **Modo Coordenador**.
+3. A conta não autorizada deve receber **Acesso negado**.
+4. A conta não autorizada ainda deve conseguir entrar como **Modo Membro**.

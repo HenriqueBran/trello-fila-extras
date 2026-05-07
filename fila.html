@@ -330,6 +330,31 @@
       movePersonToTop(extra.pessoaId); delete data.extrasAceitasCancelaveis[extraId]; await persistAndRender();
     }
 
+    async function validarAcessoCoordenador(){
+      const username = currentUsername();
+      if(!username){
+        await infoDialog('Acesso negado', 'Não foi possível identificar seu usuário Trello. Abra seu perfil do Trello e confira se a conta está correta.');
+        return false;
+      }
+      try {
+        const res = await fetch(`/api/auth-coordenador?username=${encodeURIComponent(username)}&ts=${Date.now()}`);
+        if(!res.ok) throw new Error(await res.text());
+        const json = await res.json();
+        if(!json.configurado){
+          await infoDialog('Lista não configurada', 'A lista de coordenadores autorizados ainda não foi configurada na Vercel. Configure a variável COORDENADORES_TRELLO e faça Redeploy.');
+          return false;
+        }
+        if(!json.autorizado){
+          await infoDialog('Acesso negado', `Seu usuário Trello @${username} não está autorizado como coordenador.`);
+          return false;
+        }
+        return true;
+      } catch(e){
+        await infoDialog('Erro de validação', 'Não foi possível validar a lista de coordenadores autorizados. Confira o deploy/API na Vercel.');
+        return false;
+      }
+    }
+
     window.colocarEmPrimeiro = async function(id){
       const idx = data.fila.findIndex(p=>p.id===id);
       if(idx <= 0) return;
@@ -376,7 +401,12 @@
       data.fila = data.fila.filter(x=>x.id!==id); log('MEMBRO REMOVIDO', `${p.nome} foi removido da fila. Motivo: ${motivo.trim()}`); await persistAndRender();
     }
 
-    $('setCoordenador').addEventListener('click', async()=>{ mode='coordenador'; render(); });
+    $('setCoordenador').addEventListener('click', async()=>{
+      const autorizado = await validarAcessoCoordenador();
+      if(!autorizado) return;
+      mode='coordenador';
+      render();
+    });
     $('setMembro').addEventListener('click', async()=>{ mode='membro'; render(); });
     $('trocarModoBtn').addEventListener('click', async()=>{ const ok=await confirmDialog('Trocar modo','Deseja trocar o modo de acesso desta conta?'); if(!ok) return; mode=''; render(); });
     $('addPessoa').addEventListener('click', async()=>{ const nome=$('novoNome').value.trim(); const trelloUsername = cleanUsername($('novoUsuario').value); if(!nome) return infoDialog('Atenção','Informe o nome da pessoa.'); data.fila.push({id:uid(),nome,trelloUsername}); $('novoNome').value=''; $('novoUsuario').value=''; log('MEMBRO ADICIONADO', `${nome} foi adicionado à fila${trelloUsername ? ' e vinculado a @' + trelloUsername : ''}.`); coordPage = ensurePage(data.fila.length, 999, pageSize); await persistAndRender(); });
