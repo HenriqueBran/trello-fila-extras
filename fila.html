@@ -14,9 +14,8 @@
       <span id="syncStatus" class="syncStatus">Carregando...</span>
     </div>
 
-    <header class="hero">
-      <div><h1>Fila de Extras</h1></div>
-      <span id="modoBadge" class="badge">Carregando...</span>
+    <header class="hero heroCentered">
+      <h1>Fila de Extras</h1>
     </header>
 
     <section id="configInicial" class="card hide">
@@ -162,7 +161,6 @@
     }
 
     function render(){
-      $('modoBadge').textContent = mode ? mode.toUpperCase() : 'CONFIGURAR';
       $('configInicial').classList.toggle('hide', !!mode);
       $('coordenador').classList.toggle('hide', mode !== 'coordenador');
       $('membro').classList.toggle('hide', mode !== 'membro');
