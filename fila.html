@@ -176,7 +176,7 @@
       const termo = $('novoNome')?.value || $('novoUsuario')?.value || '';
       const matches = buscarMembrosDoQuadro(termo);
       if(!matches.length){
-        box.innerHTML = '<div class="suggestEmpty">Nenhum membro encontrado no quadro.</div>';
+        box.innerHTML = boardMembers.length ? '<div class="suggestEmpty">Nenhum membro encontrado no quadro.</div>' : '<div class="suggestEmpty">Não foi possível carregar membros do quadro. Verifique se as pessoas estão adicionadas ao quadro e atualize o Trello.</div>';
         box.classList.remove('hide');
         return;
       }
