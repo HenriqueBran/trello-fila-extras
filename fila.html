@@ -483,6 +483,22 @@
     $('puxarPessoaBtn').addEventListener('click', async()=>{ const id = $('puxarPessoaSelect').value; if(!id) return infoDialog('Atenção','Selecione uma pessoa.'); await colocarEmPrimeiro(id); });
     $('gerarExtra').addEventListener('click', gerarExtra); $('pularVez').addEventListener('click', pularVez);
 
+    function bindMemberSuggestions(){
+      const nome = $('novoNome');
+      const usuario = $('novoUsuario');
+      const box = $('membroSugestoes');
+      if(!nome || !usuario || !box) return;
+      const show = () => renderSugestoesMembros();
+      nome.addEventListener('input', show);
+      nome.addEventListener('focus', show);
+      usuario.addEventListener('input', show);
+      usuario.addEventListener('focus', show);
+      document.addEventListener('click', (ev) => {
+        if(!ev.target.closest('.inputRowSuggest')) esconderSugestoes();
+      });
+    }
+    bindMemberSuggestions();
+
     function openDialog({title,text='',mode='info',initialValue=''}){ return new Promise(resolve=>{
       $('dialogTitle').textContent=title||'Aviso'; $('dialogText').textContent=text||''; $('dialogInput').classList.add('hide'); $('dialogTextarea').classList.add('hide'); $('dialogCancel').classList.toggle('hide', mode==='info');
       $('dialogCancel').onclick=()=>close(null); $('dialogOk').onclick=()=>{ if(mode==='prompt') return close($('dialogInput').value); if(mode==='textarea') return close($('dialogTextarea').value); close(true); };
