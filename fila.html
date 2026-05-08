@@ -45,9 +45,12 @@
 
       <section class="card">
         <h2>Gerenciar fila</h2>
-        <div class="inputRow">
-          <input id="novoNome" placeholder="Nome da pessoa" />
-          <input id="novoUsuario" placeholder="Usuário Trello" />
+        <div class="inputRow inputRowSuggest">
+          <input id="novoNome" placeholder="Nome da pessoa" autocomplete="off" />
+          <div class="suggestWrap">
+            <input id="novoUsuario" placeholder="Usuário Trello" autocomplete="off" />
+            <div id="membroSugestoes" class="suggestions hide"></div>
+          </div>
           <button class="btn dark" id="addPessoa">Adicionar</button>
         </div>
         <div class="quickTopBox">
@@ -115,6 +118,7 @@
     let data = structuredClone(DEFAULT_DATA);
     let board = null;
     let member = null;
+    let boardMembers = [];
     let mode = '';
     let coordPage = 1, membroPage = 1, histCoordPage = 1, histMembroPage = 1;
     const pageSize = 3, histPageSize = 4;
@@ -125,6 +129,71 @@
     const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
     const cleanUsername = (v) => String(v || '').trim().replace(/^@+/, '').toLowerCase();
     const currentUsername = () => cleanUsername(member?.username || '');
+
+    function normalizeBoardMember(m){
+      return {
+        id: m?.id || '',
+        fullName: String(m?.fullName || m?.name || '').trim(),
+        username: cleanUsername(m?.username || '')
+      };
+    }
+
+    async function loadBoardMembers(){
+      try {
+        const info = await t.board('members');
+        const list = Array.isArray(info?.members) ? info.members : (Array.isArray(info) ? info : []);
+        boardMembers = list.map(normalizeBoardMember).filter(m => m.fullName || m.username);
+      } catch(e) {
+        boardMembers = [];
+      }
+    }
+
+    function buscarMembrosDoQuadro(query){
+      const q = cleanUsername(query).replace(/\s+/g, ' ');
+      if(!q) return [];
+      return boardMembers.filter(m => {
+        const nome = cleanUsername(m.fullName).replace(/\s+/g, ' ');
+        const user = cleanUsername(m.username);
+        return nome.includes(q) || user.includes(q);
+      }).slice(0, 8);
+    }
+
+    function selecionarMembroSugestao(username, fullName){
+      $('novoNome').value = fullName || '';
+      $('novoUsuario').value = cleanUsername(username);
+      esconderSugestoes();
+    }
+    window.selecionarMembroSugestao = selecionarMembroSugestao;
+
+    function esconderSugestoes(){
+      const box = $('membroSugestoes');
+      if(box) box.classList.add('hide');
+    }
+
+    function renderSugestoesMembros(){
+      const box = $('membroSugestoes');
+      if(!box) return;
+      const termo = $('novoNome')?.value || $('novoUsuario')?.value || '';
+      const matches = buscarMembrosDoQuadro(termo);
+      if(!matches.length){
+        box.innerHTML = '<div class="suggestEmpty">Nenhum membro encontrado no quadro.</div>';
+        box.classList.remove('hide');
+        return;
+      }
+      box.innerHTML = matches.map((m, idx) => `
+        <button type="button" class="suggestItem" data-suggest-idx="${idx}">
+          <b>${escapeHtml(m.fullName || m.username)}</b>
+          <small>@${escapeHtml(m.username || 'sem-usuario')}</small>
+        </button>`).join('');
+      box.__matches = matches;
+      box.querySelectorAll('.suggestItem').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const item = box.__matches[Number(btn.dataset.suggestIdx)];
+          if(item) selecionarMembroSugestao(item.username, item.fullName);
+        });
+      });
+      box.classList.remove('hide');
+    }
 
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
     function normalize(d){
@@ -160,6 +229,7 @@
     async function init(){
       board = await t.board('id', 'name');
       try { member = await t.member('id', 'fullName', 'username'); } catch(e){ member = { id: 'sem-id', fullName: 'Usuário Trello' }; }
+      await loadBoardMembers();
       try { await apiGet(); $('syncStatus').textContent = 'Dados compartilhados'; } catch(e){ $('syncStatus').textContent = 'Erro ao carregar dados'; await infoDialog('Erro', 'Não foi possível carregar os dados compartilhados.'); }
       render();
     }
