@@ -54,12 +54,13 @@
           <button class="btn dark" id="addPessoa">Adicionar</button>
         </div>
         <div class="quickTopBox">
-          <label for="puxarPessoaSelect">Puxar qualquer pessoa para o 1º lugar</label>
-          <div class="quickTopRow">
+          <label for="puxarPessoaSelect">Alterar posição de uma pessoa na fila</label>
+          <div class="quickTopRow positionRow">
             <select id="puxarPessoaSelect"></select>
-            <button class="btn primary" id="puxarPessoaBtn">Colocar em 1º</button>
+            <select id="posicaoDestinoSelect"></select>
+            <button class="btn primary" id="puxarPessoaBtn">Mover pessoa</button>
           </div>
-          <p class="muted small">Use para chamar alguém que está em outra aba da fila, sem precisar pular pessoa por pessoa.</p>
+          <p class="muted small">Use para colocar uma pessoa em qualquer posição da fila, sem precisar pular pessoa por pessoa.</p>
         </div>
         <div id="listaCoordenador" class="list"></div>
         <div id="paginacaoCoordenador" class="pagination"></div>
@@ -284,21 +285,29 @@
     }
     function renderQuickTopSelect(){
       const select = $('puxarPessoaSelect');
-      if(!select) return;
+      const posSelect = $('posicaoDestinoSelect');
+      if(!select || !posSelect) return;
       if(!data.fila.length){
         select.innerHTML = '<option value="">Nenhuma pessoa cadastrada</option>';
+        posSelect.innerHTML = '<option value="">Sem posições</option>';
         select.disabled = true;
+        posSelect.disabled = true;
         $('puxarPessoaBtn').disabled = true;
         return;
       }
       select.disabled = false;
-      $('puxarPessoaBtn').disabled = false;
+      posSelect.disabled = false;
+      $('puxarPessoaBtn').disabled = data.fila.length < 2;
       select.innerHTML = data.fila.map((p, i) => {
         const label = `${i+1}. ${p.nome}${i === 0 ? ' (atual)' : ''}`;
-        return `<option value="${p.id}" ${i===0 ? 'disabled' : ''}>${escapeHtml(label)}</option>`;
+        return `<option value="${p.id}">${escapeHtml(label)}</option>`;
+      }).join('');
+      posSelect.innerHTML = data.fila.map((p, i) => {
+        return `<option value="${i}">${i+1}º lugar</option>`;
       }).join('');
       if(data.fila.length > 1){
         select.value = data.fila[1].id;
+        posSelect.value = '0';
       }
     }
 
@@ -425,17 +434,19 @@
       }
     }
 
-    window.colocarEmPrimeiro = async function(id){
+    window.colocarNaPosicao = async function(id, targetIndex){
       const idx = data.fila.findIndex(p=>p.id===id);
-      if(idx <= 0) return;
+      targetIndex = Number(targetIndex);
+      if(idx < 0 || Number.isNaN(targetIndex) || targetIndex < 0 || targetIndex >= data.fila.length) return;
+      if(idx === targetIndex) return infoDialog('Atenção', 'Essa pessoa já está nessa posição.');
       const p = data.fila[idx];
-      const motivo = await promptDialog('Colocar em 1º', `Justificativa para colocar ${p.nome} em primeiro lugar:`, '');
+      const motivo = await promptDialog('Alterar posição', `Justificativa para mover ${p.nome} para a posição ${targetIndex + 1}:`, '');
       if(motivo===null) return;
       if(!motivo.trim()) return infoDialog('Atenção','Justificativa obrigatória.');
       data.fila.splice(idx,1);
-      data.fila.unshift(p);
-      coordPage = 1;
-      log('ORDEM ALTERADA', `${p.nome} foi colocado em 1º lugar. Justificativa: ${motivo.trim()}`);
+      data.fila.splice(targetIndex,0,p);
+      coordPage = ensurePage(targetIndex + 1, 1, pageSize);
+      log('ORDEM ALTERADA', `${p.nome} foi movido para a posição ${targetIndex + 1}. Justificativa: ${motivo.trim()}`);
       await persistAndRender();
     }
 
@@ -480,7 +491,7 @@
     $('setMembro').addEventListener('click', async()=>{ mode='membro'; render(); });
     $('trocarModoBtn').addEventListener('click', async()=>{ const ok=await confirmDialog('Trocar modo','Deseja trocar o modo de acesso desta conta?'); if(!ok) return; mode=''; render(); });
     $('addPessoa').addEventListener('click', async()=>{ const nome=$('novoNome').value.trim(); const trelloUsername = cleanUsername($('novoUsuario').value); if(!nome) return infoDialog('Atenção','Informe o nome da pessoa.'); data.fila.push({id:uid(),nome,trelloUsername}); $('novoNome').value=''; $('novoUsuario').value=''; log('MEMBRO ADICIONADO', `${nome} foi adicionado à fila${trelloUsername ? ' e vinculado a @' + trelloUsername : ''}.`); coordPage = ensurePage(data.fila.length, 999, pageSize); await persistAndRender(); });
-    $('puxarPessoaBtn').addEventListener('click', async()=>{ const id = $('puxarPessoaSelect').value; if(!id) return infoDialog('Atenção','Selecione uma pessoa.'); await colocarEmPrimeiro(id); });
+    $('puxarPessoaBtn').addEventListener('click', async()=>{ const id = $('puxarPessoaSelect').value; const targetIndex = $('posicaoDestinoSelect').value; if(!id) return infoDialog('Atenção','Selecione uma pessoa.'); await colocarNaPosicao(id, targetIndex); });
     $('gerarExtra').addEventListener('click', gerarExtra); $('pularVez').addEventListener('click', pularVez);
 
     function bindMemberSuggestions(){
