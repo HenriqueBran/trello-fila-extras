@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fila de Extras</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbarInternal">
+      <button id="trocarModoBtn" class="btn linklike hide">← Voltar</button>
+      <span id="trocarModoHint" class="muted small hide">Trocar modo de acesso: Coordenador ou Membro</span>
+      <span id="syncStatus" class="syncStatus">Carregando...</span>
+      <button id="refreshNowBtn" class="btn ghost refreshBtn" type="button">Atualizar agora</button>
+    </div>
+
+    <header id="heroBox" class="hero heroCentered">
+      <div>
+        <h1>Fila de Extras</h1>
+        <p id="heroSubtitle" class="heroSubtitle hide">Controle de extras com modo Coordenador e modo Membro.</p>
+      </div>
+      <span id="modoBadge" class="badge hide">CONFIGURAR</span>
+    </header>
+
+    <section id="configInicial" class="card hide">
+      <h2>Configuração de acesso</h2>
+      <p class="muted">Escolha como esta conta vai usar o painel neste quadro.</p>
+      <div class="row gap">
+        <button class="btn primary" id="setCoordenador">Usar como Modo Coordenador</button>
+        <button class="btn dark" id="setMembro">Usar como Modo Membro</button>
+      </div>
+    </section>
+
+    <main id="coordenador" class="grid hide">
+      <section class="card">
+        <h2>Pessoa da vez</h2>
+        <div id="pessoaDaVez" class="person">Nenhuma pessoa cadastrada</div>
+        <div id="extraStatus" class="status muted">Nenhuma extra ativa.</div>
+        <div class="actions">
+          <button class="btn green" id="gerarExtra">Gerar extra</button>
+          <button class="btn orange" id="pularVez">Pular vez</button>
+        </div>
+        <p class="muted small">Pular vez exige motivo. O cancelamento fica disponível no histórico conforme o status da solicitação.</p>
+      </section>
+
+      <section class="card">
+        <h2>Gerenciar fila</h2>
+        <div class="inputRow inputRowSuggest">
+          <input id="novoNome" placeholder="Nome da pessoa" autocomplete="off" />
+          <div class="suggestWrap">
+            <input id="novoUsuario" placeholder="Usuário Trello" autocomplete="off" />
+            <div id="membroSugestoes" class="suggestions hide"></div>
+          </div>
+          <button class="btn dark" id="addPessoa">Adicionar</button>
+        </div>
+        <div class="quickTopBox">
+          <label for="puxarPessoaSelect">Alterar posição de uma pessoa na fila</label>
+          <div class="quickTopRow positionRow">
+            <select id="puxarPessoaSelect"></select>
+            <select id="posicaoDestinoSelect"></select>
+            <button class="btn primary" id="puxarPessoaBtn">Mover pessoa</button>
+          </div>
+          <p class="muted small">Use para colocar uma pessoa em qualquer posição da fila, sem precisar pular pessoa por pessoa.</p>
+        </div>
+        <div id="listaCoordenador" class="list"></div>
+        <div id="paginacaoCoordenador" class="pagination"></div>
+      </section>
+
+      <section class="card full">
+        <div class="row between">
+          <h2>Histórico completo</h2>
+          <span class="muted small">Histórico mensal</span>
+        </div>
+        <div id="historicoCoordenador" class="history"></div>
+        <div id="paginacaoHistCoordenador" class="pagination"></div>
+      </section>
+    </main>
+
+    <main id="membro" class="grid hide">
+      <section class="card">
+        <h2>Fila pública</h2>
+        <div id="listaMembro" class="list public"></div>
+        <div id="paginacaoMembro" class="pagination"></div>
+      </section>
+
+      <section class="card">
+        <h2>Extras ativas</h2>
+        <div id="membroExtraBox"></div>
+      </section>
+
+      <section class="card full">
+        <div class="row between">
+          <h2>Histórico público</h2>
+          <span class="muted small">Histórico mensal</span>
+        </div>
+        <div id="historicoMembro" class="history"></div>
+        <div id="paginacaoHistMembro" class="pagination"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="appDialog" class="dialogOverlay hide">
+    <div class="dialogBox">
+      <div class="dialogTitle" id="dialogTitle">Aviso</div>
+      <div class="dialogText" id="dialogText"></div>
+      <input id="dialogInput" class="dialogInput hide" />
+      <textarea id="dialogTextarea" class="dialogTextarea hide"></textarea>
+      <div class="dialogActions">
+        <button class="btn dark hide" id="dialogCancel">Cancelar</button>
+        <button class="btn primary" id="dialogOk">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://p.trellocdn.com/power-up.min.js"></script>
+  <script>
+    const t = window.TrelloPowerUp.iframe();
+    const DEFAULT_DATA = { fila: [], extrasAtivas: [], historico: [], historicoMes: '', historicoArquivado: {}, fechamentoMensal: {}, extrasAceitasCancelaveis: {}, userModes: {} };
+    let data = structuredClone(DEFAULT_DATA);
+    let board = null;
+    let member = null;
+    let boardMembers = [];
+    let mode = '';
+    let coordPage = 1, membroPage = 1, histCoordPage = 1, histMembroPage = 1;
+    const pageSize = 3, histPageSize = 4;
+    let dragId = null;
+
+    const $ = (id) => document.getElementById(id);
+    const now = () => new Date().toLocaleString('pt-BR');
+    const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const cleanUsername = (v) => String(v || '').trim().replace(/^@+/, '').toLowerCase();
+    const currentUsername = () => cleanUsername(member?.username || '');
+
+    function normalizeBoardMember(m){
+      return {
+        id: m?.id || '',
+        fullName: String(m?.fullName || m?.name || '').trim(),
+        username: cleanUsername(m?.username || '')
+      };
+    }
+
+    async function loadBoardMembers(){
+      try {
+        const info = await t.board('members');
+        const list = Array.isArray(info?.members) ? info.members : (Array.isArray(info) ? info : []);
+        boardMembers = list.map(normalizeBoardMember).filter(m => m.fullName || m.username);
+      } catch(e) {
+        boardMembers = [];
+      }
+    }
+
+    function buscarMembrosDoQuadro(query){
+      const q = cleanUsername(query).replace(/\s+/g, ' ');
+      if(!q) return [];
+      return boardMembers.filter(m => {
+        const nome = cleanUsername(m.fullName).replace(/\s+/g, ' ');
+        const user = cleanUsername(m.username);
+        return nome.includes(q) || user.includes(q);
+      }).slice(0, 8);
+    }
+
+    function selecionarMembroSugestao(username, fullName){
+      $('novoNome').value = fullName || '';
+      $('novoUsuario').value = cleanUsername(username);
+      esconderSugestoes();
+    }
+    window.selecionarMembroSugestao = selecionarMembroSugestao;
+
+    function esconderSugestoes(){
+      const box = $('membroSugestoes');
+      if(box) box.classList.add('hide');
+    }
+
+    function renderSugestoesMembros(){
+      const box = $('membroSugestoes');
+      if(!box) return;
+      const termo = $('novoNome')?.value || $('novoUsuario')?.value || '';
+      const matches = buscarMembrosDoQuadro(termo);
+      if(!matches.length){
+        box.innerHTML = boardMembers.length ? '<div class="suggestEmpty">Nenhum membro encontrado no quadro.</div>' : '<div class="suggestEmpty">Não foi possível carregar membros do quadro. Verifique se as pessoas estão adicionadas ao quadro e atualize o Trello.</div>';
+        box.classList.remove('hide');
+        return;
+      }
+      box.innerHTML = matches.map((m, idx) => `
+        <button type="button" class="suggestItem" data-suggest-idx="${idx}">
+          <b>${escapeHtml(m.fullName || m.username)}</b>
+          <small>@${escapeHtml(m.username || 'sem-usuario')}</small>
+        </button>`).join('');
+      box.__matches = matches;
+      box.querySelectorAll('.suggestItem').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const item = box.__matches[Number(btn.dataset.suggestIdx)];
+          if(item) selecionarMembroSugestao(item.username, item.fullName);
+        });
+      });
+      box.classList.remove('hide');
+    }
+
+    function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+    function normalize(d){
+      const b = Object.assign(structuredClone(DEFAULT_DATA), d || {});
+      b.fila = Array.isArray(b.fila) ? b.fila.map(p => ({...p, trelloUsername: cleanUsername(p.trelloUsername || p.username || '')})) : [];
+      b.extrasAtivas = Array.isArray(b.extrasAtivas) ? b.extrasAtivas : [];
+      b.historico = Array.isArray(b.historico) ? b.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
+      b.historicoMes = typeof b.historicoMes === 'string' ? b.historicoMes : '';
+      b.historicoArquivado = b.historicoArquivado && typeof b.historicoArquivado === 'object' ? b.historicoArquivado : {};
+      b.fechamentoMensal = b.fechamentoMensal && typeof b.fechamentoMensal === 'object' ? b.fechamentoMensal : {};
+      b.extrasAceitasCancelaveis = b.extrasAceitasCancelaveis && typeof b.extrasAceitasCancelaveis === 'object' ? b.extrasAceitasCancelaveis : {};
+      b.userModes = b.userModes && typeof b.userModes === 'object' ? b.userModes : {};
+      return b;
+    }
+    function memberKey(){ return member?.id || member?.username || 'usuario'; }
+
+    async function apiGet(){
+      const res = await fetch(`/api/store?boardId=${encodeURIComponent(board.id)}&ts=${Date.now()}`);
+      if(!res.ok) throw new Error(await res.text());
+      data = normalize(await res.json());
+    }
+    async function apiSave(){
+      data = normalize(data);
+      const res = await fetch(`/api/store?boardId=${encodeURIComponent(board.id)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ data }) });
+      if(!res.ok) throw new Error(await res.text());
+      const json = await res.json();
+      data = normalize(json.data || data);
+      // O modo de acesso não é salvo; toda abertura começa no menu inicial.
+      mode = mode || '';
+    }
+    async function persistAndRender(){ await apiSave(); render(); }
+    function isDialogOpen(){ return !$('appDialog').classList.contains('hide'); }
+    async function atualizarDadosManual(){
+      try {
+        $('syncStatus').textContent = 'Atualizando...';
+        await apiGet();
+        render();
+        $('syncStatus').textContent = 'Atualizado agora';
+      } catch(e) {
+        $('syncStatus').textContent = 'Erro ao atualizar';
+      }
+    }
+    async function autoAtualizarDados(){
+      if(!board || isDialogOpen()) return;
+      try {
+        await apiGet();
+        render();
+        $('syncStatus').textContent = 'Atualizado automaticamente';
+      } catch(e) {
+        $('syncStatus').textContent = 'Falha na atualização automática';
+      }
+    }
+    function log(acao, texto, meta = {}){ data.historico.unshift({ id: uid(), acao, texto, usuario: member?.fullName || member?.username || 'Usuário', data: now(), ...meta }); }
+    function pessoaDaVez(){ return data.fila[0] || null; }
+
+    async function init(){
+      board = await t.board('id', 'name');
+      try { member = await t.member('id', 'fullName', 'username'); } catch(e){ member = { id: 'sem-id', fullName: 'Usuário Trello' }; }
+      await loadBoardMembers();
+      try { await apiGet(); $('syncStatus').textContent = 'Dados compartilhados'; } catch(e){ $('syncStatus').textContent = 'Erro ao carregar dados'; await infoDialog('Erro', 'Não foi possível carregar os dados compartilhados.'); }
+      render();
+      setInterval(autoAtualizarDados, 10000);
+    }
+
+    function render(){
+      const isConfig = !mode;
+      $('configInicial').classList.toggle('hide', !!mode);
+      $('coordenador').classList.toggle('hide', mode !== 'coordenador');
+      $('membro').classList.toggle('hide', mode !== 'membro');
+      $('trocarModoBtn').classList.toggle('hide', !mode);
+      $('trocarModoHint').classList.toggle('hide', !mode);
+      $('heroBox').classList.toggle('heroCentered', isConfig);
+      $('heroSubtitle').classList.add('hide');
+      $('modoBadge').classList.toggle('hide', isConfig);
+      $('modoBadge').textContent = mode === 'coordenador' ? 'COORDENADOR' : mode === 'membro' ? 'MEMBRO' : '';
+      if(mode === 'coordenador') renderCoordenador();
+      if(mode === 'membro') renderMembro();
+      t.sizeTo('#document');
+    }
+    function ensurePage(total, current, size){ const pages = Math.max(1, Math.ceil(total / size)); return Math.min(Math.max(1, current), pages); }
+    function pageButtons(containerId, total, current, size, fn){
+      const pages = Math.ceil(total / size); const el = $(containerId); if(!el) return;
+      if(pages <= 1){ el.innerHTML = ''; return; }
+      el.innerHTML = Array.from({length:pages}, (_,i)=>`<button class="pageBtn ${i+1===current?'active':''}" onclick="${fn}(${i+1})">${i+1}</button>`).join('');
+    }
+    window.setCoordPage = p => { coordPage = p; render(); };
+    window.setMembroPage = p => { membroPage = p; render(); };
+    window.setHistCoordPage = p => { histCoordPage = p; render(); };
+    window.setHistMembroPage = p => { histMembroPage = p; render(); };
+
+    function renderCoordenador(){
+      const vez = pessoaDaVez();
+      $('pessoaDaVez').textContent = vez ? vez.nome : 'Nenhuma pessoa cadastrada';
+      $('extraStatus').innerHTML = data.extrasAtivas.length ? `<b>${data.extrasAtivas.length}</b> extra(s) aguardando resposta.` : 'Nenhuma extra ativa.';
+      renderQuickTopSelect();
+      const total = data.fila.length; coordPage = ensurePage(total, coordPage, pageSize);
+      const start = (coordPage - 1) * pageSize;
+      const itens = data.fila.slice(start, start + pageSize);
+      $('listaCoordenador').innerHTML = itens.map((p, idx) => {
+        const real = start + idx;
+        return `<div class="item ${real===0?'first':''}" draggable="true" data-id="${p.id}">
+          <span class="dragHandle" title="Arrastar">☰</span>
+          <div style="flex:1"><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small><small>${p.trelloUsername ? '@' + escapeHtml(p.trelloUsername) : 'Usuário Trello não vinculado'}</small></div>
+          <div class="miniBtns">
+            <button onclick="editarUsuario('${p.id}')">Editar usuário</button>
+            <button class="remove" onclick="removePessoa('${p.id}')">Remover</button>
+          </div>
+        </div>`;
+      }).join('') || '<p class="muted">Nenhuma pessoa cadastrada.</p>';
+      pageButtons('paginacaoCoordenador', total, coordPage, pageSize, 'setCoordPage');
+      bindDrag(); renderHistory('historicoCoordenador', 'paginacaoHistCoordenador', true);
+    }
+    function renderQuickTopSelect(){
+      const select = $('puxarPessoaSelect');
+      const posSelect = $('posicaoDestinoSelect');
+      if(!select || !posSelect) return;
+      if(!data.fila.length){
+        select.innerHTML = '<option value="">Nenhuma pessoa cadastrada</option>';
+        posSelect.innerHTML = '<option value="">Sem posições</option>';
+        select.disabled = true;
+        posSelect.disabled = true;
+        $('puxarPessoaBtn').disabled = true;
+        return;
+      }
+      select.disabled = false;
+      posSelect.disabled = false;
+      $('puxarPessoaBtn').disabled = data.fila.length < 2;
+      select.innerHTML = data.fila.map((p, i) => {
+        const label = `${i+1}. ${p.nome}${i === 0 ? ' (atual)' : ''}`;
+        return `<option value="${p.id}">${escapeHtml(label)}</option>`;
+      }).join('');
+      posSelect.innerHTML = data.fila.map((p, i) => {
+        return `<option value="${i}">${i+1}º lugar</option>`;
+      }).join('');
+      if(data.fila.length > 1){
+        select.value = data.fila[1].id;
+        posSelect.value = '0';
+      }
+    }
+
+    function renderMembro(){
+      const total = data.fila.length; membroPage = ensurePage(total, membroPage, pageSize);
+      const start = (membroPage - 1) * pageSize;
+      $('listaMembro').innerHTML = data.fila.slice(start, start + pageSize).map((p, idx)=>{
+        const real = start + idx;
+        const myUser = currentUsername();
+        const vinculado = p.trelloUsername && p.trelloUsername === myUser;
+        const semVinculo = !p.trelloUsername;
+        return `<div class="item ${real===0?'first':''}"><div><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small><small>${vinculado ? 'Vinculado a você: @' + escapeHtml(myUser) : (p.trelloUsername ? '@' + escapeHtml(p.trelloUsername) : 'Usuário Trello não vinculado')}</small></div>${semVinculo && myUser ? `<button class="btn ghost miniAction" onclick="vincularMinhaConta('${p.id}')">Sou eu</button>` : ''}</div>`;
+      }).join('') || '<p class="muted">Fila ainda não cadastrada.</p>';
+      pageButtons('paginacaoMembro', total, membroPage, pageSize, 'setMembroPage');
+      const minhasExtras = data.extrasAtivas.filter(e => cleanUsername(e.pessoaUsername) === currentUsername());
+      if(!minhasExtras.length){
+        const totalOutras = data.extrasAtivas.length;
+        $('membroExtraBox').innerHTML = `<p class="muted">Nenhuma extra disponível para você no momento.</p>${totalOutras ? '<p class="muted small">Existe solicitação ativa para outro membro da fila.</p>' : ''}`;
+      }
+      else {
+        $('membroExtraBox').innerHTML = `<div class="extrasList">${minhasExtras.map(e=>`<div class="extraCard"><div class="notice"><b>${escapeHtml(e.pessoaNome)}</b>, você foi chamado para uma extra.</div><p><b>Descrição:</b> ${escapeHtml(e.descricao || 'Extra gerada pelo coordenador.')}</p><div class="actions"><button class="btn green" onclick="aceitarExtra('${e.id}')">Aceitar extra</button><button class="btn red" onclick="recusarExtra('${e.id}')">Recusar extra</button></div></div>`).join('')}</div>`;
+      }
+      renderHistory('historicoMembro', 'paginacaoHistMembro', false);
+    }
+    function histClass(acao){ if(acao==='EXTRA ACEITA') return 'ok'; if(acao==='EXTRA RECUSADA'||acao==='EXTRA CANCELADA') return 'danger'; if(acao==='VEZ PULADA') return 'warn'; return 'neutral'; }
+    function renderHistory(target, pager, isCoord){
+      const items = data.historico || [];
+      let page = isCoord ? histCoordPage : histMembroPage;
+      page = ensurePage(items.length, page, histPageSize); if(isCoord) histCoordPage = page; else histMembroPage = page;
+      const start = (page - 1) * histPageSize;
+      $(target).innerHTML = items.slice(start, start + histPageSize).map(h => {
+        const pending = isCoord && h.acao === 'EXTRA GERADA' && data.extrasAtivas.some(e => e.id === h.extraId);
+        const accepted = isCoord && h.acao === 'EXTRA ACEITA' && data.extrasAceitasCancelaveis[h.extraId];
+        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div>${pending ? `<button class="btn red miniAction" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}</div></div>`;
+      }).join('') || '<p class="muted">Nenhuma ação registrada.</p>';
+      pageButtons(pager, items.length, page, histPageSize, isCoord ? 'setHistCoordPage' : 'setHistMembroPage');
+    }
+
+    function bindDrag(){
+      document.querySelectorAll('#listaCoordenador .item').forEach(el => {
+        el.addEventListener('dragstart', () => { dragId = el.dataset.id; el.classList.add('dragging'); });
+        el.addEventListener('dragend', () => el.classList.remove('dragging'));
+        el.addEventListener('dragover', e => e.preventDefault());
+        el.addEventListener('drop', async e => { e.preventDefault(); const targetId = el.dataset.id; if(dragId && targetId && dragId !== targetId) await reorderByDrag(dragId, targetId); dragId = null; });
+      });
+    }
+    async function reorderByDrag(fromId, toId){
+      const from = data.fila.findIndex(p=>p.id===fromId), to = data.fila.findIndex(p=>p.id===toId);
+      if(from<0||to<0||from===to) return;
+      const moved = data.fila[from]; const motivo = await promptDialog('Justificar alteração da fila', `Motivo para mover ${moved.nome} para a posição ${to+1}:`, '');
+      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Justificativa obrigatória.');
+      data.fila.splice(from,1); data.fila.splice(to,0,moved);
+      log('ORDEM ALTERADA', `${moved.nome} foi movido manualmente para a posição ${to+1}. Justificativa: ${motivo.trim()}`);
+      await persistAndRender();
+    }
+
+    function moveOneDownFirst(){ if(data.fila.length > 1){ const first = data.fila.shift(); data.fila.splice(1,0,first); } }
+    function advanceQueueAfterGenerate(){ if(data.fila.length > 1) data.fila.push(data.fila.shift()); }
+    function movePersonToTop(id){ const idx = data.fila.findIndex(p=>p.id===id); if(idx>0){ const item=data.fila.splice(idx,1)[0]; data.fila.unshift(item); } }
+
+    async function gerarExtra(){
+      const p = pessoaDaVez(); if(!p) return infoDialog('Atenção','Cadastre pessoas na fila primeiro.');
+      if(!p.trelloUsername) return infoDialog('Atenção', `Vincule o usuário Trello de ${p.nome} antes de gerar a extra. Assim o aceite aparece somente para essa pessoa.`);
+      const descricao = await promptDialog('Gerar extra', 'Descreva a extra que será lançada:', 'Extra disponível para atendimento.');
+      if(descricao === null) return;
+      const extra = { id: uid(), pessoaId:p.id, pessoaNome:p.nome, pessoaUsername:p.trelloUsername, descricao, status:'AGUARDANDO', criadaEm:now() };
+      data.extrasAtivas.push(extra); log('EXTRA GERADA', `Extra gerada para ${p.nome}.`, { extraId: extra.id }); advanceQueueAfterGenerate(); await persistAndRender();
+    }
+    async function pularVez(){
+      const p = pessoaDaVez(); if(!p) return infoDialog('Atenção','Não há pessoa na fila.');
+      const motivo = await promptDialog('Pular vez', `Motivo para pular a vez de ${p.nome}:`, '');
+      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      log('VEZ PULADA', `${p.nome} teve a vez pulada. Motivo: ${motivo.trim()}`); moveOneDownFirst(); await persistAndRender();
+    }
+    window.aceitarExtra = async function(extraId){
+      const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
+      log('EXTRA ACEITA', `${extra.pessoaNome} aceitou a extra.`, { extraId: extra.id });
+      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); data.extrasAceitasCancelaveis[extraId] = extra; await persistAndRender();
+    }
+    window.recusarExtra = async function(extraId){
+      const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
+      const motivo = await promptDialog('Recusar extra','Motivo da recusa:', '');
+      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      log('EXTRA RECUSADA', `${extra.pessoaNome} recusou a extra. Motivo: ${motivo.trim()}`, { extraId });
+      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); await persistAndRender();
+    }
+    window.cancelarSolicitacao = async function(extraId){
+      const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
+      const motivo = await promptDialog('Cancelar solicitação','Motivo do cancelamento:', '');
+      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      log('EXTRA CANCELADA', `Solicitação de ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
+      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); movePersonToTop(extra.pessoaId); await persistAndRender();
+    }
+    window.cancelarAceita = async function(extraId){
+      const extra = data.extrasAceitasCancelaveis[extraId]; if(!extra) return;
+      const motivo = await promptDialog('Cancelar extra aceita','Motivo do cancelamento:', '');
+      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      log('EXTRA CANCELADA', `Extra aceita por ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
+      movePersonToTop(extra.pessoaId); delete data.extrasAceitasCancelaveis[extraId]; await persistAndRender();
+    }
+
+    async function validarAcessoCoordenador(){
+      const username = currentUsername();
+      if(!username){
+        await infoDialog('Acesso negado', 'Não foi possível identificar seu usuário Trello. Abra seu perfil do Trello e confira se a conta está correta.');
+        return false;
+      }
+      try {
+        const res = await fetch(`/api/auth-coordenador?username=${encodeURIComponent(username)}&ts=${Date.now()}`);
+        if(!res.ok) throw new Error(await res.text());
+        const json = await res.json();
+        if(!json.configurado){
+          await infoDialog('Lista não configurada', 'A lista de coordenadores autorizados ainda não foi configurada na Vercel. Configure a variável COORDENADORES_TRELLO e faça Redeploy.');
+          return false;
+        }
+        if(!json.autorizado){
+          await infoDialog('Acesso negado', `Seu usuário Trello @${username} não está autorizado como coordenador.`);
+          return false;
+        }
+        return true;
+      } catch(e){
+        await infoDialog('Erro de validação', 'Não foi possível validar a lista de coordenadores autorizados. Confira o deploy/API na Vercel.');
+        return false;
+      }
+    }
+
+    window.colocarNaPosicao = async function(id, targetIndex){
+      const idx = data.fila.findIndex(p=>p.id===id);
+      targetIndex = Number(targetIndex);
+      if(idx < 0 || Number.isNaN(targetIndex) || targetIndex < 0 || targetIndex >= data.fila.length) return;
+      if(idx === targetIndex) return infoDialog('Atenção', 'Essa pessoa já está nessa posição.');
+      const p = data.fila[idx];
+      const motivo = await promptDialog('Alterar posição', `Justificativa para mover ${p.nome} para a posição ${targetIndex + 1}:`, '');
+      if(motivo===null) return;
+      if(!motivo.trim()) return infoDialog('Atenção','Justificativa obrigatória.');
+      data.fila.splice(idx,1);
+      data.fila.splice(targetIndex,0,p);
+      coordPage = ensurePage(targetIndex + 1, 1, pageSize);
+      log('ORDEM ALTERADA', `${p.nome} foi movido para a posição ${targetIndex + 1}. Justificativa: ${motivo.trim()}`);
+      await persistAndRender();
+    }
+
+
+    window.editarUsuario = async function(id){
+      const p = data.fila.find(x=>x.id===id); if(!p) return;
+      const usuario = await promptDialog('Vincular usuário Trello', `Informe o usuário Trello de ${p.nome} sem @:`, p.trelloUsername || '');
+      if(usuario === null) return;
+      const limpo = cleanUsername(usuario);
+      if(!limpo) return infoDialog('Atenção', 'Informe um usuário Trello válido. Ex: henriquebrandaodearruda');
+      const antigo = p.trelloUsername || 'sem vínculo';
+      p.trelloUsername = limpo;
+      log('USUÁRIO VINCULADO', `${p.nome} foi vinculado ao usuário @${limpo}. Anterior: ${antigo}.`);
+      await persistAndRender();
+    }
+
+    window.vincularMinhaConta = async function(id){
+      const p = data.fila.find(x=>x.id===id); if(!p) return;
+      const myUser = currentUsername();
+      if(!myUser) return infoDialog('Atenção', 'Não foi possível identificar seu usuário Trello.');
+      const ok = await confirmDialog('Vincular minha conta', `Deseja vincular sua conta @${myUser} ao nome ${p.nome}?`);
+      if(!ok) return;
+      if(p.trelloUsername && p.trelloUsername !== myUser) return infoDialog('Atenção', `${p.nome} já está vinculado a outro usuário.`);
+      p.trelloUsername = myUser;
+      log('USUÁRIO VINCULADO', `${p.nome} vinculou a própria conta Trello @${myUser}.`);
+      await persistAndRender();
+    }
+
+    window.removePessoa = async function(id){
+      const p = data.fila.find(x=>x.id===id); if(!p) return;
+      const motivo = await promptDialog('Remover pessoa', `Motivo para remover ${p.nome} da fila:`, '');
+      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      data.fila = data.fila.filter(x=>x.id!==id); log('MEMBRO REMOVIDO', `${p.nome} foi removido da fila. Motivo: ${motivo.trim()}`); await persistAndRender();
+    }
+
+    $('setCoordenador').addEventListener('click', async()=>{
+      const autorizado = await validarAcessoCoordenador();
+      if(!autorizado) return;
+      mode='coordenador';
+      render();
+    });
+    $('setMembro').addEventListener('click', async()=>{ mode='membro'; render(); });
+    $('trocarModoBtn').addEventListener('click', async()=>{ const ok=await confirmDialog('Trocar modo','Deseja trocar o modo de acesso desta conta?'); if(!ok) return; mode=''; render(); });
+    $('addPessoa').addEventListener('click', async()=>{ const nome=$('novoNome').value.trim(); const trelloUsername = cleanUsername($('novoUsuario').value); if(!nome) return infoDialog('Atenção','Informe o nome da pessoa.'); data.fila.push({id:uid(),nome,trelloUsername}); $('novoNome').value=''; $('novoUsuario').value=''; log('MEMBRO ADICIONADO', `${nome} foi adicionado à fila${trelloUsername ? ' e vinculado a @' + trelloUsername : ''}.`); coordPage = ensurePage(data.fila.length, 999, pageSize); await persistAndRender(); });
+    $('puxarPessoaBtn').addEventListener('click', async()=>{ const id = $('puxarPessoaSelect').value; const targetIndex = $('posicaoDestinoSelect').value; if(!id) return infoDialog('Atenção','Selecione uma pessoa.'); await colocarNaPosicao(id, targetIndex); });
+    $('gerarExtra').addEventListener('click', gerarExtra); $('pularVez').addEventListener('click', pularVez); $('refreshNowBtn').addEventListener('click', atualizarDadosManual);
+
+    function bindMemberSuggestions(){
+      const nome = $('novoNome');
+      const usuario = $('novoUsuario');
+      const box = $('membroSugestoes');
+      if(!nome || !usuario || !box) return;
+      const show = () => renderSugestoesMembros();
+      nome.addEventListener('input', show);
+      nome.addEventListener('focus', show);
+      usuario.addEventListener('input', show);
+      usuario.addEventListener('focus', show);
+      document.addEventListener('click', (ev) => {
+        if(!ev.target.closest('.inputRowSuggest')) esconderSugestoes();
+      });
+    }
+    bindMemberSuggestions();
+
+    function openDialog({title,text='',mode='info',initialValue=''}){ return new Promise(resolve=>{
+      $('dialogTitle').textContent=title||'Aviso'; $('dialogText').textContent=text||''; $('dialogInput').classList.add('hide'); $('dialogTextarea').classList.add('hide'); $('dialogCancel').classList.toggle('hide', mode==='info');
+      $('dialogCancel').onclick=()=>close(null); $('dialogOk').onclick=()=>{ if(mode==='prompt') return close($('dialogInput').value); if(mode==='textarea') return close($('dialogTextarea').value); close(true); };
+      if(mode==='prompt'){ $('dialogInput').classList.remove('hide'); $('dialogInput').value=initialValue||''; setTimeout(()=>$('dialogInput').focus(),30); }
+      if(mode==='textarea'){ $('dialogTextarea').classList.remove('hide'); $('dialogTextarea').value=initialValue||''; setTimeout(()=>$('dialogTextarea').focus(),30); }
+      $('appDialog').classList.remove('hide'); t.sizeTo('#document');
+      function close(value){ $('appDialog').classList.add('hide'); resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
+    }); }
+    const infoDialog=(title,text)=>openDialog({title,text,mode:'info'});
+    const confirmDialog=(title,text)=>openDialog({title,text,mode:'confirm'});
+    const promptDialog=(title,text,initialValue='')=>openDialog({title,text,mode:'prompt',initialValue});
+
+    init();
+  </script>
+</body>
+</html>

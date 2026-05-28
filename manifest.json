@@ -1,0 +1,8 @@
+{
+  "name": "Fila de Extras",
+  "details": "Controle de fila de extras com modo Coordenador e Membro.",
+  "icon": { "url": "./icon.svg" },
+  "author": "Henrique Brandão",
+  "capabilities": ["board-buttons", "card-buttons", "show-settings", "card-badges"],
+  "connectors": { "iframe": { "url": "./index.html" } }
+}
