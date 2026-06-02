@@ -71,13 +71,17 @@ async function kvGet(key){
   if(!res.ok) throw new Error(`KV GET failed: ${res.status}`);
   const json=await res.json();
   if(!json || json.result == null) return null;
-  if(typeof json.result === 'string'){ try { return JSON.parse(json.result); } catch { return json.result; } }
-  return json.result;
+  let parsed = json.result;
+  for(let i=0; i<3; i++){
+    if(typeof parsed !== 'string') break;
+    try { parsed = JSON.parse(parsed); } catch { break; }
+  }
+  return parsed && typeof parsed === 'object' ? parsed : null;
 }
 async function kvSet(key,value){
   const url=process.env.KV_REST_API_URL, token=process.env.KV_REST_API_TOKEN;
   if(!url || !token) return false;
-  const res=await fetch(`${url}/set/${encodeURIComponent(key)}`, { method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, body:JSON.stringify(JSON.stringify(value)) });
+  const res=await fetch(`${url}/set/${encodeURIComponent(key)}`, { method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, body:JSON.stringify(value) });
   if(!res.ok) throw new Error(`KV SET failed: ${res.status}`);
   return true;
 }

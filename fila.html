@@ -106,6 +106,20 @@
       <div class="dialogText" id="dialogText"></div>
       <input id="dialogInput" class="dialogInput hide" />
       <textarea id="dialogTextarea" class="dialogTextarea hide"></textarea>
+      <div id="extraForm" class="extraForm hide">
+        <label>Descrição do extra</label>
+        <textarea id="extraDescricao" class="dialogTextarea" placeholder="Descreva a extra que será lançada"></textarea>
+        <div class="dateGrid">
+          <div>
+            <label>Dia e hora de início</label>
+            <input id="extraInicio" class="dialogInput" type="datetime-local" />
+          </div>
+          <div>
+            <label>Dia e hora de fim</label>
+            <input id="extraFim" class="dialogInput" type="datetime-local" />
+          </div>
+        </div>
+      </div>
       <div class="dialogActions">
         <button class="btn dark hide" id="dialogCancel">Cancelar</button>
         <button class="btn primary" id="dialogOk">OK</button>
@@ -131,6 +145,25 @@
     const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
     const cleanUsername = (v) => String(v || '').trim().replace(/^@+/, '').toLowerCase();
     const currentUsername = () => cleanUsername(member?.username || '');
+    const toTime = (v) => { const t = new Date(v || '').getTime(); return Number.isFinite(t) ? t : null; };
+    const isExtraStarted = (extra) => { const t = toTime(extra?.inicioAt); return t !== null && Date.now() >= t; };
+    const canCancelExtra = (extra) => !isExtraStarted(extra);
+    function formatDateTime(v){
+      const t = toTime(v);
+      if(t === null) return '';
+      return new Date(t).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' });
+    }
+    function extraPeriodoHtml(extra){
+      const ini = formatDateTime(extra?.inicioAt);
+      const fim = formatDateTime(extra?.fimAt);
+      if(!ini && !fim) return '';
+      return `<p><b>Início:</b> ${escapeHtml(ini || '-')}<br><b>Fim:</b> ${escapeHtml(fim || '-')}</p>`;
+    }
+    function extraPeriodoTexto(extra){
+      const ini = formatDateTime(extra?.inicioAt);
+      const fim = formatDateTime(extra?.fimAt);
+      return ini || fim ? ` Início: ${ini || '-'} • Fim: ${fim || '-'}.` : '';
+    }
 
     function normalizeBoardMember(m){
       return {
@@ -353,7 +386,7 @@
         $('membroExtraBox').innerHTML = `<p class="muted">Nenhuma extra disponível para você no momento.</p>${totalOutras ? '<p class="muted small">Existe solicitação ativa para outro membro da fila.</p>' : ''}`;
       }
       else {
-        $('membroExtraBox').innerHTML = `<div class="extrasList">${minhasExtras.map(e=>`<div class="extraCard"><div class="notice"><b>${escapeHtml(e.pessoaNome)}</b>, você foi chamado para uma extra.</div><p><b>Descrição:</b> ${escapeHtml(e.descricao || 'Extra gerada pelo coordenador.')}</p><div class="actions"><button class="btn green" onclick="aceitarExtra('${e.id}')">Aceitar extra</button><button class="btn red" onclick="recusarExtra('${e.id}')">Recusar extra</button></div></div>`).join('')}</div>`;
+        $('membroExtraBox').innerHTML = `<div class="extrasList">${minhasExtras.map(e=>`<div class="extraCard"><div class="notice"><b>${escapeHtml(e.pessoaNome)}</b>, você foi chamado para uma extra.</div><p><b>Descrição:</b> ${escapeHtml(e.descricao || 'Extra gerada pelo coordenador.')}</p>${extraPeriodoHtml(e)}<div class="actions"><button class="btn green" onclick="aceitarExtra('${e.id}')">Aceitar extra</button><button class="btn red" onclick="recusarExtra('${e.id}')">Recusar extra</button></div></div>`).join('')}</div>`;
       }
       renderHistory('historicoMembro', 'paginacaoHistMembro', false);
     }
@@ -364,8 +397,10 @@
       page = ensurePage(items.length, page, histPageSize); if(isCoord) histCoordPage = page; else histMembroPage = page;
       const start = (page - 1) * histPageSize;
       $(target).innerHTML = items.slice(start, start + histPageSize).map(h => {
-        const pending = isCoord && h.acao === 'EXTRA GERADA' && data.extrasAtivas.some(e => e.id === h.extraId);
-        const accepted = isCoord && h.acao === 'EXTRA ACEITA' && data.extrasAceitasCancelaveis[h.extraId];
+        const pendingExtra = isCoord && h.acao === 'EXTRA GERADA' ? data.extrasAtivas.find(e => e.id === h.extraId) : null;
+        const acceptedExtra = isCoord && h.acao === 'EXTRA ACEITA' ? data.extrasAceitasCancelaveis[h.extraId] : null;
+        const pending = pendingExtra && canCancelExtra(pendingExtra);
+        const accepted = acceptedExtra && canCancelExtra(acceptedExtra);
         return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div>${pending ? `<button class="btn red miniAction" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}</div></div>`;
       }).join('') || '<p class="muted">Nenhuma ação registrada.</p>';
       pageButtons(pager, items.length, page, histPageSize, isCoord ? 'setHistCoordPage' : 'setHistMembroPage');
@@ -396,10 +431,23 @@
     async function gerarExtra(){
       const p = pessoaDaVez(); if(!p) return infoDialog('Atenção','Cadastre pessoas na fila primeiro.');
       if(!p.trelloUsername) return infoDialog('Atenção', `Vincule o usuário Trello de ${p.nome} antes de gerar a extra. Assim o aceite aparece somente para essa pessoa.`);
-      const descricao = await promptDialog('Gerar extra', 'Descreva a extra que será lançada:', 'Extra disponível para atendimento.');
-      if(descricao === null) return;
-      const extra = { id: uid(), pessoaId:p.id, pessoaNome:p.nome, pessoaUsername:p.trelloUsername, descricao, status:'AGUARDANDO', criadaEm:now() };
-      data.extrasAtivas.push(extra); log('EXTRA GERADA', `Extra gerada para ${p.nome}.`, { extraId: extra.id }); advanceQueueAfterGenerate(); await persistAndRender();
+      const form = await extraDialog();
+      if(form === null) return;
+      const extra = {
+        id: uid(),
+        pessoaId:p.id,
+        pessoaNome:p.nome,
+        pessoaUsername:p.trelloUsername,
+        descricao: form.descricao,
+        inicioAt: form.inicioAt,
+        fimAt: form.fimAt,
+        status:'AGUARDANDO',
+        criadaEm:now()
+      };
+      data.extrasAtivas.push(extra);
+      log('EXTRA GERADA', `Extra gerada para ${p.nome}.${extraPeriodoTexto(extra)}`, { extraId: extra.id });
+      advanceQueueAfterGenerate();
+      await persistAndRender();
     }
     async function pularVez(){
       const p = pessoaDaVez(); if(!p) return infoDialog('Atenção','Não há pessoa na fila.');
@@ -409,7 +457,7 @@
     }
     window.aceitarExtra = async function(extraId){
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
-      log('EXTRA ACEITA', `${extra.pessoaNome} aceitou a extra.`, { extraId: extra.id });
+      log('EXTRA ACEITA', `${extra.pessoaNome} aceitou a extra.${extraPeriodoTexto(extra)}`, { extraId: extra.id });
       data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); data.extrasAceitasCancelaveis[extraId] = extra; await persistAndRender();
     }
     window.recusarExtra = async function(extraId){
@@ -421,6 +469,7 @@
     }
     window.cancelarSolicitacao = async function(extraId){
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
+      if(!canCancelExtra(extra)) return infoDialog('Atenção', 'Não é possível cancelar: o horário de início do extra já chegou.');
       const motivo = await promptDialog('Cancelar solicitação','Motivo do cancelamento:', '');
       if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
       log('EXTRA CANCELADA', `Solicitação de ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
@@ -428,6 +477,7 @@
     }
     window.cancelarAceita = async function(extraId){
       const extra = data.extrasAceitasCancelaveis[extraId]; if(!extra) return;
+      if(!canCancelExtra(extra)) return infoDialog('Atenção', 'Não é possível cancelar: o horário de início do extra já chegou.');
       const motivo = await promptDialog('Cancelar extra aceita','Motivo do cancelamento:', '');
       if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
       log('EXTRA CANCELADA', `Extra aceita por ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
@@ -535,8 +585,35 @@
     }
     bindMemberSuggestions();
 
+    function extraDialog(){ return new Promise(resolve=>{
+      $('dialogTitle').textContent = 'Gerar extra';
+      $('dialogText').textContent = 'Preencha a descrição, início e fim do extra.';
+      $('dialogInput').classList.add('hide');
+      $('dialogTextarea').classList.add('hide');
+      $('extraDescricao').value = '';
+      $('extraInicio').value = '';
+      $('extraFim').value = '';
+      $('extraForm').classList.remove('hide');
+      $('dialogCancel').classList.remove('hide');
+      $('dialogCancel').onclick = () => close(null);
+      $('dialogOk').onclick = () => {
+        const descricao = $('extraDescricao').value.trim();
+        const inicioAt = $('extraInicio').value;
+        const fimAt = $('extraFim').value;
+        if(!descricao){ $('dialogText').textContent = 'Informe a descrição do extra.'; $('extraDescricao').focus(); return; }
+        if(!inicioAt){ $('dialogText').textContent = 'Informe o dia e horário de início.'; $('extraInicio').focus(); return; }
+        if(!fimAt){ $('dialogText').textContent = 'Informe o dia e horário de fim.'; $('extraFim').focus(); return; }
+        if(new Date(fimAt).getTime() <= new Date(inicioAt).getTime()){ $('dialogText').textContent = 'O fim precisa ser depois do início.'; $('extraFim').focus(); return; }
+        close({ descricao, inicioAt, fimAt });
+      };
+      $('appDialog').classList.remove('hide');
+      setTimeout(()=>$('extraDescricao').focus(),30);
+      t.sizeTo('#document');
+      function close(value){ $('appDialog').classList.add('hide'); $('extraForm').classList.add('hide'); resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
+    }); }
+
     function openDialog({title,text='',mode='info',initialValue=''}){ return new Promise(resolve=>{
-      $('dialogTitle').textContent=title||'Aviso'; $('dialogText').textContent=text||''; $('dialogInput').classList.add('hide'); $('dialogTextarea').classList.add('hide'); $('dialogCancel').classList.toggle('hide', mode==='info');
+      $('dialogTitle').textContent=title||'Aviso'; $('dialogText').textContent=text||''; $('dialogInput').classList.add('hide'); $('dialogTextarea').classList.add('hide'); $('extraForm').classList.add('hide'); $('dialogCancel').classList.toggle('hide', mode==='info');
       $('dialogCancel').onclick=()=>close(null); $('dialogOk').onclick=()=>{ if(mode==='prompt') return close($('dialogInput').value); if(mode==='textarea') return close($('dialogTextarea').value); close(true); };
       if(mode==='prompt'){ $('dialogInput').classList.remove('hide'); $('dialogInput').value=initialValue||''; setTimeout(()=>$('dialogInput').focus(),30); }
       if(mode==='textarea'){ $('dialogTextarea').classList.remove('hide'); $('dialogTextarea').value=initialValue||''; setTimeout(()=>$('dialogTextarea').focus(),30); }

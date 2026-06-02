@@ -11,3 +11,10 @@
 
 .refreshBtn{padding:8px 12px;font-size:12px}
 @media(max-width:800px){.refreshBtn{width:100%;justify-content:center}}
+
+.extraForm{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.extraForm label{font-size:14px;font-weight:700;color:#172033}
+.extraForm .dialogTextarea{min-height:82px;width:100%;box-sizing:border-box}
+.dateGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dateGrid .dialogInput{width:100%;box-sizing:border-box}
+@media(max-width:640px){.dateGrid{grid-template-columns:1fr}}
