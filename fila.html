@@ -344,7 +344,7 @@
 
         if(groupStart > 1){
           const prevStart = Math.max(1, groupStart - groupSize);
-          html += `<button class="pageBtn pageDots" title="Ver páginas anteriores" onclick="${fn}(${prevStart})">...</button>`;
+          html += `<button class="pageBtn pageNav" title="Ver páginas anteriores" onclick="${fn}(${prevStart})">Anterior</button>`;
         }
 
         for(let p = groupStart; p <= groupEnd; p++){
@@ -353,7 +353,7 @@
 
         if(groupEnd < pages){
           const nextStart = groupEnd + 1;
-          html += `<button class="pageBtn pageDots" title="Ver próximas páginas" onclick="${fn}(${nextStart})">...</button>`;
+          html += `<button class="pageBtn pageNav" title="Ver próximas páginas" onclick="${fn}(${nextStart})">Mais</button>`;
         }
 
         el.innerHTML = html;
