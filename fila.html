@@ -397,9 +397,10 @@
       page = ensurePage(items.length, page, histPageSize); if(isCoord) histCoordPage = page; else histMembroPage = page;
       const start = (page - 1) * histPageSize;
       $(target).innerHTML = items.slice(start, start + histPageSize).map(h => {
-        const pendingExtra = isCoord && h.acao === 'EXTRA GERADA' ? data.extrasAtivas.find(e => e.id === h.extraId) : null;
-        const acceptedExtra = isCoord && h.acao === 'EXTRA ACEITA' ? data.extrasAceitasCancelaveis[h.extraId] : null;
-        const pending = pendingExtra && canCancelExtra(pendingExtra);
+        const extraSnapshot = h.extraSnapshot || h.extra || (h.inicioAt ? h : null);
+        const pendingExtra = isCoord && h.acao === 'EXTRA GERADA' ? (data.extrasAtivas.find(e => e.id === h.extraId) || extraSnapshot) : null;
+        const acceptedExtra = isCoord && h.acao === 'EXTRA ACEITA' ? (data.extrasAceitasCancelaveis[h.extraId] || extraSnapshot) : null;
+        const pending = pendingExtra && data.extrasAtivas.some(e => e.id === h.extraId) && canCancelExtra(pendingExtra);
         const accepted = acceptedExtra && canCancelExtra(acceptedExtra);
         return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div>${pending ? `<button class="btn red miniAction" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}</div></div>`;
       }).join('') || '<p class="muted">Nenhuma ação registrada.</p>';
@@ -445,7 +446,7 @@
         criadaEm:now()
       };
       data.extrasAtivas.push(extra);
-      log('EXTRA GERADA', `Extra gerada para ${p.nome}.${extraPeriodoTexto(extra)}`, { extraId: extra.id });
+      log('EXTRA GERADA', `Extra gerada para ${p.nome}.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra} });
       advanceQueueAfterGenerate();
       await persistAndRender();
     }
@@ -457,8 +458,9 @@
     }
     window.aceitarExtra = async function(extraId){
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
-      log('EXTRA ACEITA', `${extra.pessoaNome} aceitou a extra.${extraPeriodoTexto(extra)}`, { extraId: extra.id });
-      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); data.extrasAceitasCancelaveis[extraId] = extra; await persistAndRender();
+      const aceita = {...extra, aceitaEm: now()};
+      log('EXTRA ACEITA', `${extra.pessoaNome} aceitou a extra.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: aceita });
+      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); data.extrasAceitasCancelaveis[extraId] = aceita; await persistAndRender();
     }
     window.recusarExtra = async function(extraId){
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
@@ -476,7 +478,12 @@
       data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); movePersonToTop(extra.pessoaId); await persistAndRender();
     }
     window.cancelarAceita = async function(extraId){
-      const extra = data.extrasAceitasCancelaveis[extraId]; if(!extra) return;
+      let extra = data.extrasAceitasCancelaveis[extraId];
+      if(!extra){
+        const hist = (data.historico || []).find(h => h.extraId === extraId && h.acao === 'EXTRA ACEITA');
+        extra = hist?.extraSnapshot || hist?.extra || (hist?.inicioAt ? hist : null);
+      }
+      if(!extra) return;
       if(!canCancelExtra(extra)) return infoDialog('Atenção', 'Não é possível cancelar: o horário de início do extra já chegou.');
       const motivo = await promptDialog('Cancelar extra aceita','Motivo do cancelamento:', '');
       if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
