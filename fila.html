@@ -11,9 +11,9 @@
   <div class="wrap">
     <div class="topbarInternal">
       <button id="trocarModoBtn" class="btn linklike hide">← Voltar</button>
-      <span id="trocarModoHint" class="muted small hide">Trocar modo de acesso: Coordenador ou Membro</span>
-      <span id="syncStatus" class="syncStatus">Carregando...</span>
-      <button id="refreshNowBtn" class="btn ghost refreshBtn" type="button">Atualizar agora</button>
+      <span id="trocarModoHint" class="muted small hide"></span>
+      <span id="syncStatus" class="syncStatus hide"></span>
+      <button id="refreshNowBtn" class="btn ghost refreshBtn hide" type="button"></button>
     </div>
 
     <header id="heroBox" class="hero heroCentered">
@@ -300,7 +300,7 @@
       $('coordenador').classList.toggle('hide', mode !== 'coordenador');
       $('membro').classList.toggle('hide', mode !== 'membro');
       $('trocarModoBtn').classList.toggle('hide', !mode);
-      $('trocarModoHint').classList.toggle('hide', !mode);
+      $('trocarModoHint').classList.add('hide');
       $('heroBox').classList.toggle('heroCentered', isConfig);
       $('heroSubtitle').classList.add('hide');
       $('modoBadge').classList.toggle('hide', isConfig);
