@@ -330,25 +330,38 @@
       t.sizeTo('#document');
     }
     function ensurePage(total, current, size){ const pages = Math.max(1, Math.ceil(total / size)); return Math.min(Math.max(1, current), pages); }
-    const expandedPagers = {};
     function pageButtons(containerId, total, current, size, fn){
       const pages = Math.ceil(total / size); const el = $(containerId); if(!el) return;
       if(pages <= 1){ el.innerHTML = ''; return; }
 
       const isHistoryPager = containerId === 'paginacaoHistCoordenador' || containerId === 'paginacaoHistMembro';
-      const maxVisible = isHistoryPager ? 3 : pages;
-      const expanded = !!expandedPagers[containerId];
-      const visiblePages = expanded || pages <= maxVisible ? pages : maxVisible;
 
-      let html = Array.from({length: visiblePages}, (_,i)=>`<button class="pageBtn ${i+1===current?'active':''}" onclick="${fn}(${i+1})">${i+1}</button>`).join('');
+      if(isHistoryPager){
+        const groupSize = 3;
+        const groupStart = Math.floor((current - 1) / groupSize) * groupSize + 1;
+        const groupEnd = Math.min(groupStart + groupSize - 1, pages);
+        let html = '';
 
-      if(isHistoryPager && pages > maxVisible && !expanded){
-        html += `<button class="pageBtn pageDots" title="Mostrar mais páginas" onclick="expandPager('${containerId}')">...</button>`;
+        if(groupStart > 1){
+          const prevStart = Math.max(1, groupStart - groupSize);
+          html += `<button class="pageBtn pageDots" title="Ver páginas anteriores" onclick="${fn}(${prevStart})">...</button>`;
+        }
+
+        for(let p = groupStart; p <= groupEnd; p++){
+          html += `<button class="pageBtn ${p===current?'active':''}" onclick="${fn}(${p})">${p}</button>`;
+        }
+
+        if(groupEnd < pages){
+          const nextStart = groupEnd + 1;
+          html += `<button class="pageBtn pageDots" title="Ver próximas páginas" onclick="${fn}(${nextStart})">...</button>`;
+        }
+
+        el.innerHTML = html;
+        return;
       }
 
-      el.innerHTML = html;
+      el.innerHTML = Array.from({length: pages}, (_,i)=>`<button class="pageBtn ${i+1===current?'active':''}" onclick="${fn}(${i+1})">${i+1}</button>`).join('');
     }
-    window.expandPager = id => { expandedPagers[id] = true; render(); };
     window.setCoordPage = p => { coordPage = p; render(); };
     window.setMembroPage = p => { membroPage = p; render(); };
     window.setHistCoordPage = p => { histCoordPage = p; render(); };
