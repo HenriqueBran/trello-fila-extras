@@ -330,11 +330,25 @@
       t.sizeTo('#document');
     }
     function ensurePage(total, current, size){ const pages = Math.max(1, Math.ceil(total / size)); return Math.min(Math.max(1, current), pages); }
+    const expandedPagers = {};
     function pageButtons(containerId, total, current, size, fn){
       const pages = Math.ceil(total / size); const el = $(containerId); if(!el) return;
       if(pages <= 1){ el.innerHTML = ''; return; }
-      el.innerHTML = Array.from({length:pages}, (_,i)=>`<button class="pageBtn ${i+1===current?'active':''}" onclick="${fn}(${i+1})">${i+1}</button>`).join('');
+
+      const isHistoryPager = containerId === 'paginacaoHistCoordenador' || containerId === 'paginacaoHistMembro';
+      const maxVisible = isHistoryPager ? 5 : pages;
+      const expanded = !!expandedPagers[containerId];
+      const visiblePages = expanded || pages <= maxVisible ? pages : maxVisible;
+
+      let html = Array.from({length: visiblePages}, (_,i)=>`<button class="pageBtn ${i+1===current?'active':''}" onclick="${fn}(${i+1})">${i+1}</button>`).join('');
+
+      if(isHistoryPager && pages > maxVisible && !expanded){
+        html += `<button class="pageBtn pageDots" title="Mostrar mais páginas" onclick="expandPager('${containerId}')">...</button>`;
+      }
+
+      el.innerHTML = html;
     }
+    window.expandPager = id => { expandedPagers[id] = true; render(); };
     window.setCoordPage = p => { coordPage = p; render(); };
     window.setMembroPage = p => { membroPage = p; render(); };
     window.setHistCoordPage = p => { histCoordPage = p; render(); };
