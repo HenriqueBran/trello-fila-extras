@@ -140,3 +140,88 @@ input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:v
 
 @media(max-width:800px){.grid{grid-template-columns:1fr}.hero{display:block}.badge{display:inline-block;margin-top:12px}.person{font-size:28px}.inputRow{grid-template-columns:1fr}.histHead{display:block}.miniAction{margin-top:10px}.wrap{padding:16px}.quickTopRow,.quickTopRow.positionRow{grid-template-columns:1fr}.suggestions{position:relative;top:6px}.refreshBtn{width:100%;justify-content:center}}
 @media(max-width:640px){.dateGrid{grid-template-columns:1fr}.hero h1{font-size:30px}.card{padding:20px;border-radius:20px}}
+
+
+/* v40 - visual melhorado para extras aguardando resposta */
+.pendingCard{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  border:1px solid rgba(0,80,242,.28);
+  background:linear-gradient(135deg,#ffffff 0%, var(--blue-soft) 100%);
+  color:var(--black);
+  padding:15px 16px;
+  border-radius:18px;
+  cursor:pointer;
+  text-align:left;
+  box-shadow:0 10px 26px rgba(0,80,242,.09);
+  transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.pendingCard:hover{
+  transform:translateY(-1px);
+  border-color:var(--blue);
+  box-shadow:0 16px 34px rgba(0,80,242,.16);
+}
+.pendingIcon{
+  width:34px;
+  height:34px;
+  border-radius:999px;
+  background:var(--blue);
+  color:var(--white);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  flex:0 0 auto;
+  box-shadow:0 8px 18px rgba(0,80,242,.22);
+}
+.pendingContent{display:flex;flex-direction:column;gap:3px;line-height:1.25;flex:1}
+.pendingContent strong{font-size:15px;font-weight:900;color:var(--black)}
+.pendingContent small{font-size:12px;color:var(--muted);font-weight:600}
+.pendingArrow{font-size:30px;line-height:1;color:var(--blue);font-weight:900}
+.pendingModalList{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+.pendingModalItem{
+  display:flex;
+  gap:14px;
+  padding:15px;
+  border:1px solid var(--line);
+  border-left:6px solid var(--blue);
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 8px 22px rgba(0,0,0,.04);
+}
+.pendingModalIndex{
+  width:34px;
+  height:34px;
+  border-radius:999px;
+  background:var(--blue);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  flex:0 0 auto;
+}
+.pendingModalInfo{display:flex;flex-direction:column;gap:5px;flex:1}
+.pendingModalInfo b{font-size:16px;font-weight:900;color:var(--black)}
+.pendingModalInfo span{font-size:13px;color:var(--muted);font-weight:600}
+.pendingModalPeriod{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.pendingModalPeriod small{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:9px 10px;
+  background:var(--gray-3);
+  color:#374151;
+  font-size:12px;
+}
+.pendingModalInfo p{
+  margin:6px 0 0;
+  padding:10px 12px;
+  border-radius:12px;
+  background:var(--blue-soft);
+  color:#1f2937;
+  font-size:13px;
+  line-height:1.45;
+}
+@media(max-width:640px){.pendingModalPeriod{grid-template-columns:1fr}.pendingCard{align-items:flex-start}.pendingArrow{display:none}}

@@ -345,7 +345,16 @@
       $('pessoaDaVez').textContent = vez ? vez.nome : 'Nenhuma pessoa cadastrada';
       const aguardando = extrasAguardandoResposta();
       if(aguardando.length){
-        $('extraStatus').innerHTML = `<button type="button" class="pendingStatus" onclick="mostrarExtrasAguardando()"><b>${aguardando.length}</b> extra(s) aguardando resposta.</button>`;
+        const label = aguardando.length === 1 ? 'extra aguardando resposta' : 'extras aguardando resposta';
+        $('extraStatus').innerHTML = `
+          <button type="button" class="pendingCard" onclick="mostrarExtrasAguardando()" aria-label="Ver extras aguardando resposta">
+            <span class="pendingIcon">!</span>
+            <span class="pendingContent">
+              <strong>${aguardando.length} ${label}</strong>
+              <small>Clique para ver quem foi chamado e o período do extra</small>
+            </span>
+            <span class="pendingArrow">›</span>
+          </button>`;
       } else {
         $('extraStatus').innerHTML = 'Nenhuma extra ativa.';
       }
@@ -521,8 +530,23 @@
     window.mostrarExtrasAguardando = async function(){
       const aguardando = extrasAguardandoResposta();
       if(!aguardando.length) return infoDialog('Extras aguardando resposta', 'Nenhuma extra aguardando resposta no momento.');
-      const texto = aguardando.map((e, i) => `${i + 1}. ${e.pessoaNome}${extraPeriodoTexto(e)}`).join('\n');
-      return infoDialog('Extras aguardando resposta', texto);
+      const cards = aguardando.map((e, i) => {
+        const ini = formatDateTime(e.inicioAt) || '-';
+        const fim = formatDateTime(e.fimAt) || '-';
+        return `<div class="pendingModalItem">
+          <div class="pendingModalIndex">${i + 1}</div>
+          <div class="pendingModalInfo">
+            <b>${escapeHtml(e.pessoaNome || 'Pessoa chamada')}</b>
+            <span>Aguardando aceite do chamado</span>
+            <div class="pendingModalPeriod">
+              <small><strong>Início:</strong> ${escapeHtml(ini)}</small>
+              <small><strong>Fim:</strong> ${escapeHtml(fim)}</small>
+            </div>
+            ${e.descricao ? `<p>${escapeHtml(e.descricao)}</p>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+      return htmlDialog('Extras aguardando resposta', `<div class="pendingModalList">${cards}</div>`);
     }
 
     async function validarAcessoCoordenador(){
@@ -660,6 +684,18 @@
       if(mode==='textarea'){ $('dialogTextarea').classList.remove('hide'); $('dialogTextarea').value=initialValue||''; setTimeout(()=>$('dialogTextarea').focus(),30); }
       $('appDialog').classList.remove('hide'); t.sizeTo('#document');
       function close(value){ $('appDialog').classList.add('hide'); resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
+    }); }
+    function htmlDialog(title, html){ return new Promise(resolve=>{
+      $('dialogTitle').textContent = title || 'Aviso';
+      $('dialogText').innerHTML = html || '';
+      $('dialogInput').classList.add('hide');
+      $('dialogTextarea').classList.add('hide');
+      $('extraForm').classList.add('hide');
+      $('dialogCancel').classList.add('hide');
+      $('dialogOk').onclick = () => close(true);
+      $('appDialog').classList.remove('hide');
+      t.sizeTo('#document');
+      function close(value){ $('appDialog').classList.add('hide'); $('dialogText').textContent = ''; resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
     }); }
     const infoDialog=(title,text)=>openDialog({title,text,mode:'info'});
     const confirmDialog=(title,text)=>openDialog({title,text,mode:'confirm'});
