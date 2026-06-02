@@ -266,6 +266,7 @@
       try {
         $('syncStatus').textContent = 'Atualizando...';
         await apiGet();
+        await sincronizarExpiradas();
         render();
         $('syncStatus').textContent = 'Atualizado agora';
       } catch(e) {
@@ -276,6 +277,7 @@
       if(!board || isDialogOpen()) return;
       try {
         await apiGet();
+        await sincronizarExpiradas();
         render();
         $('syncStatus').textContent = 'Atualizado automaticamente';
       } catch(e) {
@@ -284,12 +286,30 @@
     }
     function log(acao, texto, meta = {}){ data.historico.unshift({ id: uid(), acao, texto, usuario: member?.fullName || member?.username || 'Usuário', data: now(), ...meta }); }
     function pessoaDaVez(){ return data.fila[0] || null; }
+    function extrasAguardandoResposta(){ return data.extrasAtivas.filter(e => !isExtraStarted(e)); }
+    function finalizarExtrasSemResposta(){
+      const ativas = Array.isArray(data.extrasAtivas) ? data.extrasAtivas : [];
+      const expiradas = ativas.filter(e => isExtraStarted(e));
+      if(!expiradas.length) return false;
+      expiradas.forEach(extra => {
+        log('SEM RESPOSTA', `${extra.pessoaNome} não respondeu ao chamado até o horário de início do extra.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra, semRespostaEm: now()} });
+      });
+      data.extrasAtivas = ativas.filter(e => !isExtraStarted(e));
+      return true;
+    }
+    async function sincronizarExpiradas(){
+      if(finalizarExtrasSemResposta()){
+        await apiSave();
+        return true;
+      }
+      return false;
+    }
 
     async function init(){
       board = await t.board('id', 'name');
       try { member = await t.member('id', 'fullName', 'username'); } catch(e){ member = { id: 'sem-id', fullName: 'Usuário Trello' }; }
       await loadBoardMembers();
-      try { await apiGet(); $('syncStatus').textContent = 'Dados compartilhados'; } catch(e){ $('syncStatus').textContent = 'Erro ao carregar dados'; await infoDialog('Erro', 'Não foi possível carregar os dados compartilhados.'); }
+      try { await apiGet(); await sincronizarExpiradas(); $('syncStatus').textContent = 'Dados compartilhados'; } catch(e){ $('syncStatus').textContent = 'Erro ao carregar dados'; await infoDialog('Erro', 'Não foi possível carregar os dados compartilhados.'); }
       render();
       setInterval(autoAtualizarDados, 10000);
     }
@@ -323,7 +343,12 @@
     function renderCoordenador(){
       const vez = pessoaDaVez();
       $('pessoaDaVez').textContent = vez ? vez.nome : 'Nenhuma pessoa cadastrada';
-      $('extraStatus').innerHTML = data.extrasAtivas.length ? `<b>${data.extrasAtivas.length}</b> extra(s) aguardando resposta.` : 'Nenhuma extra ativa.';
+      const aguardando = extrasAguardandoResposta();
+      if(aguardando.length){
+        $('extraStatus').innerHTML = `<button type="button" class="pendingStatus" onclick="mostrarExtrasAguardando()"><b>${aguardando.length}</b> extra(s) aguardando resposta.</button>`;
+      } else {
+        $('extraStatus').innerHTML = 'Nenhuma extra ativa.';
+      }
       renderQuickTopSelect();
       const total = data.fila.length; coordPage = ensurePage(total, coordPage, pageSize);
       const start = (coordPage - 1) * pageSize;
@@ -381,9 +406,10 @@
         return `<div class="item ${real===0?'first':''}"><div><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small><small>${vinculado ? 'Vinculado a você: @' + escapeHtml(myUser) : (p.trelloUsername ? '@' + escapeHtml(p.trelloUsername) : 'Usuário Trello não vinculado')}</small></div>${semVinculo && myUser ? `<button class="btn ghost miniAction" onclick="vincularMinhaConta('${p.id}')">Sou eu</button>` : ''}</div>`;
       }).join('') || '<p class="muted">Fila ainda não cadastrada.</p>';
       pageButtons('paginacaoMembro', total, membroPage, pageSize, 'setMembroPage');
-      const minhasExtras = data.extrasAtivas.filter(e => cleanUsername(e.pessoaUsername) === currentUsername());
+      const extrasDisponiveis = extrasAguardandoResposta();
+      const minhasExtras = extrasDisponiveis.filter(e => cleanUsername(e.pessoaUsername) === currentUsername());
       if(!minhasExtras.length){
-        const totalOutras = data.extrasAtivas.length;
+        const totalOutras = extrasDisponiveis.length;
         $('membroExtraBox').innerHTML = `<p class="muted">Nenhuma extra disponível para você no momento.</p>${totalOutras ? '<p class="muted small">Existe solicitação ativa para outro membro da fila.</p>' : ''}`;
       }
       else {
@@ -391,7 +417,7 @@
       }
       renderHistory('historicoMembro', 'paginacaoHistMembro', false);
     }
-    function histClass(acao){ if(acao==='EXTRA ACEITA') return 'ok'; if(acao==='EXTRA RECUSADA'||acao==='EXTRA CANCELADA') return 'danger'; if(acao==='VEZ PULADA') return 'warn'; return 'neutral'; }
+    function histClass(acao){ if(acao==='EXTRA ACEITA') return 'ok'; if(acao==='EXTRA RECUSADA'||acao==='EXTRA CANCELADA'||acao==='SEM RESPOSTA') return 'danger'; if(acao==='VEZ PULADA') return 'warn'; return 'neutral'; }
     function renderHistory(target, pager, isCoord){
       const items = data.historico || [];
       let page = isCoord ? histCoordPage : histMembroPage;
@@ -490,6 +516,13 @@
       if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
       log('EXTRA CANCELADA', `Extra aceita por ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
       movePersonToTop(extra.pessoaId); delete data.extrasAceitasCancelaveis[extraId]; await persistAndRender();
+    }
+
+    window.mostrarExtrasAguardando = async function(){
+      const aguardando = extrasAguardandoResposta();
+      if(!aguardando.length) return infoDialog('Extras aguardando resposta', 'Nenhuma extra aguardando resposta no momento.');
+      const texto = aguardando.map((e, i) => `${i + 1}. ${e.pessoaNome}${extraPeriodoTexto(e)}`).join('\n');
+      return infoDialog('Extras aguardando resposta', texto);
     }
 
     async function validarAcessoCoordenador(){

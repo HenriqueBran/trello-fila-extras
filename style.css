@@ -74,7 +74,10 @@ button,input,select,textarea{font-family:'Montserrat',Arial,Helvetica,sans-serif
 .full{grid-column:1/-1}.hide{display:none!important}
 h2{margin:0 0 16px;font-size:23px;font-weight:900;letter-spacing:.01em;color:var(--black)}
 .person{font-size:34px;line-height:1.1;font-weight:900;margin-bottom:14px;color:var(--black)}
-.status{margin:10px 0 14px}.muted{color:var(--muted)}.small{font-size:13px;line-height:1.5}.syncStatus{font-size:12px;color:var(--muted);margin-left:auto}
+.status{margin:10px 0 14px}
+.pendingStatus{display:inline-flex;align-items:center;gap:4px;border:0;background:transparent;color:var(--muted);padding:0;font:inherit;cursor:pointer;text-align:left}
+.pendingStatus:hover{color:var(--blue);text-decoration:underline}
+.muted{color:var(--muted)}.small{font-size:13px;line-height:1.5}.syncStatus{font-size:12px;color:var(--muted);margin-left:auto}
 .actions,.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}.gap{gap:14px}
 .inputRow{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:14px}
 input,select,.dialogInput,.dialogTextarea{
