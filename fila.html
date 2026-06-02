@@ -336,7 +336,7 @@
       if(pages <= 1){ el.innerHTML = ''; return; }
 
       const isHistoryPager = containerId === 'paginacaoHistCoordenador' || containerId === 'paginacaoHistMembro';
-      const maxVisible = isHistoryPager ? 5 : pages;
+      const maxVisible = isHistoryPager ? 3 : pages;
       const expanded = !!expandedPagers[containerId];
       const visiblePages = expanded || pages <= maxVisible ? pages : maxVisible;
 
