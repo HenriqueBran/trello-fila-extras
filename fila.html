@@ -744,8 +744,26 @@
       const closePickers = (scope) => {
         (scope || document).querySelectorAll('.pickerPopover').forEach(p=>p.classList.add('hide'));
       };
+      const todayDateOnly = () => {
+        const now = new Date();
+        now.setHours(0,0,0,0);
+        return now;
+      };
+      const dateValueToLocal = (value) => {
+        const [y,m,d] = String(value || '').split('-').map(Number);
+        if(!y || !m || !d) return null;
+        const dt = new Date(y, m - 1, d);
+        dt.setHours(0,0,0,0);
+        return dt;
+      };
+      const isPastDateValue = (value) => {
+        const dt = dateValueToLocal(value);
+        if(!dt) return true;
+        return dt.getTime() < todayDateOnly().getTime();
+      };
       const renderCalendar = (pop, hidden, label, year, month) => {
         const selected = hidden.value || '';
+        const today = todayDateOnly();
         const first = new Date(year, month, 1);
         const startDay = first.getDay();
         const days = new Date(year, month + 1, 0).getDate();
@@ -753,8 +771,13 @@
         for(let i=0;i<startDay;i++) cells += '<span class="calendarBlank"></span>';
         for(let d=1; d<=days; d++){
           const val = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const dayDate = new Date(year, month, d);
+          dayDate.setHours(0,0,0,0);
+          const isPast = dayDate.getTime() < today.getTime();
           const active = selected === val ? ' active' : '';
-          cells += `<button type="button" class="calendarDay${active}" data-date-value="${val}">${d}</button>`;
+          const disabled = isPast ? ' disabled' : '';
+          const disabledAttr = isPast ? ' disabled aria-disabled="true" title="Data indisponível"' : '';
+          cells += `<button type="button" class="calendarDay${active}${disabled}" data-date-value="${val}"${disabledAttr}>${d}</button>`;
         }
         pop.innerHTML = `
           <div class="calendarHead">
@@ -766,8 +789,17 @@
           <div class="calendarGrid">${cells}</div>`;
         pop.dataset.year = String(year);
         pop.dataset.month = String(month);
-        pop.querySelector('[data-cal-prev]').onclick = (ev) => {
+        const prevBtn = pop.querySelector('[data-cal-prev]');
+        const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const showingMonthStart = new Date(year, month, 1);
+        if(showingMonthStart.getTime() <= currentMonthStart.getTime()){
+          prevBtn.disabled = true;
+          prevBtn.classList.add('disabled');
+          prevBtn.title = 'Não é possível voltar para meses anteriores';
+        }
+        prevBtn.onclick = (ev) => {
           ev.stopPropagation();
+          if(prevBtn.disabled) return;
           const next = new Date(Number(pop.dataset.year), Number(pop.dataset.month)-1, 1);
           renderCalendar(pop, hidden, label, next.getFullYear(), next.getMonth());
         };
@@ -779,6 +811,9 @@
         pop.querySelectorAll('[data-date-value]').forEach(btn => {
           btn.onclick = (ev) => {
             ev.stopPropagation();
+            if(btn.disabled || btn.classList.contains('disabled') || isPastDateValue(btn.dataset.dateValue)){
+              return;
+            }
             hidden.value = btn.dataset.dateValue;
             label.textContent = formatPickerDate(hidden.value);
             closePickers(pop.closest('.extraItems') || document);
@@ -967,8 +1002,10 @@
           if(!descricao){ $('dialogText').textContent = `Informe a descrição do extra ${i+1}.`; card.querySelector('[data-extra-desc]').focus(); return; }
           if(!inicioDate){ $('dialogText').textContent = `Informe o dia de início do extra ${i+1}.`; card.querySelector('[data-extra-inicio-date]').closest('.customPickerWrap').querySelector('[data-date-button]').focus(); return; }
           if(!inicioTime){ $('dialogText').textContent = `Informe a hora de início do extra ${i+1}.`; card.querySelector('[data-extra-inicio-time]').closest('.customPickerWrap').querySelector('[data-time-button]').focus(); return; }
+          if(isPastDateValue(inicioDate)){ $('dialogText').textContent = `O dia de início do extra ${i+1} não pode ser uma data passada.`; card.querySelector('[data-extra-inicio-date]').closest('.customPickerWrap').querySelector('[data-date-button]').focus(); return; }
           if(!fimDate){ $('dialogText').textContent = `Informe o dia de fim do extra ${i+1}.`; card.querySelector('[data-extra-fim-date]').closest('.customPickerWrap').querySelector('[data-date-button]').focus(); return; }
           if(!fimTime){ $('dialogText').textContent = `Informe a hora de fim do extra ${i+1}.`; card.querySelector('[data-extra-fim-time]').closest('.customPickerWrap').querySelector('[data-time-button]').focus(); return; }
+          if(isPastDateValue(fimDate)){ $('dialogText').textContent = `O dia de fim do extra ${i+1} não pode ser uma data passada.`; card.querySelector('[data-extra-fim-date]').closest('.customPickerWrap').querySelector('[data-date-button]').focus(); return; }
           if(new Date(fimAt).getTime() <= new Date(inicioAt).getTime()){ $('dialogText').textContent = `O fim do extra ${i+1} precisa ser depois do início.`; card.querySelector('[data-extra-fim-date]').closest('.customPickerWrap').querySelector('[data-date-button]').focus(); return; }
           itens.push({ descricao, inicioAt, fimAt });
         }
