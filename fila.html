@@ -727,19 +727,40 @@
       $('dialogCancel').classList.remove('hide');
       $('dialogCancel').onclick = () => close(null);
 
+      const timeOptions = (selected='') => {
+        let html = '<option value="">Hora</option>';
+        for(let h=0; h<24; h++){
+          for(let m=0; m<60; m+=5){
+            const val = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+            html += `<option value="${val}" ${selected===val?'selected':''}>${val}</option>`;
+          }
+        }
+        return html;
+      };
+      const splitDateTime = (value='') => {
+        if(!value) return {date:'', time:''};
+        const [date, rawTime=''] = String(value).split('T');
+        return {date: date || '', time: rawTime.slice(0,5) || ''};
+      };
       const renderExtraItems = () => {
         const qtd = Math.max(1, Math.min(50, Number($('extraQuantidade').value || 1)));
         const box = $('extraItems');
         const previous = [];
         box.querySelectorAll('.extraItemCard').forEach((card, i) => {
+          const inicioDate = card.querySelector('[data-extra-inicio-date]')?.value || '';
+          const inicioTime = card.querySelector('[data-extra-inicio-time]')?.value || '';
+          const fimDate = card.querySelector('[data-extra-fim-date]')?.value || '';
+          const fimTime = card.querySelector('[data-extra-fim-time]')?.value || '';
           previous[i] = {
             descricao: card.querySelector('[data-extra-desc]')?.value || '',
-            inicioAt: card.querySelector('[data-extra-inicio]')?.value || '',
-            fimAt: card.querySelector('[data-extra-fim]')?.value || ''
+            inicioAt: (inicioDate && inicioTime) ? `${inicioDate}T${inicioTime}` : '',
+            fimAt: (fimDate && fimTime) ? `${fimDate}T${fimTime}` : ''
           };
         });
         box.innerHTML = Array.from({length:qtd}, (_, i) => {
-          const old = previous[i] || previous[0] || {};
+          const old = previous[i] || {};
+          const inicio = splitDateTime(old.inicioAt || '');
+          const fim = splitDateTime(old.fimAt || '');
           return `
             <div class="extraItemCard" data-extra-index="${i}">
               <div class="extraItemHead">
@@ -751,15 +772,32 @@
               <div class="dateGrid">
                 <div>
                   <label>Dia e hora de início</label>
-                  <input class="dialogInput" data-extra-inicio type="datetime-local" value="${escapeHtml(old.inicioAt || '')}" />
+                  <div class="dateTimeGroup">
+                    <input class="dialogInput dateInput" data-extra-inicio-date type="date" value="${escapeHtml(inicio.date)}" />
+                    <select class="dialogInput timeSelect" data-extra-inicio-time>${timeOptions(inicio.time)}</select>
+                  </div>
                 </div>
                 <div>
                   <label>Dia e hora de fim</label>
-                  <input class="dialogInput" data-extra-fim type="datetime-local" value="${escapeHtml(old.fimAt || '')}" />
+                  <div class="dateTimeGroup">
+                    <input class="dialogInput dateInput" data-extra-fim-date type="date" value="${escapeHtml(fim.date)}" />
+                    <select class="dialogInput timeSelect" data-extra-fim-time>${timeOptions(fim.time)}</select>
+                  </div>
                 </div>
               </div>
             </div>`;
         }).join('');
+
+        box.querySelectorAll('input[type="date"]').forEach((input) => {
+          const openNativePicker = () => {
+            if (typeof input.showPicker === 'function') {
+              try { input.showPicker(); } catch (e) {}
+            }
+          };
+          input.addEventListener('click', openNativePicker);
+          input.addEventListener('focus', openNativePicker);
+        });
+
         t.sizeTo('#document');
       };
 
@@ -776,12 +814,18 @@
         for(let i=0;i<cards.length;i++){
           const card = cards[i];
           const descricao = card.querySelector('[data-extra-desc]').value.trim();
-          const inicioAt = card.querySelector('[data-extra-inicio]').value;
-          const fimAt = card.querySelector('[data-extra-fim]').value;
+          const inicioDate = card.querySelector('[data-extra-inicio-date]').value;
+          const inicioTime = card.querySelector('[data-extra-inicio-time]').value;
+          const fimDate = card.querySelector('[data-extra-fim-date]').value;
+          const fimTime = card.querySelector('[data-extra-fim-time]').value;
+          const inicioAt = (inicioDate && inicioTime) ? `${inicioDate}T${inicioTime}` : '';
+          const fimAt = (fimDate && fimTime) ? `${fimDate}T${fimTime}` : '';
           if(!descricao){ $('dialogText').textContent = `Informe a descrição do extra ${i+1}.`; card.querySelector('[data-extra-desc]').focus(); return; }
-          if(!inicioAt){ $('dialogText').textContent = `Informe o dia e horário de início do extra ${i+1}.`; card.querySelector('[data-extra-inicio]').focus(); return; }
-          if(!fimAt){ $('dialogText').textContent = `Informe o dia e horário de fim do extra ${i+1}.`; card.querySelector('[data-extra-fim]').focus(); return; }
-          if(new Date(fimAt).getTime() <= new Date(inicioAt).getTime()){ $('dialogText').textContent = `O fim do extra ${i+1} precisa ser depois do início.`; card.querySelector('[data-extra-fim]').focus(); return; }
+          if(!inicioDate){ $('dialogText').textContent = `Informe o dia de início do extra ${i+1}.`; card.querySelector('[data-extra-inicio-date]').focus(); return; }
+          if(!inicioTime){ $('dialogText').textContent = `Informe a hora de início do extra ${i+1}.`; card.querySelector('[data-extra-inicio-time]').focus(); return; }
+          if(!fimDate){ $('dialogText').textContent = `Informe o dia de fim do extra ${i+1}.`; card.querySelector('[data-extra-fim-date]').focus(); return; }
+          if(!fimTime){ $('dialogText').textContent = `Informe a hora de fim do extra ${i+1}.`; card.querySelector('[data-extra-fim-time]').focus(); return; }
+          if(new Date(fimAt).getTime() <= new Date(inicioAt).getTime()){ $('dialogText').textContent = `O fim do extra ${i+1} precisa ser depois do início.`; card.querySelector('[data-extra-fim-date]').focus(); return; }
           itens.push({ descricao, inicioAt, fimAt });
         }
         close({ quantidade, itens, loteId: uid() });
