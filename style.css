@@ -245,3 +245,62 @@ input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:v
 .dateTimeGroup .timeSelect{appearance:auto;cursor:pointer;background:#fff}
 .dateTimeGroup .dateInput{cursor:pointer;background:#fff}
 @media(max-width:640px){.dateTimeGroup{grid-template-columns:1fr}}
+
+/* v49 - calendário e seletor de hora personalizados */
+.dateTimeGroup{display:block}
+.customPickerRow{display:grid;grid-template-columns:1fr 118px;gap:10px;align-items:start}
+.customPickerWrap{position:relative;min-width:0}
+.pickerField{
+  width:100%;
+  min-height:50px;
+  border:1px solid #d4d8df;
+  border-radius:16px;
+  background:#fff;
+  color:var(--ink);
+  padding:0 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size:14px;
+  font-weight:800;
+  cursor:pointer;
+  box-shadow:none;
+  transition:border-color .18s ease, box-shadow .18s ease, transform .14s ease;
+}
+.pickerField span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pickerField em{font-style:normal;color:var(--blue);font-size:15px;line-height:1;flex:0 0 auto}
+.pickerField:hover{border-color:var(--blue);box-shadow:0 8px 20px rgba(0,80,242,.10);transform:translateY(-1px)}
+.pickerField:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 4px rgba(0,80,242,.12)}
+.pickerPopover{
+  position:absolute;
+  top:calc(100% + 8px);
+  left:0;
+  z-index:10050;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  box-shadow:0 22px 70px rgba(0,0,0,.25);
+  padding:12px;
+}
+.datePopover{width:306px}
+.timePopover{width:150px;right:0;left:auto;padding:8px}
+.calendarHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.calendarHead strong{font-size:14px;font-weight:900;color:var(--black);text-transform:capitalize;text-align:center;flex:1}
+.calendarNav{width:34px;height:34px;border:0;border-radius:12px;background:var(--blue-soft);color:var(--blue);font-size:22px;font-weight:900;cursor:pointer;line-height:1}
+.calendarNav:hover{background:var(--blue);color:#fff}
+.calendarWeek,.calendarGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.calendarWeek{margin-bottom:6px}
+.calendarWeek span{text-align:center;font-size:10px;font-weight:900;color:var(--muted)}
+.calendarBlank{height:34px}
+.calendarDay{height:34px;border:0;border-radius:12px;background:var(--gray-3);color:var(--black);font-weight:900;cursor:pointer}
+.calendarDay:hover{background:var(--blue-soft);color:var(--blue)}
+.calendarDay.active{background:var(--blue);color:#fff;box-shadow:0 8px 18px rgba(0,80,242,.18)}
+.timeList{display:grid;grid-template-columns:1fr;gap:6px;max-height:240px;overflow:auto;padding-right:2px}
+.timeOption{height:36px;border:0;border-radius:12px;background:var(--gray-3);color:var(--black);font-weight:900;cursor:pointer}
+.timeOption:hover{background:var(--blue-soft);color:var(--blue)}
+.timeOption.active{background:var(--blue);color:#fff}
+@media(max-width:640px){
+  .customPickerRow{grid-template-columns:1fr}
+  .datePopover,.timePopover{width:min(306px, calc(100vw - 76px));left:0;right:auto}
+}

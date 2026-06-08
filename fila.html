@@ -727,21 +727,118 @@
       $('dialogCancel').classList.remove('hide');
       $('dialogCancel').onclick = () => close(null);
 
-      const timeOptions = (selected='') => {
-        let html = '<option value="">Hora</option>';
-        for(let h=0; h<24; h++){
-          for(let m=0; m<60; m+=5){
-            const val = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-            html += `<option value="${val}" ${selected===val?'selected':''}>${val}</option>`;
-          }
-        }
-        return html;
-      };
       const splitDateTime = (value='') => {
         if(!value) return {date:'', time:''};
         const [date, rawTime=''] = String(value).split('T');
         return {date: date || '', time: rawTime.slice(0,5) || ''};
       };
+      const formatPickerDate = (value='') => {
+        if(!value) return 'Selecionar data';
+        const [y,m,d] = String(value).split('-');
+        if(!y || !m || !d) return 'Selecionar data';
+        return `${d}/${m}/${y}`;
+      };
+      const monthLabel = (year, month) => {
+        return new Date(year, month, 1).toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
+      };
+      const closePickers = (scope) => {
+        (scope || document).querySelectorAll('.pickerPopover').forEach(p=>p.classList.add('hide'));
+      };
+      const renderCalendar = (pop, hidden, label, year, month) => {
+        const selected = hidden.value || '';
+        const first = new Date(year, month, 1);
+        const startDay = first.getDay();
+        const days = new Date(year, month + 1, 0).getDate();
+        let cells = '';
+        for(let i=0;i<startDay;i++) cells += '<span class="calendarBlank"></span>';
+        for(let d=1; d<=days; d++){
+          const val = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const active = selected === val ? ' active' : '';
+          cells += `<button type="button" class="calendarDay${active}" data-date-value="${val}">${d}</button>`;
+        }
+        pop.innerHTML = `
+          <div class="calendarHead">
+            <button type="button" class="calendarNav" data-cal-prev>‹</button>
+            <strong>${monthLabel(year, month)}</strong>
+            <button type="button" class="calendarNav" data-cal-next>›</button>
+          </div>
+          <div class="calendarWeek"><span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span></div>
+          <div class="calendarGrid">${cells}</div>`;
+        pop.dataset.year = String(year);
+        pop.dataset.month = String(month);
+        pop.querySelector('[data-cal-prev]').onclick = (ev) => {
+          ev.stopPropagation();
+          const next = new Date(Number(pop.dataset.year), Number(pop.dataset.month)-1, 1);
+          renderCalendar(pop, hidden, label, next.getFullYear(), next.getMonth());
+        };
+        pop.querySelector('[data-cal-next]').onclick = (ev) => {
+          ev.stopPropagation();
+          const next = new Date(Number(pop.dataset.year), Number(pop.dataset.month)+1, 1);
+          renderCalendar(pop, hidden, label, next.getFullYear(), next.getMonth());
+        };
+        pop.querySelectorAll('[data-date-value]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            hidden.value = btn.dataset.dateValue;
+            label.textContent = formatPickerDate(hidden.value);
+            closePickers(pop.closest('.extraItems') || document);
+          };
+        });
+      };
+      const renderTimePicker = (pop, hidden, label) => {
+        let html = '<div class="timeList">';
+        for(let h=0; h<24; h++){
+          for(let m=0; m<60; m+=15){
+            const val = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+            const active = hidden.value === val ? ' active' : '';
+            html += `<button type="button" class="timeOption${active}" data-time-value="${val}">${val}</button>`;
+          }
+        }
+        html += '</div>';
+        pop.innerHTML = html;
+        pop.querySelectorAll('[data-time-value]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            hidden.value = btn.dataset.timeValue;
+            label.textContent = hidden.value;
+            closePickers(pop.closest('.extraItems') || document);
+          };
+        });
+      };
+      const setupCustomDateTimePickers = (scope) => {
+        scope.querySelectorAll('[data-date-button]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            const wrap = btn.closest('.customPickerWrap');
+            const hidden = wrap.querySelector('input[type="hidden"]');
+            const pop = wrap.querySelector('.datePopover');
+            const label = btn.querySelector('span');
+            const current = hidden.value ? new Date(`${hidden.value}T12:00:00`) : new Date();
+            const wasOpen = !pop.classList.contains('hide');
+            closePickers(scope);
+            if(wasOpen) return;
+            renderCalendar(pop, hidden, label, current.getFullYear(), current.getMonth());
+            pop.classList.remove('hide');
+          };
+        });
+        scope.querySelectorAll('[data-time-button]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            const wrap = btn.closest('.customPickerWrap');
+            const hidden = wrap.querySelector('input[type="hidden"]');
+            const pop = wrap.querySelector('.timePopover');
+            const label = btn.querySelector('span');
+            const wasOpen = !pop.classList.contains('hide');
+            closePickers(scope);
+            if(wasOpen) return;
+            renderTimePicker(pop, hidden, label);
+            pop.classList.remove('hide');
+          };
+        });
+      };
+      document.addEventListener('click', (ev) => {
+        if(!ev.target.closest('.customPickerWrap')) closePickers(document);
+      });
       const renderExtraItems = () => {
         const qtd = Math.max(1, Math.min(50, Number($('extraQuantidade').value || 1)));
         const box = $('extraItems');
@@ -772,31 +869,47 @@
               <div class="dateGrid">
                 <div>
                   <label>Dia e hora de início</label>
-                  <div class="dateTimeGroup">
-                    <input class="dialogInput dateInput" data-extra-inicio-date type="date" value="${escapeHtml(inicio.date)}" />
-                    <select class="dialogInput timeSelect" data-extra-inicio-time>${timeOptions(inicio.time)}</select>
+                  <div class="customPickerRow">
+                    <div class="customPickerWrap">
+                      <input type="hidden" data-extra-inicio-date value="${escapeHtml(inicio.date)}" />
+                      <button type="button" class="pickerField" data-date-button>
+                        <span>${formatPickerDate(inicio.date)}</span><em>📅</em>
+                      </button>
+                      <div class="pickerPopover datePopover hide"></div>
+                    </div>
+                    <div class="customPickerWrap compactPicker">
+                      <input type="hidden" data-extra-inicio-time value="${escapeHtml(inicio.time)}" />
+                      <button type="button" class="pickerField" data-time-button>
+                        <span>${inicio.time || 'Hora'}</span><em>⌄</em>
+                      </button>
+                      <div class="pickerPopover timePopover hide"></div>
+                    </div>
                   </div>
                 </div>
                 <div>
                   <label>Dia e hora de fim</label>
-                  <div class="dateTimeGroup">
-                    <input class="dialogInput dateInput" data-extra-fim-date type="date" value="${escapeHtml(fim.date)}" />
-                    <select class="dialogInput timeSelect" data-extra-fim-time>${timeOptions(fim.time)}</select>
+                  <div class="customPickerRow">
+                    <div class="customPickerWrap">
+                      <input type="hidden" data-extra-fim-date value="${escapeHtml(fim.date)}" />
+                      <button type="button" class="pickerField" data-date-button>
+                        <span>${formatPickerDate(fim.date)}</span><em>📅</em>
+                      </button>
+                      <div class="pickerPopover datePopover hide"></div>
+                    </div>
+                    <div class="customPickerWrap compactPicker">
+                      <input type="hidden" data-extra-fim-time value="${escapeHtml(fim.time)}" />
+                      <button type="button" class="pickerField" data-time-button>
+                        <span>${fim.time || 'Hora'}</span><em>⌄</em>
+                      </button>
+                      <div class="pickerPopover timePopover hide"></div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>`;
         }).join('');
 
-        box.querySelectorAll('input[type="date"]').forEach((input) => {
-          const openNativePicker = () => {
-            if (typeof input.showPicker === 'function') {
-              try { input.showPicker(); } catch (e) {}
-            }
-          };
-          input.addEventListener('click', openNativePicker);
-          input.addEventListener('focus', openNativePicker);
-        });
+        setupCustomDateTimePickers(box);
 
         t.sizeTo('#document');
       };
@@ -821,11 +934,11 @@
           const inicioAt = (inicioDate && inicioTime) ? `${inicioDate}T${inicioTime}` : '';
           const fimAt = (fimDate && fimTime) ? `${fimDate}T${fimTime}` : '';
           if(!descricao){ $('dialogText').textContent = `Informe a descrição do extra ${i+1}.`; card.querySelector('[data-extra-desc]').focus(); return; }
-          if(!inicioDate){ $('dialogText').textContent = `Informe o dia de início do extra ${i+1}.`; card.querySelector('[data-extra-inicio-date]').focus(); return; }
-          if(!inicioTime){ $('dialogText').textContent = `Informe a hora de início do extra ${i+1}.`; card.querySelector('[data-extra-inicio-time]').focus(); return; }
-          if(!fimDate){ $('dialogText').textContent = `Informe o dia de fim do extra ${i+1}.`; card.querySelector('[data-extra-fim-date]').focus(); return; }
-          if(!fimTime){ $('dialogText').textContent = `Informe a hora de fim do extra ${i+1}.`; card.querySelector('[data-extra-fim-time]').focus(); return; }
-          if(new Date(fimAt).getTime() <= new Date(inicioAt).getTime()){ $('dialogText').textContent = `O fim do extra ${i+1} precisa ser depois do início.`; card.querySelector('[data-extra-fim-date]').focus(); return; }
+          if(!inicioDate){ $('dialogText').textContent = `Informe o dia de início do extra ${i+1}.`; card.querySelector('[data-extra-inicio-date]').closest('.customPickerWrap').querySelector('[data-date-button]').focus(); return; }
+          if(!inicioTime){ $('dialogText').textContent = `Informe a hora de início do extra ${i+1}.`; card.querySelector('[data-extra-inicio-time]').closest('.customPickerWrap').querySelector('[data-time-button]').focus(); return; }
+          if(!fimDate){ $('dialogText').textContent = `Informe o dia de fim do extra ${i+1}.`; card.querySelector('[data-extra-fim-date]').closest('.customPickerWrap').querySelector('[data-date-button]').focus(); return; }
+          if(!fimTime){ $('dialogText').textContent = `Informe a hora de fim do extra ${i+1}.`; card.querySelector('[data-extra-fim-time]').closest('.customPickerWrap').querySelector('[data-time-button]').focus(); return; }
+          if(new Date(fimAt).getTime() <= new Date(inicioAt).getTime()){ $('dialogText').textContent = `O fim do extra ${i+1} precisa ser depois do início.`; card.querySelector('[data-extra-fim-date]').closest('.customPickerWrap').querySelector('[data-date-button]').focus(); return; }
           itens.push({ descricao, inicioAt, fimAt });
         }
         close({ quantidade, itens, loteId: uid() });
