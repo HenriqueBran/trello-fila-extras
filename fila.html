@@ -786,22 +786,53 @@
         });
       };
       const renderTimePicker = (pop, hidden, label) => {
-        let html = '<div class="timeList">';
+        const [currentHour='', currentMinute=''] = String(hidden.value || '').split(':');
+        let hours = '';
+        let minutes = '';
         for(let h=0; h<24; h++){
-          for(let m=0; m<60; m+=15){
-            const val = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-            const active = hidden.value === val ? ' active' : '';
-            html += `<button type="button" class="timeOption${active}" data-time-value="${val}">${val}</button>`;
-          }
+          const val = String(h).padStart(2,'0');
+          const active = currentHour === val ? ' active' : '';
+          hours += `<button type="button" class="timeOption${active}" data-time-hour="${val}">${val}</button>`;
         }
-        html += '</div>';
-        pop.innerHTML = html;
-        pop.querySelectorAll('[data-time-value]').forEach(btn => {
-          btn.onclick = (ev) => {
-            ev.stopPropagation();
-            hidden.value = btn.dataset.timeValue;
+        for(let m=0; m<60; m+=1){
+          const val = String(m).padStart(2,'0');
+          const active = currentMinute === val ? ' active' : '';
+          minutes += `<button type="button" class="timeOption${active}" data-time-minute="${val}">${val}</button>`;
+        }
+        pop.dataset.hour = currentHour || '';
+        pop.dataset.minute = currentMinute || '';
+        pop.innerHTML = `
+          <div class="timePickerSplit">
+            <div class="timeColumn">
+              <strong>Hora</strong>
+              <div class="timeScroll">${hours}</div>
+            </div>
+            <div class="timeColumn">
+              <strong>Minutos</strong>
+              <div class="timeScroll">${minutes}</div>
+            </div>
+          </div>`;
+        const applyTime = () => {
+          if(pop.dataset.hour && pop.dataset.minute){
+            hidden.value = `${pop.dataset.hour}:${pop.dataset.minute}`;
             label.textContent = hidden.value;
             closePickers(pop.closest('.extraItems') || document);
+          }
+        };
+        pop.querySelectorAll('[data-time-hour]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            pop.dataset.hour = btn.dataset.timeHour;
+            pop.querySelectorAll('[data-time-hour]').forEach(b=>b.classList.toggle('active', b === btn));
+            applyTime();
+          };
+        });
+        pop.querySelectorAll('[data-time-minute]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            pop.dataset.minute = btn.dataset.timeMinute;
+            pop.querySelectorAll('[data-time-minute]').forEach(b=>b.classList.toggle('active', b === btn));
+            applyTime();
           };
         });
       };
