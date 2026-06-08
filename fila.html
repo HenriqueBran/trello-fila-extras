@@ -110,6 +110,9 @@
       <div id="extraForm" class="extraForm hide">
         <label>Descrição do extra</label>
         <textarea id="extraDescricao" class="dialogTextarea" placeholder="Descreva a extra que será lançada"></textarea>
+        <label>Quantidade de extras</label>
+        <input id="extraQuantidade" class="dialogInput" type="number" min="1" step="1" value="1" placeholder="Quantidade de extras" />
+        <small class="muted">Cada extra será direcionada para uma pessoa seguindo a ordem atual da fila.</small>
         <div class="dateGrid">
           <div>
             <label>Dia e hora de início</label>
@@ -491,26 +494,52 @@
     function moveOneDownFirst(){ if(data.fila.length > 1){ const first = data.fila.shift(); data.fila.splice(1,0,first); } }
     function advanceQueueAfterGenerate(){ if(data.fila.length > 1) data.fila.push(data.fila.shift()); }
     function movePersonToTop(id){ const idx = data.fila.findIndex(p=>p.id===id); if(idx>0){ const item=data.fila.splice(idx,1)[0]; data.fila.unshift(item); } }
+    function proximaPessoaComUsuario(){
+      if(!data.fila.length) return null;
+      for(let i=0;i<data.fila.length;i++){
+        const p = data.fila[0];
+        if(p && p.trelloUsername) return p;
+        advanceQueueAfterGenerate();
+      }
+      return null;
+    }
 
     async function gerarExtra(){
-      const p = pessoaDaVez(); if(!p) return infoDialog('Atenção','Cadastre pessoas na fila primeiro.');
-      if(!p.trelloUsername) return infoDialog('Atenção', `Vincule o usuário Trello de ${p.nome} antes de gerar a extra. Assim o aceite aparece somente para essa pessoa.`);
+      if(!data.fila.length) return infoDialog('Atenção','Cadastre pessoas na fila primeiro.');
       const form = await extraDialog();
       if(form === null) return;
-      const extra = {
-        id: uid(),
-        pessoaId:p.id,
-        pessoaNome:p.nome,
-        pessoaUsername:p.trelloUsername,
-        descricao: form.descricao,
-        inicioAt: form.inicioAt,
-        fimAt: form.fimAt,
-        status:'AGUARDANDO',
-        criadaEm:now()
-      };
-      data.extrasAtivas.push(extra);
-      log('EXTRA GERADA', `Extra gerada para ${p.nome}.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra} });
-      advanceQueueAfterGenerate();
+      const quantidade = Math.max(1, Number(form.quantidade || 1));
+      const semUsuario = data.fila.filter(p => !p.trelloUsername);
+      if(semUsuario.length){
+        return infoDialog('Atenção', `Antes de gerar extras, vincule o usuário Trello de todos os membros da fila. Sem vínculo: ${semUsuario.map(p=>p.nome).join(', ')}.`);
+      }
+      if(quantidade > data.fila.length){
+        return infoDialog('Atenção', `Você solicitou ${quantidade} extras, mas há apenas ${data.fila.length} pessoa(s) na fila. Ajuste a quantidade ou cadastre mais membros.`);
+      }
+
+      const geradas = [];
+      for(let i=0;i<quantidade;i++){
+        const p = proximaPessoaComUsuario();
+        if(!p) break;
+        const extra = {
+          id: uid(),
+          pessoaId:p.id,
+          pessoaNome:p.nome,
+          pessoaUsername:p.trelloUsername,
+          descricao: form.descricao,
+          inicioAt: form.inicioAt,
+          fimAt: form.fimAt,
+          status:'AGUARDANDO',
+          criadaEm:now(),
+          loteId: form.loteId || uid(),
+          ordemNoLote: i + 1,
+          totalNoLote: quantidade
+        };
+        data.extrasAtivas.push(extra);
+        geradas.push(extra);
+        log('EXTRA GERADA', `Extra ${i+1}/${quantidade} gerada para ${p.nome}.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra} });
+        advanceQueueAfterGenerate();
+      }
       await persistAndRender();
     }
     async function pularVez(){
@@ -529,8 +558,29 @@
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
       const motivo = await promptDialog('Recusar extra','Motivo da recusa:', '');
       if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
-      log('EXTRA RECUSADA', `${extra.pessoaNome} recusou a extra. Motivo: ${motivo.trim()}`, { extraId });
-      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); await persistAndRender();
+      log('EXTRA RECUSADA', `${extra.pessoaNome} recusou a extra. Motivo: ${motivo.trim()}`, { extraId, extraSnapshot: {...extra, recusadaEm: now(), motivoRecusa: motivo.trim()} });
+      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId);
+
+      const proximo = proximaPessoaComUsuario();
+      if(proximo){
+        const redistribuida = {
+          ...extra,
+          id: uid(),
+          pessoaId: proximo.id,
+          pessoaNome: proximo.nome,
+          pessoaUsername: proximo.trelloUsername,
+          criadaEm: now(),
+          status: 'AGUARDANDO',
+          redistribuidaDe: extra.pessoaNome,
+          extraOriginalId: extra.extraOriginalId || extra.id
+        };
+        data.extrasAtivas.push(redistribuida);
+        log('EXTRA REDIRECIONADA', `Após recusa de ${extra.pessoaNome}, a extra foi enviada para ${proximo.nome}.${extraPeriodoTexto(redistribuida)}`, { extraId: redistribuida.id, extraSnapshot: {...redistribuida} });
+        advanceQueueAfterGenerate();
+      } else {
+        log('EXTRA SEM DESTINO', `Após recusa de ${extra.pessoaNome}, não havia próximo membro com usuário Trello vinculado para receber a extra.`, { extraId });
+      }
+      await persistAndRender();
     }
     window.cancelarSolicitacao = async function(extraId){
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
@@ -683,6 +733,7 @@
       $('dialogInput').classList.add('hide');
       $('dialogTextarea').classList.add('hide');
       $('extraDescricao').value = '';
+      $('extraQuantidade').value = '1';
       $('extraInicio').value = '';
       $('extraFim').value = '';
       $('extraForm').classList.remove('hide');
@@ -690,13 +741,15 @@
       $('dialogCancel').onclick = () => close(null);
       $('dialogOk').onclick = () => {
         const descricao = $('extraDescricao').value.trim();
+        const quantidade = Number($('extraQuantidade').value || 1);
         const inicioAt = $('extraInicio').value;
         const fimAt = $('extraFim').value;
         if(!descricao){ $('dialogText').textContent = 'Informe a descrição do extra.'; $('extraDescricao').focus(); return; }
+        if(!Number.isInteger(quantidade) || quantidade < 1){ $('dialogText').textContent = 'Informe uma quantidade válida de extras.'; $('extraQuantidade').focus(); return; }
         if(!inicioAt){ $('dialogText').textContent = 'Informe o dia e horário de início.'; $('extraInicio').focus(); return; }
         if(!fimAt){ $('dialogText').textContent = 'Informe o dia e horário de fim.'; $('extraFim').focus(); return; }
         if(new Date(fimAt).getTime() <= new Date(inicioAt).getTime()){ $('dialogText').textContent = 'O fim precisa ser depois do início.'; $('extraFim').focus(); return; }
-        close({ descricao, inicioAt, fimAt });
+        close({ descricao, quantidade, inicioAt, fimAt, loteId: uid() });
       };
       $('appDialog').classList.remove('hide');
       setTimeout(()=>$('extraDescricao').focus(),30);
