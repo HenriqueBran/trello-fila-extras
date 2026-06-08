@@ -227,3 +227,14 @@ input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:v
 @media(max-width:640px){.pendingModalPeriod{grid-template-columns:1fr}.pendingCard{align-items:flex-start}.pendingArrow{display:none}}
 .extraForm small.muted{display:block;margin-top:-4px;margin-bottom:2px;font-size:12px;color:var(--muted)}
 .extraForm input[type="number"]{width:100%;box-sizing:border-box}
+
+/* v46 - extras individuais no modal de geração */
+.dialogBox{max-height:92vh;overflow:auto}
+.extraItems{display:flex;flex-direction:column;gap:14px;margin-top:4px}
+.extraItemCard{border:1px solid var(--line);border-left:6px solid var(--blue);border-radius:18px;background:#fff;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.05)}
+.extraItemHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
+.extraItemHead span{font-weight:900;color:var(--black);font-size:17px}
+.extraItemHead small{color:var(--muted);font-size:12px;font-weight:700;text-align:right}
+.extraItemCard .dialogTextarea{min-height:76px;margin-bottom:12px}
+.extraItemCard .dialogInput{margin-bottom:0}
+@media(max-width:640px){.extraItemHead{display:block}.extraItemHead small{display:block;text-align:left;margin-top:4px}}

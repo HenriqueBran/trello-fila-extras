@@ -108,21 +108,10 @@
       <input id="dialogInput" class="dialogInput hide" />
       <textarea id="dialogTextarea" class="dialogTextarea hide"></textarea>
       <div id="extraForm" class="extraForm hide">
-        <label>Descrição do extra</label>
-        <textarea id="extraDescricao" class="dialogTextarea" placeholder="Descreva a extra que será lançada"></textarea>
         <label>Quantidade de extras</label>
         <input id="extraQuantidade" class="dialogInput" type="number" min="1" step="1" value="1" placeholder="Quantidade de extras" />
         <small class="muted">Cada extra será direcionada para uma pessoa seguindo a ordem atual da fila.</small>
-        <div class="dateGrid">
-          <div>
-            <label>Dia e hora de início</label>
-            <input id="extraInicio" class="dialogInput" type="datetime-local" />
-          </div>
-          <div>
-            <label>Dia e hora de fim</label>
-            <input id="extraFim" class="dialogInput" type="datetime-local" />
-          </div>
-        </div>
+        <div id="extraItems" class="extraItems"></div>
       </div>
       <div class="dialogActions">
         <button class="btn dark hide" id="dialogCancel">Cancelar</button>
@@ -508,7 +497,8 @@
       if(!data.fila.length) return infoDialog('Atenção','Cadastre pessoas na fila primeiro.');
       const form = await extraDialog();
       if(form === null) return;
-      const quantidade = Math.max(1, Number(form.quantidade || 1));
+      const itens = Array.isArray(form.itens) ? form.itens : [];
+      const quantidade = itens.length;
       const semUsuario = data.fila.filter(p => !p.trelloUsername);
       if(semUsuario.length){
         return infoDialog('Atenção', `Antes de gerar extras, vincule o usuário Trello de todos os membros da fila. Sem vínculo: ${semUsuario.map(p=>p.nome).join(', ')}.`);
@@ -517,8 +507,9 @@
         return infoDialog('Atenção', `Você solicitou ${quantidade} extras, mas há apenas ${data.fila.length} pessoa(s) na fila. Ajuste a quantidade ou cadastre mais membros.`);
       }
 
-      const geradas = [];
+      const loteId = form.loteId || uid();
       for(let i=0;i<quantidade;i++){
+        const item = itens[i];
         const p = proximaPessoaComUsuario();
         if(!p) break;
         const extra = {
@@ -526,17 +517,16 @@
           pessoaId:p.id,
           pessoaNome:p.nome,
           pessoaUsername:p.trelloUsername,
-          descricao: form.descricao,
-          inicioAt: form.inicioAt,
-          fimAt: form.fimAt,
+          descricao: item.descricao,
+          inicioAt: item.inicioAt,
+          fimAt: item.fimAt,
           status:'AGUARDANDO',
           criadaEm:now(),
-          loteId: form.loteId || uid(),
+          loteId,
           ordemNoLote: i + 1,
           totalNoLote: quantidade
         };
         data.extrasAtivas.push(extra);
-        geradas.push(extra);
         log('EXTRA GERADA', `Extra ${i+1}/${quantidade} gerada para ${p.nome}.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra} });
         advanceQueueAfterGenerate();
       }
@@ -729,32 +719,77 @@
 
     function extraDialog(){ return new Promise(resolve=>{
       $('dialogTitle').textContent = 'Gerar extra';
-      $('dialogText').textContent = 'Preencha a descrição, início e fim do extra.';
+      $('dialogText').textContent = 'Informe a quantidade e preencha cada extra individualmente.';
       $('dialogInput').classList.add('hide');
       $('dialogTextarea').classList.add('hide');
-      $('extraDescricao').value = '';
       $('extraQuantidade').value = '1';
-      $('extraInicio').value = '';
-      $('extraFim').value = '';
       $('extraForm').classList.remove('hide');
       $('dialogCancel').classList.remove('hide');
       $('dialogCancel').onclick = () => close(null);
+
+      const renderExtraItems = () => {
+        const qtd = Math.max(1, Math.min(50, Number($('extraQuantidade').value || 1)));
+        const box = $('extraItems');
+        const previous = [];
+        box.querySelectorAll('.extraItemCard').forEach((card, i) => {
+          previous[i] = {
+            descricao: card.querySelector('[data-extra-desc]')?.value || '',
+            inicioAt: card.querySelector('[data-extra-inicio]')?.value || '',
+            fimAt: card.querySelector('[data-extra-fim]')?.value || ''
+          };
+        });
+        box.innerHTML = Array.from({length:qtd}, (_, i) => {
+          const old = previous[i] || previous[0] || {};
+          return `
+            <div class="extraItemCard" data-extra-index="${i}">
+              <div class="extraItemHead">
+                <span>Extra ${i + 1}</span>
+                <small>Direcionada para a ${i + 1}ª pessoa da fila</small>
+              </div>
+              <label>Descrição do extra ${i + 1}</label>
+              <textarea class="dialogTextarea" data-extra-desc placeholder="Descreva a extra ${i + 1}">${escapeHtml(old.descricao || '')}</textarea>
+              <div class="dateGrid">
+                <div>
+                  <label>Dia e hora de início</label>
+                  <input class="dialogInput" data-extra-inicio type="datetime-local" value="${escapeHtml(old.inicioAt || '')}" />
+                </div>
+                <div>
+                  <label>Dia e hora de fim</label>
+                  <input class="dialogInput" data-extra-fim type="datetime-local" value="${escapeHtml(old.fimAt || '')}" />
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+        t.sizeTo('#document');
+      };
+
+      $('extraQuantidade').oninput = renderExtraItems;
+      $('extraQuantidade').onchange = renderExtraItems;
+      renderExtraItems();
+
       $('dialogOk').onclick = () => {
-        const descricao = $('extraDescricao').value.trim();
         const quantidade = Number($('extraQuantidade').value || 1);
-        const inicioAt = $('extraInicio').value;
-        const fimAt = $('extraFim').value;
-        if(!descricao){ $('dialogText').textContent = 'Informe a descrição do extra.'; $('extraDescricao').focus(); return; }
         if(!Number.isInteger(quantidade) || quantidade < 1){ $('dialogText').textContent = 'Informe uma quantidade válida de extras.'; $('extraQuantidade').focus(); return; }
-        if(!inicioAt){ $('dialogText').textContent = 'Informe o dia e horário de início.'; $('extraInicio').focus(); return; }
-        if(!fimAt){ $('dialogText').textContent = 'Informe o dia e horário de fim.'; $('extraFim').focus(); return; }
-        if(new Date(fimAt).getTime() <= new Date(inicioAt).getTime()){ $('dialogText').textContent = 'O fim precisa ser depois do início.'; $('extraFim').focus(); return; }
-        close({ descricao, quantidade, inicioAt, fimAt, loteId: uid() });
+        if(quantidade > data.fila.length){ $('dialogText').textContent = `Você solicitou ${quantidade} extras, mas há apenas ${data.fila.length} pessoa(s) na fila.`; $('extraQuantidade').focus(); return; }
+        const itens = [];
+        const cards = Array.from($('extraItems').querySelectorAll('.extraItemCard'));
+        for(let i=0;i<cards.length;i++){
+          const card = cards[i];
+          const descricao = card.querySelector('[data-extra-desc]').value.trim();
+          const inicioAt = card.querySelector('[data-extra-inicio]').value;
+          const fimAt = card.querySelector('[data-extra-fim]').value;
+          if(!descricao){ $('dialogText').textContent = `Informe a descrição do extra ${i+1}.`; card.querySelector('[data-extra-desc]').focus(); return; }
+          if(!inicioAt){ $('dialogText').textContent = `Informe o dia e horário de início do extra ${i+1}.`; card.querySelector('[data-extra-inicio]').focus(); return; }
+          if(!fimAt){ $('dialogText').textContent = `Informe o dia e horário de fim do extra ${i+1}.`; card.querySelector('[data-extra-fim]').focus(); return; }
+          if(new Date(fimAt).getTime() <= new Date(inicioAt).getTime()){ $('dialogText').textContent = `O fim do extra ${i+1} precisa ser depois do início.`; card.querySelector('[data-extra-fim]').focus(); return; }
+          itens.push({ descricao, inicioAt, fimAt });
+        }
+        close({ quantidade, itens, loteId: uid() });
       };
       $('appDialog').classList.remove('hide');
-      setTimeout(()=>$('extraDescricao').focus(),30);
+      setTimeout(()=>$('extraQuantidade').focus(),30);
       t.sizeTo('#document');
-      function close(value){ $('appDialog').classList.add('hide'); $('extraForm').classList.add('hide'); resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
+      function close(value){ $('appDialog').classList.add('hide'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
     }); }
 
     function openDialog({title,text='',mode='info',initialValue=''}){ return new Promise(resolve=>{
