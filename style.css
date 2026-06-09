@@ -312,3 +312,45 @@ input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:v
 }
 
 .calendarNav.disabled,.calendarNav:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+
+/* v54 - modal de geração maior para calendário/hora não quebrar */
+.dialogOverlay{align-items:flex-start;overflow:hidden;padding:18px 16px;}
+.dialogBox.extraDialogBox{
+  width:min(760px, calc(100vw - 36px));
+  height:calc(100vh - 44px);
+  max-height:calc(100vh - 44px);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding:24px;
+}
+.dialogBox.extraDialogBox .dialogTitle,
+.dialogBox.extraDialogBox .dialogText,
+.dialogBox.extraDialogBox > .dialogInput,
+.dialogBox.extraDialogBox > .dialogTextarea{flex:0 0 auto;}
+.dialogBox.extraDialogBox #extraForm{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:0 8px 360px 0;
+  margin-right:-8px;
+}
+.dialogBox.extraDialogBox .dialogActions{
+  flex:0 0 auto;
+  position:sticky;
+  bottom:0;
+  z-index:10070;
+  padding-top:12px;
+  margin-top:0;
+  background:linear-gradient(180deg,rgba(255,255,255,0),#fff 30%,#fff 100%);
+}
+.dialogBox.extraDialogBox .extraItemCard{position:relative;overflow:visible;}
+.dialogBox.extraDialogBox .pickerPopover{z-index:10080;}
+.dialogBox.extraDialogBox .datePopover{width:306px;max-width:calc(100vw - 84px);}
+.dialogBox.extraDialogBox .timePopover{width:250px;max-width:calc(100vw - 84px);}
+@media(max-width:640px){
+  .dialogOverlay{padding:10px;}
+  .dialogBox.extraDialogBox{width:calc(100vw - 20px);height:calc(100vh - 20px);max-height:calc(100vh - 20px);padding:18px;}
+  .dialogBox.extraDialogBox #extraForm{padding-bottom:380px;}
+}
