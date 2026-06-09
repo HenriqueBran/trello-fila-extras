@@ -102,7 +102,7 @@
   </div>
 
   <div id="appDialog" class="dialogOverlay hide">
-    <div class="dialogBox" id="dialogBox">
+    <div class="dialogBox">
       <div class="dialogTitle" id="dialogTitle">Aviso</div>
       <div class="dialogText" id="dialogText"></div>
       <input id="dialogInput" class="dialogInput hide" />
@@ -718,7 +718,6 @@
     bindMemberSuggestions();
 
     function extraDialog(){ return new Promise(resolve=>{
-      $('dialogBox').classList.add('extraDialogBox');
       $('dialogTitle').textContent = 'Gerar extra';
       $('dialogText').textContent = 'Informe a quantidade e preencha cada extra individualmente.';
       $('dialogInput').classList.add('hide');
@@ -744,23 +743,6 @@
       };
       const closePickers = (scope) => {
         (scope || document).querySelectorAll('.pickerPopover').forEach(p=>p.classList.add('hide'));
-      };
-      const ensurePopoverVisible = (pop) => {
-        requestAnimationFrame(() => {
-          const form = $('extraForm');
-          const box = $('dialogBox');
-          if(!form || !box || !pop || pop.classList.contains('hide')) return;
-          const popRect = pop.getBoundingClientRect();
-          const boxRect = box.getBoundingClientRect();
-          const bottomLimit = boxRect.bottom - 92;
-          const topLimit = boxRect.top + 12;
-          if(popRect.bottom > bottomLimit){
-            form.scrollTop += (popRect.bottom - bottomLimit) + 18;
-          }
-          if(popRect.top < topLimit){
-            form.scrollTop -= (topLimit - popRect.top) + 18;
-          }
-        });
       };
       const todayDateOnly = () => {
         const now = new Date();
@@ -903,7 +885,6 @@
             if(wasOpen) return;
             renderCalendar(pop, hidden, label, current.getFullYear(), current.getMonth());
             pop.classList.remove('hide');
-            ensurePopoverVisible(pop);
           };
         });
         scope.querySelectorAll('[data-time-button]').forEach(btn => {
@@ -918,7 +899,6 @@
             if(wasOpen) return;
             renderTimePicker(pop, hidden, label);
             pop.classList.remove('hide');
-            ensurePopoverVisible(pop);
           };
         });
       };
@@ -1034,11 +1014,11 @@
       $('appDialog').classList.remove('hide');
       setTimeout(()=>$('extraQuantidade').focus(),30);
       t.sizeTo('#document');
-      function close(value){ $('appDialog').classList.add('hide'); $('dialogBox').classList.remove('extraDialogBox'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
+      function close(value){ $('appDialog').classList.add('hide'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
     }); }
 
     function openDialog({title,text='',mode='info',initialValue=''}){ return new Promise(resolve=>{
-      $('dialogBox').classList.remove('extraDialogBox'); $('dialogTitle').textContent=title||'Aviso'; $('dialogText').textContent=text||''; $('dialogInput').classList.add('hide'); $('dialogTextarea').classList.add('hide'); $('extraForm').classList.add('hide'); $('dialogCancel').classList.toggle('hide', mode==='info');
+      $('dialogTitle').textContent=title||'Aviso'; $('dialogText').textContent=text||''; $('dialogInput').classList.add('hide'); $('dialogTextarea').classList.add('hide'); $('extraForm').classList.add('hide'); $('dialogCancel').classList.toggle('hide', mode==='info');
       $('dialogCancel').onclick=()=>close(null); $('dialogOk').onclick=()=>{ if(mode==='prompt') return close($('dialogInput').value); if(mode==='textarea') return close($('dialogTextarea').value); close(true); };
       if(mode==='prompt'){ $('dialogInput').classList.remove('hide'); $('dialogInput').value=initialValue||''; setTimeout(()=>$('dialogInput').focus(),30); }
       if(mode==='textarea'){ $('dialogTextarea').classList.remove('hide'); $('dialogTextarea').value=initialValue||''; setTimeout(()=>$('dialogTextarea').focus(),30); }
@@ -1046,7 +1026,6 @@
       function close(value){ $('appDialog').classList.add('hide'); resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
     }); }
     function htmlDialog(title, html){ return new Promise(resolve=>{
-      $('dialogBox').classList.remove('extraDialogBox');
       $('dialogTitle').textContent = title || 'Aviso';
       $('dialogText').innerHTML = html || '';
       $('dialogInput').classList.add('hide');

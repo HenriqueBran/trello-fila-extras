@@ -67,7 +67,8 @@ function applyMonthlyHistoryClose(data, date = new Date()){
 async function kvGet(key){
   const url=process.env.KV_REST_API_URL, token=process.env.KV_REST_API_TOKEN;
   if(!url || !token) return null;
-  const res=await fetch(`${url}/get/${encodeURIComponent(key)}`, { headers:{ Authorization:`Bearer ${token}` }});
+  const baseUrl = String(url).trim().replace(/\/+$/, '');
+  const res=await fetch(`${baseUrl}/get/${encodeURIComponent(key)}`, { headers:{ Authorization:`Bearer ${String(token).trim()}` }});
   if(!res.ok) throw new Error(`KV GET failed: ${res.status}`);
   const json=await res.json();
   if(!json || json.result == null) return null;
@@ -81,14 +82,16 @@ async function kvGet(key){
 async function kvSet(key,value){
   const url=process.env.KV_REST_API_URL, token=process.env.KV_REST_API_TOKEN;
   if(!url || !token) return false;
-  const res=await fetch(`${url}/set/${encodeURIComponent(key)}`, { method:'POST', headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, body:JSON.stringify(value) });
+  const baseUrl = String(url).trim().replace(/\/+$/, '');
+  const res=await fetch(`${baseUrl}/set/${encodeURIComponent(key)}`, { method:'POST', headers:{ Authorization:`Bearer ${String(token).trim()}`, 'Content-Type':'application/json' }, body:JSON.stringify(value) });
   if(!res.ok) throw new Error(`KV SET failed: ${res.status}`);
   return true;
 }
 async function kvKeys(){
   const url=process.env.KV_REST_API_URL, token=process.env.KV_REST_API_TOKEN;
   if(!url || !token) return Object.keys(memory).filter(k => k.startsWith('fila-extras:'));
-  const res=await fetch(`${url}/keys/${encodeURIComponent('fila-extras:*')}`, { headers:{ Authorization:`Bearer ${token}` }});
+  const baseUrl = String(url).trim().replace(/\/+$/, '');
+  const res=await fetch(`${baseUrl}/keys/${encodeURIComponent('fila-extras:*')}`, { headers:{ Authorization:`Bearer ${String(token).trim()}` }});
   if(!res.ok) throw new Error(`KV KEYS failed: ${res.status}`);
   const json=await res.json();
   return Array.isArray(json.result) ? json.result : [];
