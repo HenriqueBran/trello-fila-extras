@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat+Alternates:wght@400;500;600;700;800;900&family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 
 :root{
   --black:#000000;
@@ -25,12 +25,12 @@
 html,body{min-height:100%}
 body{
   margin:0;
-  font-family:'Montserrat',Arial,Helvetica,sans-serif;
+  font-family:'Montserrat';
   background:var(--bg);
   color:var(--ink);
   letter-spacing:-.01em;
 }
-button,input,select,textarea{font-family:'Montserrat',Arial,Helvetica,sans-serif}
+button,input,select,textarea{font-family:'Inter'}
 .wrap{max-width:1120px;margin:0 auto;padding:22px}
 .topbarInternal{display:flex;align-items:center;gap:10px;margin:0 0 12px}
 
@@ -353,4 +353,260 @@ input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:v
   .dialogOverlay{padding:10px;}
   .dialogBox.extraDialogBox{width:calc(100vw - 20px);height:calc(100vh - 20px);max-height:calc(100vh - 20px);padding:18px;}
   .dialogBox.extraDialogBox #extraForm{padding-bottom:380px;}
+}
+
+
+/* v58 - gerar extra em etapas com progresso e campos agrupados */
+.dialogBox{
+  width:min(560px, calc(100vw - 34px));
+  max-height:92vh;
+  overflow:auto;
+  padding:30px 32px;
+}
+.dialogTitle{
+  font-size:26px;
+  margin-bottom:8px;
+}
+.dialogText{
+  margin-bottom:18px;
+  color:#4b5563;
+}
+.extraForm{
+  gap:16px;
+  margin-top:6px;
+}
+.extraWizardTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+.extraWizardTop > div{
+  flex:1;
+  min-width:0;
+}
+.extraQuantityInput{
+  margin:8px 0 0;
+  max-width:160px;
+}
+.extraStepCounter{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:800;
+  white-space:nowrap;
+  padding-top:5px;
+}
+.extraStepProgress{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(40px,1fr));
+  gap:5px;
+  margin:2px 0 14px;
+}
+.extraStepBar{
+  height:4px;
+  border-radius:999px;
+  background:#e5e7eb;
+}
+.extraStepBar.done{
+  background:var(--blue);
+}
+.extraStepBar.active{
+  background:var(--blue);
+}
+.extraStepCard{
+  border:0;
+  border-radius:0;
+  background:transparent;
+  padding:0;
+  box-shadow:none;
+}
+.extraStepHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:14px;
+}
+.extraStepHeader strong{
+  display:block;
+  font-size:18px;
+  color:var(--black);
+  font-weight:950;
+}
+.extraStepHeader span{
+  display:block;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+  margin-top:2px;
+}
+.iconLabel{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:0 0 8px;
+}
+.iconLabel span{
+  color:var(--muted);
+  font-size:14px;
+}
+.textareaWrap{
+  position:relative;
+}
+.textareaWrap .dialogTextarea{
+  min-height:80px;
+  padding-bottom:28px;
+  resize:vertical;
+  margin-bottom:16px;
+}
+.charCounter{
+  position:absolute;
+  right:12px;
+  bottom:26px;
+  font-size:12px;
+  color:#9ca3af;
+  font-weight:700;
+  pointer-events:none;
+}
+.extraDateSections{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+.dateSectionTitle{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-bottom:8px;
+  font-weight:900;
+  color:var(--blue);
+}
+.dateSection:nth-child(2) .dateSectionTitle{
+  color:var(--magenta);
+}
+.dateHourGroup{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) 94px;
+  gap:8px;
+  align-items:start;
+}
+.dateHourGroup .pickerField{
+  min-height:46px;
+  border-radius:12px;
+  font-size:14px;
+  padding:0 11px;
+  background:#fff;
+}
+.dateHourGroup .pickerField span{
+  max-width:110px;
+}
+.dialogActions{
+  align-items:center;
+  padding-top:14px;
+}
+.dialogActions .btn.primary{
+  min-width:130px;
+  box-shadow:0 14px 34px rgba(0,80,242,.22);
+}
+.ghostBack{
+  background:transparent !important;
+  color:#6b7280 !important;
+  border:0 !important;
+  padding-left:0 !important;
+  box-shadow:none !important;
+}
+.ghostBack:hover{
+  color:var(--black) !important;
+  text-decoration:underline;
+}
+.extraItems{
+  margin-top:0;
+}
+.extraItems .datePopover{
+  width:min(306px, calc(100vw - 86px));
+}
+.extraItems .timePopover{
+  width:230px;
+}
+@media(max-width:640px){
+  .dialogBox{padding:24px 22px}
+  .extraWizardTop{display:block}
+  .extraStepCounter{display:block;margin-top:8px}
+  .extraDateSections{grid-template-columns:1fr}
+  .dateHourGroup{grid-template-columns:1fr 94px}
+}
+
+
+/* v59 - alinhamento total com identidade visual: preto, branco, cinza, azul e magenta */
+.extraStepBar.done{
+  background:var(--blue) !important;
+}
+.extraStepBar.active{
+  background:var(--magenta) !important;
+}
+.dateSectionTitle{
+  color:var(--blue) !important;
+}
+.dateSection:nth-child(2) .dateSectionTitle{
+  color:var(--magenta) !important;
+}
+.dialogActions .btn.primary{
+  background:var(--blue) !important;
+  color:#fff !important;
+}
+.ghostBack{
+  color:var(--gray) !important;
+}
+.ghostBack:hover{
+  color:var(--magenta) !important;
+}
+.charCounter{
+  color:var(--gray) !important;
+}
+.extraStepCounter{
+  color:var(--gray) !important;
+}
+.extraStepHeader span{
+  color:var(--gray) !important;
+}
+
+
+/* v60 - tipografia 100% dentro do guia: Montserrat, Montserrat Alternates e Inter */
+body,
+.wrap,
+.card,
+.dialogBox,
+.extraForm,
+.history,
+.list,
+.item,
+.status,
+.muted,
+.small{
+  font-family:'Montserrat' !important;
+}
+
+button,
+input,
+select,
+textarea,
+.pickerField,
+.suggestions,
+.dialogInput,
+.dialogTextarea{
+  font-family:'Inter' !important;
+}
+
+h1,
+h2,
+h3,
+.dialogTitle,
+.person,
+.hero h1,
+.extraStepHeader strong,
+.extraItemHead span,
+.hist b,
+.pendingModalInfo b{
+  font-family:'Montserrat Alternates' !important;
+  font-weight:900;
 }

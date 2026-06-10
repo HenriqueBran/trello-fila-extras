@@ -1,8 +1,19 @@
 {
   "name": "Fila de Extras",
   "details": "Controle de fila de extras com modo Coordenador e Membro.",
-  "icon": { "url": "./icon.svg" },
+  "icon": {
+    "url": "https://trello-fila-extras.vercel.app/icon.png?v=57"
+  },
   "author": "Henrique Brandão",
-  "capabilities": ["board-buttons", "card-buttons", "show-settings", "card-badges"],
-  "connectors": { "iframe": { "url": "./index.html" } }
+  "capabilities": [
+    "board-buttons",
+    "card-buttons",
+    "show-settings",
+    "card-badges"
+  ],
+  "connectors": {
+    "iframe": {
+      "url": "./index.html"
+    }
+  }
 }

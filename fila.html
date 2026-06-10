@@ -102,7 +102,7 @@
   </div>
 
   <div id="appDialog" class="dialogOverlay hide">
-    <div class="dialogBox" id="dialogBox">
+    <div class="dialogBox">
       <div class="dialogTitle" id="dialogTitle">Aviso</div>
       <div class="dialogText" id="dialogText"></div>
       <input id="dialogInput" class="dialogInput hide" />
@@ -718,7 +718,6 @@
     bindMemberSuggestions();
 
     function extraDialog(){ return new Promise(resolve=>{
-      $('dialogBox').classList.add('extraDialogBox');
       $('dialogTitle').textContent = 'Gerar extra';
       $('dialogText').textContent = 'Informe a quantidade e preencha cada extra individualmente.';
       $('dialogInput').classList.add('hide');
@@ -744,23 +743,6 @@
       };
       const closePickers = (scope) => {
         (scope || document).querySelectorAll('.pickerPopover').forEach(p=>p.classList.add('hide'));
-      };
-      const ensurePopoverVisible = (pop) => {
-        requestAnimationFrame(() => {
-          const form = $('extraForm');
-          const box = $('dialogBox');
-          if(!form || !box || !pop || pop.classList.contains('hide')) return;
-          const popRect = pop.getBoundingClientRect();
-          const boxRect = box.getBoundingClientRect();
-          const bottomLimit = boxRect.bottom - 92;
-          const topLimit = boxRect.top + 12;
-          if(popRect.bottom > bottomLimit){
-            form.scrollTop += (popRect.bottom - bottomLimit) + 18;
-          }
-          if(popRect.top < topLimit){
-            form.scrollTop -= (topLimit - popRect.top) + 18;
-          }
-        });
       };
       const todayDateOnly = () => {
         const now = new Date();
@@ -903,7 +885,6 @@
             if(wasOpen) return;
             renderCalendar(pop, hidden, label, current.getFullYear(), current.getMonth());
             pop.classList.remove('hide');
-            ensurePopoverVisible(pop);
           };
         });
         scope.querySelectorAll('[data-time-button]').forEach(btn => {
@@ -918,44 +899,78 @@
             if(wasOpen) return;
             renderTimePicker(pop, hidden, label);
             pop.classList.remove('hide');
-            ensurePopoverVisible(pop);
           };
         });
       };
       document.addEventListener('click', (ev) => {
         if(!ev.target.closest('.customPickerWrap')) closePickers(document);
       });
-      const renderExtraItems = () => {
-        const qtd = Math.max(1, Math.min(50, Number($('extraQuantidade').value || 1)));
-        const box = $('extraItems');
-        const previous = [];
-        box.querySelectorAll('.extraItemCard').forEach((card, i) => {
-          const inicioDate = card.querySelector('[data-extra-inicio-date]')?.value || '';
-          const inicioTime = card.querySelector('[data-extra-inicio-time]')?.value || '';
-          const fimDate = card.querySelector('[data-extra-fim-date]')?.value || '';
-          const fimTime = card.querySelector('[data-extra-fim-time]')?.value || '';
-          previous[i] = {
-            descricao: card.querySelector('[data-extra-desc]')?.value || '',
-            inicioAt: (inicioDate && inicioTime) ? `${inicioDate}T${inicioTime}` : '',
-            fimAt: (fimDate && fimTime) ? `${fimDate}T${fimTime}` : ''
-          };
-        });
-        box.innerHTML = Array.from({length:qtd}, (_, i) => {
-          const old = previous[i] || {};
-          const inicio = splitDateTime(old.inicioAt || '');
-          const fim = splitDateTime(old.fimAt || '');
-          return `
-            <div class="extraItemCard" data-extra-index="${i}">
-              <div class="extraItemHead">
-                <span>Extra ${i + 1}</span>
-                <small>Direcionada para a ${i + 1}ª pessoa da fila</small>
-              </div>
-              <label>Descrição do extra ${i + 1}</label>
-              <textarea class="dialogTextarea" data-extra-desc placeholder="Descreva a extra ${i + 1}">${escapeHtml(old.descricao || '')}</textarea>
-              <div class="dateGrid">
+      let currentExtraStep = 0;
+      let extraDrafts = [{ descricao:'', inicioAt:'', fimAt:'' }];
+
+      const quantidadeAtual = () => Math.max(1, Math.min(50, Number($('extraQuantidade')?.value || 1)));
+
+      const readVisibleStep = () => {
+        const card = $('extraItems')?.querySelector('.extraStepCard');
+        if(!card) return;
+        const inicioDate = card.querySelector('[data-extra-inicio-date]')?.value || '';
+        const inicioTime = card.querySelector('[data-extra-inicio-time]')?.value || '';
+        const fimDate = card.querySelector('[data-extra-fim-date]')?.value || '';
+        const fimTime = card.querySelector('[data-extra-fim-time]')?.value || '';
+        extraDrafts[currentExtraStep] = {
+          descricao: card.querySelector('[data-extra-desc]')?.value || '',
+          inicioAt: (inicioDate && inicioTime) ? `${inicioDate}T${inicioTime}` : '',
+          fimAt: (fimDate && fimTime) ? `${fimDate}T${fimTime}` : ''
+        };
+      };
+
+      const normalizeDrafts = (qtd) => {
+        extraDrafts = Array.from({length:qtd}, (_, i) => extraDrafts[i] || { descricao:'', inicioAt:'', fimAt:'' });
+        currentExtraStep = Math.max(0, Math.min(currentExtraStep, qtd - 1));
+      };
+
+      const renderProgress = (qtd) => Array.from({length:qtd}, (_, i) => {
+        const cls = i < currentExtraStep ? ' done' : (i === currentExtraStep ? ' active' : '');
+        return `<span class="extraStepBar${cls}"></span>`;
+      }).join('');
+
+      const renderExtraWizard = () => {
+        const qtd = quantidadeAtual();
+        normalizeDrafts(qtd);
+        const old = extraDrafts[currentExtraStep] || { descricao:'', inicioAt:'', fimAt:'' };
+        const inicio = splitDateTime(old.inicioAt || '');
+        const fim = splitDateTime(old.fimAt || '');
+        const descLen = String(old.descricao || '').length;
+        const isLast = currentExtraStep === qtd - 1;
+
+        $('extraForm').innerHTML = `
+          <div class="extraWizardTop">
+            <div>
+              <label for="extraQuantidade">Quantidade de extras</label>
+              <input id="extraQuantidade" class="dialogInput extraQuantityInput" type="number" min="1" step="1" max="50" value="${qtd}" />
+            </div>
+            <span class="extraStepCounter">Extra ${currentExtraStep + 1} de ${qtd}</span>
+          </div>
+          <div class="extraStepProgress">${renderProgress(qtd)}</div>
+          <div id="extraItems" class="extraItems">
+            <div class="extraStepCard" data-extra-index="${currentExtraStep}">
+              <div class="extraStepHeader">
                 <div>
-                  <label>Dia e hora de início</label>
-                  <div class="customPickerRow">
+                  <strong>Extra ${currentExtraStep + 1}</strong>
+                  <span>Direcionada para a ${currentExtraStep + 1}ª pessoa da fila</span>
+                </div>
+              </div>
+
+              <label class="iconLabel" for="extraDescAtual"><span>☰</span>Descrição do extra ${currentExtraStep + 1}</label>
+              <div class="textareaWrap">
+                <textarea id="extraDescAtual" class="dialogTextarea" data-extra-desc maxlength="200" placeholder="Descreva a extra ${currentExtraStep + 1}">${escapeHtml(old.descricao || '')}</textarea>
+                <small class="charCounter" data-char-counter>${descLen}/200</small>
+              </div>
+
+              <div class="extraDateSections">
+                <div class="dateSection">
+                  <label class="dateSectionTitle"><span>📅</span>Início</label>
+                  <div class="dateHourGroup">
                     <div class="customPickerWrap">
                       <input type="hidden" data-extra-inicio-date value="${escapeHtml(inicio.date)}" />
                       <button type="button" class="pickerField" data-date-button>
@@ -972,9 +987,10 @@
                     </div>
                   </div>
                 </div>
-                <div>
-                  <label>Dia e hora de fim</label>
-                  <div class="customPickerRow">
+
+                <div class="dateSection">
+                  <label class="dateSectionTitle"><span>🕘</span>Fim</label>
+                  <div class="dateHourGroup">
                     <div class="customPickerWrap">
                       <input type="hidden" data-extra-fim-date value="${escapeHtml(fim.date)}" />
                       <button type="button" class="pickerField" data-date-button>
@@ -992,53 +1008,108 @@
                   </div>
                 </div>
               </div>
-            </div>`;
-        }).join('');
+            </div>
+          </div>`;
 
-        setupCustomDateTimePickers(box);
+        const qtyInput = $('extraQuantidade');
+        qtyInput.oninput = () => {
+          readVisibleStep();
+          const nextQtd = quantidadeAtual();
+          qtyInput.value = String(nextQtd);
+          normalizeDrafts(nextQtd);
+          renderExtraWizard();
+        };
+        qtyInput.onchange = qtyInput.oninput;
 
+        const desc = $('extraForm').querySelector('[data-extra-desc]');
+        const counter = $('extraForm').querySelector('[data-char-counter]');
+        desc.oninput = () => {
+          if(counter) counter.textContent = `${desc.value.length}/200`;
+          readVisibleStep();
+        };
+
+        setupCustomDateTimePickers($('extraForm'));
+
+        $('dialogCancel').textContent = currentExtraStep > 0 ? '← Voltar' : 'Cancelar';
+        $('dialogCancel').className = currentExtraStep > 0 ? 'btn ghostBack' : 'btn ghostBack';
+        $('dialogOk').textContent = isLast ? 'OK' : 'Próximo →';
+        $('dialogOk').className = 'btn primary';
         t.sizeTo('#document');
       };
 
-      $('extraQuantidade').oninput = renderExtraItems;
-      $('extraQuantidade').onchange = renderExtraItems;
-      renderExtraItems();
+      const validateStep = (index) => {
+        const item = extraDrafts[index] || {};
+        const inicio = splitDateTime(item.inicioAt || '');
+        const fim = splitDateTime(item.fimAt || '');
+        if(!String(item.descricao || '').trim()) return `Informe a descrição do extra ${index + 1}.`;
+        if(!inicio.date) return `Informe o dia de início do extra ${index + 1}.`;
+        if(!inicio.time) return `Informe a hora de início do extra ${index + 1}.`;
+        if(isPastDateValue(inicio.date)) return `O dia de início do extra ${index + 1} não pode ser uma data passada.`;
+        if(!fim.date) return `Informe o dia de fim do extra ${index + 1}.`;
+        if(!fim.time) return `Informe a hora de fim do extra ${index + 1}.`;
+        if(isPastDateValue(fim.date)) return `O dia de fim do extra ${index + 1} não pode ser uma data passada.`;
+        if(new Date(item.fimAt).getTime() <= new Date(item.inicioAt).getTime()) return `O fim do extra ${index + 1} precisa ser depois do início.`;
+        return '';
+      };
+
+      $('dialogCancel').onclick = () => {
+        if(currentExtraStep > 0){
+          readVisibleStep();
+          currentExtraStep--;
+          $('dialogText').textContent = 'Preencha os dados do extra individualmente.';
+          renderExtraWizard();
+          return;
+        }
+        close(null);
+      };
 
       $('dialogOk').onclick = () => {
-        const quantidade = Number($('extraQuantidade').value || 1);
-        if(!Number.isInteger(quantidade) || quantidade < 1){ $('dialogText').textContent = 'Informe uma quantidade válida de extras.'; $('extraQuantidade').focus(); return; }
-        if(quantidade > data.fila.length){ $('dialogText').textContent = `Você solicitou ${quantidade} extras, mas há apenas ${data.fila.length} pessoa(s) na fila.`; $('extraQuantidade').focus(); return; }
-        const itens = [];
-        const cards = Array.from($('extraItems').querySelectorAll('.extraItemCard'));
-        for(let i=0;i<cards.length;i++){
-          const card = cards[i];
-          const descricao = card.querySelector('[data-extra-desc]').value.trim();
-          const inicioDate = card.querySelector('[data-extra-inicio-date]').value;
-          const inicioTime = card.querySelector('[data-extra-inicio-time]').value;
-          const fimDate = card.querySelector('[data-extra-fim-date]').value;
-          const fimTime = card.querySelector('[data-extra-fim-time]').value;
-          const inicioAt = (inicioDate && inicioTime) ? `${inicioDate}T${inicioTime}` : '';
-          const fimAt = (fimDate && fimTime) ? `${fimDate}T${fimTime}` : '';
-          if(!descricao){ $('dialogText').textContent = `Informe a descrição do extra ${i+1}.`; card.querySelector('[data-extra-desc]').focus(); return; }
-          if(!inicioDate){ $('dialogText').textContent = `Informe o dia de início do extra ${i+1}.`; card.querySelector('[data-extra-inicio-date]').closest('.customPickerWrap').querySelector('[data-date-button]').focus(); return; }
-          if(!inicioTime){ $('dialogText').textContent = `Informe a hora de início do extra ${i+1}.`; card.querySelector('[data-extra-inicio-time]').closest('.customPickerWrap').querySelector('[data-time-button]').focus(); return; }
-          if(isPastDateValue(inicioDate)){ $('dialogText').textContent = `O dia de início do extra ${i+1} não pode ser uma data passada.`; card.querySelector('[data-extra-inicio-date]').closest('.customPickerWrap').querySelector('[data-date-button]').focus(); return; }
-          if(!fimDate){ $('dialogText').textContent = `Informe o dia de fim do extra ${i+1}.`; card.querySelector('[data-extra-fim-date]').closest('.customPickerWrap').querySelector('[data-date-button]').focus(); return; }
-          if(!fimTime){ $('dialogText').textContent = `Informe a hora de fim do extra ${i+1}.`; card.querySelector('[data-extra-fim-time]').closest('.customPickerWrap').querySelector('[data-time-button]').focus(); return; }
-          if(isPastDateValue(fimDate)){ $('dialogText').textContent = `O dia de fim do extra ${i+1} não pode ser uma data passada.`; card.querySelector('[data-extra-fim-date]').closest('.customPickerWrap').querySelector('[data-date-button]').focus(); return; }
-          if(new Date(fimAt).getTime() <= new Date(inicioAt).getTime()){ $('dialogText').textContent = `O fim do extra ${i+1} precisa ser depois do início.`; card.querySelector('[data-extra-fim-date]').closest('.customPickerWrap').querySelector('[data-date-button]').focus(); return; }
-          itens.push({ descricao, inicioAt, fimAt });
+        readVisibleStep();
+        const qtd = quantidadeAtual();
+        if(!Number.isInteger(qtd) || qtd < 1){ $('dialogText').textContent = 'Informe uma quantidade válida de extras.'; $('extraQuantidade').focus(); return; }
+        if(qtd > data.fila.length){ $('dialogText').textContent = `Você solicitou ${qtd} extras, mas há apenas ${data.fila.length} pessoa(s) na fila.`; $('extraQuantidade').focus(); return; }
+
+        const currentError = validateStep(currentExtraStep);
+        if(currentError){
+          $('dialogText').textContent = currentError;
+          return;
         }
-        close({ quantidade, itens, loteId: uid() });
+
+        if(currentExtraStep < qtd - 1){
+          currentExtraStep++;
+          $('dialogText').textContent = 'Preencha os dados do extra individualmente.';
+          renderExtraWizard();
+          return;
+        }
+
+        const itens = [];
+        for(let i=0;i<qtd;i++){
+          const err = validateStep(i);
+          if(err){
+            currentExtraStep = i;
+            $('dialogText').textContent = err;
+            renderExtraWizard();
+            return;
+          }
+          itens.push({
+            descricao: String(extraDrafts[i].descricao || '').trim(),
+            inicioAt: extraDrafts[i].inicioAt,
+            fimAt: extraDrafts[i].fimAt
+          });
+        }
+        close({ quantidade: qtd, itens, loteId: uid() });
       };
+
+      renderExtraWizard();
+
       $('appDialog').classList.remove('hide');
       setTimeout(()=>$('extraQuantidade').focus(),30);
       t.sizeTo('#document');
-      function close(value){ $('appDialog').classList.add('hide'); $('dialogBox').classList.remove('extraDialogBox'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
+      function close(value){ $('appDialog').classList.add('hide'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
     }); }
 
     function openDialog({title,text='',mode='info',initialValue=''}){ return new Promise(resolve=>{
-      $('dialogBox').classList.remove('extraDialogBox'); $('dialogTitle').textContent=title||'Aviso'; $('dialogText').textContent=text||''; $('dialogInput').classList.add('hide'); $('dialogTextarea').classList.add('hide'); $('extraForm').classList.add('hide'); $('dialogCancel').classList.toggle('hide', mode==='info');
+      $('dialogTitle').textContent=title||'Aviso'; $('dialogText').textContent=text||''; $('dialogInput').classList.add('hide'); $('dialogTextarea').classList.add('hide'); $('extraForm').classList.add('hide'); $('dialogCancel').classList.toggle('hide', mode==='info');
       $('dialogCancel').onclick=()=>close(null); $('dialogOk').onclick=()=>{ if(mode==='prompt') return close($('dialogInput').value); if(mode==='textarea') return close($('dialogTextarea').value); close(true); };
       if(mode==='prompt'){ $('dialogInput').classList.remove('hide'); $('dialogInput').value=initialValue||''; setTimeout(()=>$('dialogInput').focus(),30); }
       if(mode==='textarea'){ $('dialogTextarea').classList.remove('hide'); $('dialogTextarea').value=initialValue||''; setTimeout(()=>$('dialogTextarea').focus(),30); }
@@ -1046,7 +1117,6 @@
       function close(value){ $('appDialog').classList.add('hide'); resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
     }); }
     function htmlDialog(title, html){ return new Promise(resolve=>{
-      $('dialogBox').classList.remove('extraDialogBox');
       $('dialogTitle').textContent = title || 'Aviso';
       $('dialogText').innerHTML = html || '';
       $('dialogInput').classList.add('hide');
