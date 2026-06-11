@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat+Alternates:wght@400;500;600;700;800;900&family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 
 :root{
   --black:#000000;
@@ -25,12 +25,12 @@
 html,body{min-height:100%}
 body{
   margin:0;
-  font-family:'Montserrat';
+  font-family:'Montserrat',sans-serif;
   background:var(--bg);
   color:var(--ink);
   letter-spacing:-.01em;
 }
-button,input,select,textarea{font-family:'Inter'}
+button,input,select,textarea{font-family:'Montserrat',sans-serif}
 .wrap{max-width:1120px;margin:0 auto;padding:22px}
 .topbarInternal{display:flex;align-items:center;gap:10px;margin:0 0 12px}
 
@@ -571,42 +571,304 @@ input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:v
 }
 
 
-/* v60 - tipografia 100% dentro do guia: Montserrat, Montserrat Alternates e Inter */
-body,
-.wrap,
-.card,
-.dialogBox,
-.extraForm,
-.history,
-.list,
-.item,
-.status,
-.muted,
-.small{
-  font-family:'Montserrat' !important;
+
+
+/* v61 - modal gerar extra no layout de referência + sistema 100% Montserrat */
+*,:before,:after{font-family:'Montserrat',sans-serif;}
+body,button,input,select,textarea,.pickerField,.dialogInput,.dialogTextarea,.suggestions,.wrap,.card,.dialogBox,.extraForm,.history,.list,.item,.status,.muted,.small,h1,h2,h3,.dialogTitle,.person,.hero h1,.extraStepHeader strong,.extraItemHead span,.hist b,.pendingModalInfo b,.badge{font-family:'Montserrat',sans-serif !important;}
+
+.dialogOverlay{
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(0,0,0,.40);
+  backdrop-filter:blur(2px);
+}
+.dialogBox{
+  width:min(560px, calc(100vw - 40px));
+  max-height:min(92vh, 760px);
+  border-radius:24px;
+  box-shadow:0 28px 70px rgba(0,0,0,.16);
+  padding:36px 34px 30px;
+  border:1px solid #e7ebf2;
+}
+.dialogBox.extraDialogBox{
+  width:min(560px, calc(100vw - 40px));
+  height:auto;
+  max-height:min(92vh, 760px);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding:36px 34px 30px;
+}
+.dialogBox.extraDialogBox .dialogTitle,
+.dialogBox.extraDialogBox .dialogText,
+.dialogBox.extraDialogBox > .dialogInput,
+.dialogBox.extraDialogBox > .dialogTextarea{flex:0 0 auto;}
+.dialogBox.extraDialogBox #extraForm{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:visible;
+  margin-right:-6px;
+  padding-right:6px;
+  padding-bottom:6px;
+}
+.dialogBox.extraDialogBox .dialogActions{
+  flex:0 0 auto;
+  position:static;
+  background:transparent;
+  margin-top:8px;
+  padding-top:14px;
+}
+.dialogTitle{
+  font-size:22px;
+  line-height:1.15;
+  font-weight:800;
+  letter-spacing:-.02em;
+  color:var(--black);
+  margin-bottom:8px;
+}
+.dialogText{
+  font-size:14px;
+  line-height:1.55;
+  color:var(--muted);
+  margin-bottom:18px;
+}
+.extraForm{gap:14px;margin-top:0;}
+.extraWizardTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+.extraWizardTop > div{flex:1;min-width:0;}
+.extraWizardTop label{
+  display:block;
+  margin-bottom:8px;
+  font-size:13px;
+  font-weight:700;
+  color:var(--muted);
+}
+.extraQuantityInput{
+  max-width:140px;
+  margin:0;
+  border-radius:12px;
+}
+.extraStepCounter{
+  color:#b0b4bd !important;
+  font-size:13px;
+  font-weight:600;
+  white-space:nowrap;
+  padding-top:2px;
+}
+.extraStepProgress{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(40px,1fr));
+  gap:6px;
+  margin:6px 0 18px;
+}
+.extraStepBar{height:4px;border-radius:999px;background:#e3e6ec;}
+.extraStepBar.done{background:var(--magenta) !important;}
+.extraStepBar.active{background:var(--blue) !important;}
+.extraStepCard{border:0;border-radius:0;background:transparent;padding:0;box-shadow:none;}
+.extraStepHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:12px;
+}
+.extraStepHeader strong{
+  display:block;
+  font-size:20px;
+  font-weight:800;
+  letter-spacing:-.02em;
+  color:var(--black);
+}
+.extraStepHeader span{
+  display:block;
+  color:var(--muted) !important;
+  font-size:13px;
+  font-weight:700;
+  margin-top:2px;
+}
+.iconLabel{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:0 0 8px;
+  font-size:14px;
+  font-weight:700;
+  color:#4b5563;
+}
+.iconLabel span{color:#9aa1ad;font-size:15px;}
+.textareaWrap{position:relative;}
+.textareaWrap .dialogTextarea{
+  min-height:112px;
+  padding:16px;
+  padding-bottom:32px;
+  resize:none;
+  margin-bottom:0;
+}
+.dialogInput,.dialogTextarea,.pickerField{
+  border:1px solid #d9dee8;
+  background:#fff;
+  color:var(--ink);
+  border-radius:12px;
+  box-shadow:none;
+}
+.dialogInput:focus,.dialogTextarea:focus,.pickerField:focus{
+  outline:none;
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(0,80,242,.08);
+}
+.charCounter{
+  position:absolute;
+  right:12px;
+  bottom:10px;
+  font-size:12px;
+  color:#b0b4bd !important;
+  font-weight:600;
+  pointer-events:none;
+}
+.extraDateSections{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin-top:18px;
+}
+.dateSectionTitle{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-bottom:9px;
+  font-size:14px;
+  font-weight:700;
+  color:var(--blue) !important;
+}
+.dateSection:nth-child(2) .dateSectionTitle{color:var(--magenta) !important;}
+.dateHourGroup{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 78px;
+  gap:10px;
+  align-items:start;
+}
+.dateHourGroup .pickerField{
+  min-height:36px;
+  border-radius:10px;
+  font-size:14px;
+  padding:0 12px;
+  background:#fff;
+}
+.dateHourGroup .pickerField span{max-width:none;}
+.compactPicker .pickerField{padding:0 10px;}
+.dialogActions{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:14px;
+  padding-top:16px;
+}
+.dialogActions .btn.primary{
+  min-width:130px;
+  border-radius:12px;
+  background:var(--blue) !important;
+  color:#fff !important;
+  box-shadow:none;
+}
+.dialogActions .btn.primary:hover{background:var(--blue-2) !important;}
+.ghostBack,.dialogActions .btn.dark{
+  background:transparent !important;
+  color:var(--muted) !important;
+  border:0 !important;
+  padding-left:0 !important;
+  box-shadow:none !important;
+  min-width:auto !important;
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+.ghostBack:hover,.dialogActions .btn.dark:hover{color:var(--magenta) !important;}
+.datePopover,.timePopover{
+  border:1px solid #e8ebf1;
+  border-radius:18px;
+  box-shadow:0 24px 50px rgba(0,0,0,.12);
+}
+.calendarHead strong,.timeColumn strong{font-weight:800;}
+.timeOption.active{background:var(--blue);color:#fff;box-shadow:none;}
+
+@media(max-width:640px){
+  .dialogOverlay{padding:14px;}
+  .dialogBox,.dialogBox.extraDialogBox{
+    width:calc(100vw - 28px);
+    max-height:calc(100vh - 28px);
+    padding:24px 20px 22px;
+  }
+  .extraWizardTop{display:block;}
+  .extraStepCounter{display:block;margin-top:8px;}
+  .extraDateSections{grid-template-columns:1fr;}
 }
 
-button,
-input,
-select,
-textarea,
-.pickerField,
-.suggestions,
-.dialogInput,
-.dialogTextarea{
-  font-family:'Inter' !important;
-}
 
-h1,
-h2,
-h3,
-.dialogTitle,
-.person,
-.hero h1,
-.extraStepHeader strong,
-.extraItemHead span,
-.hist b,
-.pendingModalInfo b{
-  font-family:'Montserrat Alternates' !important;
-  font-weight:900;
+/* v62 - modal maior e pickers sem corte */
+.dialogBox.extraDialogBox{
+  width:min(760px, calc(100vw - 32px)) !important;
+  height:calc(100vh - 42px) !important;
+  max-height:calc(100vh - 42px) !important;
+  overflow:visible !important;
+  padding:32px 34px 28px !important;
+}
+.dialogBox.extraDialogBox #extraForm{
+  overflow:visible !important;
+  padding:0 !important;
+  margin-right:0 !important;
+}
+.dialogBox.extraDialogBox .extraItems{
+  overflow:visible !important;
+}
+.dialogBox.extraDialogBox .dialogActions{
+  margin-top:auto !important;
+  padding-top:18px !important;
+}
+.dialogBox.extraDialogBox .datePopover{
+  width:306px !important;
+}
+.dialogBox.extraDialogBox .timePopover{
+  width:240px !important;
+}
+.dialogBox.extraDialogBox .extraDateSections{
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+}
+.dialogBox.extraDialogBox .dateHourGroup{
+  grid-template-columns:minmax(0, 1fr) 96px;
+}
+.dialogBox.extraDialogBox .pickerPopover{
+  z-index:999999 !important;
+}
+.dialogOverlay:has(.extraDialogBox){
+  overflow:visible !important;
+}
+@supports not selector(:has(*)){
+  .dialogOverlay{
+    overflow:visible !important;
+  }
+}
+@media(max-width:700px){
+  .dialogBox.extraDialogBox{
+    width:calc(100vw - 24px) !important;
+    height:calc(100vh - 24px) !important;
+    max-height:calc(100vh - 24px) !important;
+    padding:24px 20px 22px !important;
+    overflow:auto !important;
+  }
+  .dialogBox.extraDialogBox #extraForm{
+    overflow:visible !important;
+  }
+  .dialogBox.extraDialogBox .extraDateSections{
+    grid-template-columns:1fr;
+  }
+  .dialogBox.extraDialogBox .dateHourGroup{
+    grid-template-columns:minmax(0, 1fr) 96px;
+  }
 }

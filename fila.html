@@ -718,8 +718,9 @@
     bindMemberSuggestions();
 
     function extraDialog(){ return new Promise(resolve=>{
+      $('appDialog').querySelector('.dialogBox').classList.add('extraDialogBox');
       $('dialogTitle').textContent = 'Gerar extra';
-      $('dialogText').textContent = 'Informe a quantidade e preencha cada extra individualmente.';
+      $('dialogText').textContent = 'Preencha os dados do extra individualmente.';
       $('dialogInput').classList.add('hide');
       $('dialogTextarea').classList.add('hide');
       $('extraQuantidade').value = '1';
@@ -1034,6 +1035,19 @@
         $('dialogCancel').className = currentExtraStep > 0 ? 'btn ghostBack' : 'btn ghostBack';
         $('dialogOk').textContent = isLast ? 'OK' : 'Próximo →';
         $('dialogOk').className = 'btn primary';
+
+        // Ao avançar ou voltar, leva o usuário direto para a descrição do extra atual.
+        const currentDesc = $('extraForm').querySelector('[data-extra-desc]');
+        setTimeout(() => {
+          const formBox = $('extraForm');
+          if(formBox && typeof formBox.scrollTo === 'function') formBox.scrollTo({ top: 0, behavior: 'smooth' });
+          if(currentDesc){
+            currentDesc.focus();
+            currentDesc.selectionStart = currentDesc.value.length;
+            currentDesc.selectionEnd = currentDesc.value.length;
+          }
+        }, 40);
+
         t.sizeTo('#document');
       };
 
@@ -1103,12 +1117,13 @@
       renderExtraWizard();
 
       $('appDialog').classList.remove('hide');
-      setTimeout(()=>$('extraQuantidade').focus(),30);
+      setTimeout(()=>$('extraForm')?.querySelector('[data-extra-desc]')?.focus(),60);
       t.sizeTo('#document');
-      function close(value){ $('appDialog').classList.add('hide'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
+      function close(value){ $('appDialog').classList.add('hide'); $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
     }); }
 
     function openDialog({title,text='',mode='info',initialValue=''}){ return new Promise(resolve=>{
+      $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox');
       $('dialogTitle').textContent=title||'Aviso'; $('dialogText').textContent=text||''; $('dialogInput').classList.add('hide'); $('dialogTextarea').classList.add('hide'); $('extraForm').classList.add('hide'); $('dialogCancel').classList.toggle('hide', mode==='info');
       $('dialogCancel').onclick=()=>close(null); $('dialogOk').onclick=()=>{ if(mode==='prompt') return close($('dialogInput').value); if(mode==='textarea') return close($('dialogTextarea').value); close(true); };
       if(mode==='prompt'){ $('dialogInput').classList.remove('hide'); $('dialogInput').value=initialValue||''; setTimeout(()=>$('dialogInput').focus(),30); }
@@ -1117,6 +1132,7 @@
       function close(value){ $('appDialog').classList.add('hide'); resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
     }); }
     function htmlDialog(title, html){ return new Promise(resolve=>{
+      $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox');
       $('dialogTitle').textContent = title || 'Aviso';
       $('dialogText').innerHTML = html || '';
       $('dialogInput').classList.add('hide');
