@@ -872,3 +872,18 @@ body,button,input,select,textarea,.pickerField,.dialogInput,.dialogTextarea,.sug
     grid-template-columns:minmax(0, 1fr) 96px;
   }
 }
+
+
+/* v63 - modal extra mais alto + pickers inteligentes */
+.dialogOverlay:has(.extraDialogBox){align-items:center !important;overflow:auto !important;padding:12px !important;}
+.dialogBox.extraDialogBox{width:min(980px, calc(100vw - 24px)) !important;height:calc(100vh - 24px) !important;max-height:calc(100vh - 24px) !important;overflow-y:auto !important;overflow-x:visible !important;padding:28px 34px 24px !important;}
+.dialogBox.extraDialogBox #extraForm{overflow:visible !important;padding:0 0 280px 0 !important;margin-right:0 !important;}
+.dialogBox.extraDialogBox .extraItems,.dialogBox.extraDialogBox .extraStepCard,.dialogBox.extraDialogBox .extraDateSections,.dialogBox.extraDialogBox .dateSection,.dialogBox.extraDialogBox .dateHourGroup,.dialogBox.extraDialogBox .customPickerWrap{overflow:visible !important;}
+.dialogBox.extraDialogBox .dialogActions{position:sticky !important;bottom:-2px !important;z-index:10120 !important;margin-top:24px !important;padding-top:16px !important;padding-bottom:2px !important;background:linear-gradient(180deg, rgba(255,255,255,0), #fff 24%, #fff 100%) !important;}
+.dialogBox.extraDialogBox .pickerPopover{z-index:10150 !important;}
+.dialogBox.extraDialogBox .pickerPopover.open-up{top:auto !important;bottom:calc(100% + 8px) !important;}
+.dialogBox.extraDialogBox .pickerPopover.align-left{left:0 !important;right:auto !important;}
+.dialogBox.extraDialogBox .pickerPopover.align-right{left:auto !important;right:0 !important;}
+.dialogBox.extraDialogBox .datePopover{width:306px !important;max-width:min(306px, calc(100vw - 32px)) !important;}
+.dialogBox.extraDialogBox .timePopover{width:240px !important;max-width:min(240px, calc(100vw - 32px)) !important;}
+@media (max-width: 760px){.dialogOverlay:has(.extraDialogBox){padding:8px !important;}.dialogBox.extraDialogBox{width:calc(100vw - 16px) !important;height:calc(100vh - 16px) !important;max-height:calc(100vh - 16px) !important;padding:22px 18px 20px !important;}.dialogBox.extraDialogBox #extraForm{padding-bottom:220px !important;}.dialogBox.extraDialogBox .extraDateSections{grid-template-columns:1fr !important;}.dialogBox.extraDialogBox .dateHourGroup{grid-template-columns:minmax(0,1fr) 96px !important;}}

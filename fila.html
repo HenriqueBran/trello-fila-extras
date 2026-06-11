@@ -803,11 +803,13 @@
           if(prevBtn.disabled) return;
           const next = new Date(Number(pop.dataset.year), Number(pop.dataset.month)-1, 1);
           renderCalendar(pop, hidden, label, next.getFullYear(), next.getMonth());
+          positionPickerPopover(pop, pop.closest('.customPickerWrap')?.querySelector('[data-date-button]'));
         };
         pop.querySelector('[data-cal-next]').onclick = (ev) => {
           ev.stopPropagation();
           const next = new Date(Number(pop.dataset.year), Number(pop.dataset.month)+1, 1);
           renderCalendar(pop, hidden, label, next.getFullYear(), next.getMonth());
+          positionPickerPopover(pop, pop.closest('.customPickerWrap')?.querySelector('[data-date-button]'));
         };
         pop.querySelectorAll('[data-date-value]').forEach(btn => {
           btn.onclick = (ev) => {
@@ -872,10 +874,48 @@
           };
         });
       };
+      const positionPickerPopover = (pop, btn) => {
+        if(!pop || !btn) return;
+        pop.classList.remove('open-up','align-left','align-right');
+        pop.style.top = '';
+        pop.style.bottom = '';
+        pop.style.left = '';
+        pop.style.right = '';
+        pop.style.maxHeight = '';
+        pop.style.overflowY = '';
+        requestAnimationFrame(() => {
+          const margin = 16;
+          const btnRect = btn.getBoundingClientRect();
+          const popRect = pop.getBoundingClientRect();
+          const spaceBelow = window.innerHeight - btnRect.bottom - margin;
+          const spaceAbove = btnRect.top - margin;
+          if(spaceBelow < popRect.height && spaceAbove > spaceBelow){
+            pop.classList.add('open-up');
+          }
+          const finalRect = pop.getBoundingClientRect();
+          if(finalRect.right > window.innerWidth - margin){
+            pop.classList.add('align-right');
+          } else {
+            pop.classList.add('align-left');
+          }
+          const cappedRect = pop.getBoundingClientRect();
+          const available = pop.classList.contains('open-up') ? spaceAbove : spaceBelow;
+          if(available > 160 && cappedRect.height > available){
+            pop.style.maxHeight = `${Math.max(160, available)}px`;
+            pop.style.overflowY = 'auto';
+          }
+        });
+      };
+      const ensurePickerVisible = (btn) => {
+        if(!btn) return;
+        try{ btn.scrollIntoView({ block:'center', inline:'nearest', behavior:'smooth' }); }
+        catch(_){ btn.scrollIntoView(); }
+      };
       const setupCustomDateTimePickers = (scope) => {
         scope.querySelectorAll('[data-date-button]').forEach(btn => {
           btn.onclick = (ev) => {
             ev.stopPropagation();
+            ensurePickerVisible(btn);
             const wrap = btn.closest('.customPickerWrap');
             const hidden = wrap.querySelector('input[type="hidden"]');
             const pop = wrap.querySelector('.datePopover');
@@ -886,11 +926,13 @@
             if(wasOpen) return;
             renderCalendar(pop, hidden, label, current.getFullYear(), current.getMonth());
             pop.classList.remove('hide');
+            positionPickerPopover(pop, btn);
           };
         });
         scope.querySelectorAll('[data-time-button]').forEach(btn => {
           btn.onclick = (ev) => {
             ev.stopPropagation();
+            ensurePickerVisible(btn);
             const wrap = btn.closest('.customPickerWrap');
             const hidden = wrap.querySelector('input[type="hidden"]');
             const pop = wrap.querySelector('.timePopover');
@@ -900,6 +942,7 @@
             if(wasOpen) return;
             renderTimePicker(pop, hidden, label);
             pop.classList.remove('hide');
+            positionPickerPopover(pop, btn);
           };
         });
       };
