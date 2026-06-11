@@ -886,18 +886,35 @@
         requestAnimationFrame(() => {
           const margin = 16;
           const btnRect = btn.getBoundingClientRect();
-          const popRect = pop.getBoundingClientRect();
-          const spaceBelow = window.innerHeight - btnRect.bottom - margin;
-          const spaceAbove = btnRect.top - margin;
-          if(spaceBelow < popRect.height && spaceAbove > spaceBelow){
+          const wrap = btn.closest('.customPickerWrap');
+          const wrapRect = wrap ? wrap.getBoundingClientRect() : btnRect;
+          const modal = btn.closest('.dialogBox.extraDialogBox') || btn.closest('.dialogBox') || document.body;
+          const modalRect = modal.getBoundingClientRect ? modal.getBoundingClientRect() : { left: 0, right: window.innerWidth, top: 0, bottom: window.innerHeight };
+          const limitLeft = Math.max(margin, modalRect.left + margin);
+          const limitRight = Math.min(window.innerWidth - margin, modalRect.right - margin);
+          const spaceBelow = Math.max(0, Math.min(window.innerHeight - margin, modalRect.bottom - margin) - btnRect.bottom);
+          const spaceAbove = Math.max(0, btnRect.top - Math.max(margin, modalRect.top + margin));
+          const initialRect = pop.getBoundingClientRect();
+          if(spaceBelow < initialRect.height && spaceAbove > spaceBelow){
             pop.classList.add('open-up');
           }
-          const finalRect = pop.getBoundingClientRect();
-          if(finalRect.right > window.innerWidth - margin){
+
+          const popWidth = pop.offsetWidth || initialRect.width;
+          let desiredLeft = 0;
+          if((wrapRect.left + desiredLeft + popWidth) > limitRight){
+            desiredLeft = limitRight - wrapRect.left - popWidth;
+          }
+          if((wrapRect.left + desiredLeft) < limitLeft){
+            desiredLeft = limitLeft - wrapRect.left;
+          }
+          pop.style.left = `${Math.round(desiredLeft)}px`;
+          pop.style.right = 'auto';
+          if(desiredLeft < 0){
             pop.classList.add('align-right');
           } else {
             pop.classList.add('align-left');
           }
+
           const cappedRect = pop.getBoundingClientRect();
           const available = pop.classList.contains('open-up') ? spaceAbove : spaceBelow;
           if(available > 160 && cappedRect.height > available){
