@@ -882,8 +882,71 @@ body,button,input,select,textarea,.pickerField,.dialogInput,.dialogTextarea,.sug
 .dialogBox.extraDialogBox .dialogActions{position:sticky !important;bottom:-2px !important;z-index:10120 !important;margin-top:24px !important;padding-top:16px !important;padding-bottom:2px !important;background:linear-gradient(180deg, rgba(255,255,255,0), #fff 24%, #fff 100%) !important;}
 .dialogBox.extraDialogBox .pickerPopover{z-index:10150 !important;}
 .dialogBox.extraDialogBox .pickerPopover.open-up{top:auto !important;bottom:calc(100% + 8px) !important;}
-.dialogBox.extraDialogBox .pickerPopover.align-left{left:0 !important;right:auto !important;}
-.dialogBox.extraDialogBox .pickerPopover.align-right{left:auto !important;right:0 !important;}
+.dialogBox.extraDialogBox .pickerPopover.align-left{}
+.dialogBox.extraDialogBox .pickerPopover.align-right{}
 .dialogBox.extraDialogBox .datePopover{width:306px !important;max-width:min(306px, calc(100vw - 32px)) !important;}
 .dialogBox.extraDialogBox .timePopover{width:240px !important;max-width:min(240px, calc(100vw - 32px)) !important;}
 @media (max-width: 760px){.dialogOverlay:has(.extraDialogBox){padding:8px !important;}.dialogBox.extraDialogBox{width:calc(100vw - 16px) !important;height:calc(100vh - 16px) !important;max-height:calc(100vh - 16px) !important;padding:22px 18px 20px !important;}.dialogBox.extraDialogBox #extraForm{padding-bottom:220px !important;}.dialogBox.extraDialogBox .extraDateSections{grid-template-columns:1fr !important;}.dialogBox.extraDialogBox .dateHourGroup{grid-template-columns:minmax(0,1fr) 96px !important;}}
+
+/* v68 - validação inline, obrigatórios e loading */
+.requiredMark{color:var(--magenta);font-weight:900;margin-left:3px}
+.fieldError{
+  margin-top:7px;
+  font-size:12px;
+  line-height:1.35;
+  color:var(--magenta);
+  font-weight:700;
+}
+.inputError{
+  border-color:var(--magenta) !important;
+  box-shadow:0 0 0 3px rgba(255,50,100,.10) !important;
+}
+.extraFieldError{
+  margin-top:6px;
+  margin-bottom:2px;
+}
+.loadingOverlay{
+  position:fixed;
+  inset:0;
+  z-index:200000;
+  background:rgba(0,0,0,.34);
+  backdrop-filter:blur(2px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.loadingBox{
+  width:min(320px, calc(100vw - 44px));
+  min-height:150px;
+  background:#fff;
+  border:1px solid #e7ebf2;
+  border-radius:24px;
+  box-shadow:0 28px 70px rgba(0,0,0,.18);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  text-align:center;
+  padding:24px;
+}
+.loadingBox strong{
+  color:var(--black);
+  font-size:16px;
+  font-weight:800;
+}
+.loadingBox span{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:600;
+}
+.loadingSpinner{
+  width:38px;
+  height:38px;
+  border-radius:999px;
+  border:4px solid #e6eaf2;
+  border-top-color:var(--blue);
+  animation:loadingSpin .8s linear infinite;
+}
+@keyframes loadingSpin{to{transform:rotate(360deg)}}

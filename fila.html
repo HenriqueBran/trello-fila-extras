@@ -101,12 +101,21 @@
     </main>
   </div>
 
+  <div id="loadingOverlay" class="loadingOverlay hide">
+    <div class="loadingBox">
+      <div class="loadingSpinner"></div>
+      <strong id="loadingTitle">Salvando alterações...</strong>
+      <span id="loadingText">Aguarde um instante.</span>
+    </div>
+  </div>
+
   <div id="appDialog" class="dialogOverlay hide">
     <div class="dialogBox">
       <div class="dialogTitle" id="dialogTitle">Aviso</div>
       <div class="dialogText" id="dialogText"></div>
       <input id="dialogInput" class="dialogInput hide" />
       <textarea id="dialogTextarea" class="dialogTextarea hide"></textarea>
+      <div id="dialogError" class="fieldError hide"></div>
       <div id="extraForm" class="extraForm hide">
         <label>Quantidade de extras</label>
         <input id="extraQuantidade" class="dialogInput" type="number" min="1" step="1" value="1" placeholder="Quantidade de extras" />
@@ -252,7 +261,29 @@
       // O modo de acesso não é salvo; toda abertura começa no menu inicial.
       mode = mode || '';
     }
-    async function persistAndRender(){ await apiSave(); render(); }
+    function showLoading(title='Salvando alterações...', text='Aguarde um instante.'){
+      const overlay = $('loadingOverlay');
+      if(!overlay) return;
+      $('loadingTitle').textContent = title;
+      $('loadingText').textContent = text;
+      overlay.classList.remove('hide');
+      try { t.sizeTo('body'); } catch(_) {}
+    }
+    function hideLoading(){
+      const overlay = $('loadingOverlay');
+      if(!overlay) return;
+      overlay.classList.add('hide');
+      try { t.sizeTo('body'); } catch(_) {}
+    }
+    async function persistAndRender(){
+      showLoading('Salvando alterações...', 'Estamos registrando a ação no sistema.');
+      try {
+        await apiSave();
+        render();
+      } finally {
+        setTimeout(hideLoading, 450);
+      }
+    }
     function isDialogOpen(){ return !$('appDialog').classList.contains('hide'); }
     async function atualizarDadosManual(){
       try {
@@ -319,7 +350,7 @@
       $('modoBadge').textContent = mode === 'coordenador' ? 'COORDENADOR' : mode === 'membro' ? 'MEMBRO' : '';
       if(mode === 'coordenador') renderCoordenador();
       if(mode === 'membro') renderMembro();
-      t.sizeTo('#document');
+      t.sizeTo('body');
     }
     function ensurePage(total, current, size){ const pages = Math.max(1, Math.ceil(total / size)); return Math.min(Math.max(1, current), pages); }
     function pageButtons(containerId, total, current, size, fn){
@@ -473,8 +504,8 @@
     async function reorderByDrag(fromId, toId){
       const from = data.fila.findIndex(p=>p.id===fromId), to = data.fila.findIndex(p=>p.id===toId);
       if(from<0||to<0||from===to) return;
-      const moved = data.fila[from]; const motivo = await promptDialog('Justificar alteração da fila', `Motivo para mover ${moved.nome} para a posição ${to+1}:`, '');
-      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Justificativa obrigatória.');
+      const moved = data.fila[from]; const motivo = await promptDialog('Justificar alteração da fila', `Motivo para mover ${moved.nome} para a posição ${to+1}:`, '', 'Justificativa obrigatória.');
+      if(motivo===null) return;
       data.fila.splice(from,1); data.fila.splice(to,0,moved);
       log('ORDEM ALTERADA', `${moved.nome} foi movido manualmente para a posição ${to+1}. Justificativa: ${motivo.trim()}`);
       await persistAndRender();
@@ -534,8 +565,8 @@
     }
     async function pularVez(){
       const p = pessoaDaVez(); if(!p) return infoDialog('Atenção','Não há pessoa na fila.');
-      const motivo = await promptDialog('Pular vez', `Motivo para pular a vez de ${p.nome}:`, '');
-      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      const motivo = await promptDialog('Pular vez', `Motivo para pular a vez de ${p.nome}:`, '', 'Motivo obrigatório.');
+      if(motivo===null) return;
       log('VEZ PULADA', `${p.nome} teve a vez pulada. Motivo: ${motivo.trim()}`); moveOneDownFirst(); await persistAndRender();
     }
     window.aceitarExtra = async function(extraId){
@@ -546,8 +577,8 @@
     }
     window.recusarExtra = async function(extraId){
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
-      const motivo = await promptDialog('Recusar extra','Motivo da recusa:', '');
-      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      const motivo = await promptDialog('Recusar extra','Motivo da recusa:', '', 'Motivo obrigatório.');
+      if(motivo===null) return;
       log('EXTRA RECUSADA', `${extra.pessoaNome} recusou a extra. Motivo: ${motivo.trim()}`, { extraId, extraSnapshot: {...extra, recusadaEm: now(), motivoRecusa: motivo.trim()} });
       data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId);
 
@@ -575,8 +606,8 @@
     window.cancelarSolicitacao = async function(extraId){
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
       if(!canCancelExtra(extra)) return infoDialog('Atenção', 'Não é possível cancelar: o horário de início do extra já chegou.');
-      const motivo = await promptDialog('Cancelar solicitação','Motivo do cancelamento:', '');
-      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      const motivo = await promptDialog('Cancelar solicitação','Motivo do cancelamento:', '', 'Motivo obrigatório.');
+      if(motivo===null) return;
       log('EXTRA CANCELADA', `Solicitação de ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
       data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); movePersonToTop(extra.pessoaId); await persistAndRender();
     }
@@ -588,8 +619,8 @@
       }
       if(!extra) return;
       if(!canCancelExtra(extra)) return infoDialog('Atenção', 'Não é possível cancelar: o horário de início do extra já chegou.');
-      const motivo = await promptDialog('Cancelar extra aceita','Motivo do cancelamento:', '');
-      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      const motivo = await promptDialog('Cancelar extra aceita','Motivo do cancelamento:', '', 'Motivo obrigatório.');
+      if(motivo===null) return;
       log('EXTRA CANCELADA', `Extra aceita por ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
       movePersonToTop(extra.pessoaId); delete data.extrasAceitasCancelaveis[extraId]; await persistAndRender();
     }
@@ -647,9 +678,8 @@
       if(idx < 0 || Number.isNaN(targetIndex) || targetIndex < 0 || targetIndex >= data.fila.length) return;
       if(idx === targetIndex) return infoDialog('Atenção', 'Essa pessoa já está nessa posição.');
       const p = data.fila[idx];
-      const motivo = await promptDialog('Alterar posição', `Justificativa para mover ${p.nome} para a posição ${targetIndex + 1}:`, '');
+      const motivo = await promptDialog('Alterar posição', `Justificativa para mover ${p.nome} para a posição ${targetIndex + 1}:`, '', 'Justificativa obrigatória.');
       if(motivo===null) return;
-      if(!motivo.trim()) return infoDialog('Atenção','Justificativa obrigatória.');
       data.fila.splice(idx,1);
       data.fila.splice(targetIndex,0,p);
       coordPage = ensurePage(targetIndex + 1, 1, pageSize);
@@ -660,10 +690,9 @@
 
     window.editarUsuario = async function(id){
       const p = data.fila.find(x=>x.id===id); if(!p) return;
-      const usuario = await promptDialog('Vincular usuário Trello', `Informe o usuário Trello de ${p.nome} sem @:`, p.trelloUsername || '');
+      const usuario = await promptDialog('Vincular usuário Trello', `Informe o usuário Trello de ${p.nome} sem @:`, p.trelloUsername || '', 'Usuário Trello obrigatório.');
       if(usuario === null) return;
       const limpo = cleanUsername(usuario);
-      if(!limpo) return infoDialog('Atenção', 'Informe um usuário Trello válido. Ex: henriquebrandaodearruda');
       const antigo = p.trelloUsername || 'sem vínculo';
       p.trelloUsername = limpo;
       log('USUÁRIO VINCULADO', `${p.nome} foi vinculado ao usuário @${limpo}. Anterior: ${antigo}.`);
@@ -684,8 +713,8 @@
 
     window.removePessoa = async function(id){
       const p = data.fila.find(x=>x.id===id); if(!p) return;
-      const motivo = await promptDialog('Remover pessoa', `Motivo para remover ${p.nome} da fila:`, '');
-      if(motivo===null) return; if(!motivo.trim()) return infoDialog('Atenção','Motivo obrigatório.');
+      const motivo = await promptDialog('Remover pessoa', `Motivo para remover ${p.nome} da fila:`, '', 'Motivo obrigatório.');
+      if(motivo===null) return;
       data.fila = data.fila.filter(x=>x.id!==id); log('MEMBRO REMOVIDO', `${p.nome} foi removido da fila. Motivo: ${motivo.trim()}`); await persistAndRender();
     }
 
@@ -1007,7 +1036,7 @@
         $('extraForm').innerHTML = `
           <div class="extraWizardTop">
             <div>
-              <label for="extraQuantidade">Quantidade de extras</label>
+              <label for="extraQuantidade">Quantidade de extras <span class="requiredMark">*</span></label>
               <input id="extraQuantidade" class="dialogInput extraQuantityInput" type="number" min="1" step="1" max="50" value="${qtd}" />
             </div>
             <span class="extraStepCounter">Extra ${currentExtraStep + 1} de ${qtd}</span>
@@ -1022,7 +1051,7 @@
                 </div>
               </div>
 
-              <label class="iconLabel" for="extraDescAtual"><span>☰</span>Descrição do extra ${currentExtraStep + 1}</label>
+              <label class="iconLabel" for="extraDescAtual"><span>☰</span>Descrição do extra ${currentExtraStep + 1} <span class="requiredMark">*</span></label>
               <div class="textareaWrap">
                 <textarea id="extraDescAtual" class="dialogTextarea" data-extra-desc maxlength="200" placeholder="Descreva a extra ${currentExtraStep + 1}">${escapeHtml(old.descricao || '')}</textarea>
                 <small class="charCounter" data-char-counter>${descLen}/200</small>
@@ -1030,7 +1059,7 @@
 
               <div class="extraDateSections">
                 <div class="dateSection">
-                  <label class="dateSectionTitle"><span>📅</span>Início</label>
+                  <label class="dateSectionTitle"><span>📅</span>Início <span class="requiredMark">*</span></label>
                   <div class="dateHourGroup">
                     <div class="customPickerWrap">
                       <input type="hidden" data-extra-inicio-date value="${escapeHtml(inicio.date)}" />
@@ -1050,7 +1079,7 @@
                 </div>
 
                 <div class="dateSection">
-                  <label class="dateSectionTitle"><span>🕘</span>Fim</label>
+                  <label class="dateSectionTitle"><span>🕘</span>Fim <span class="requiredMark">*</span></label>
                   <div class="dateHourGroup">
                     <div class="customPickerWrap">
                       <input type="hidden" data-extra-fim-date value="${escapeHtml(fim.date)}" />
@@ -1086,6 +1115,8 @@
         const counter = $('extraForm').querySelector('[data-char-counter]');
         desc.oninput = () => {
           if(counter) counter.textContent = `${desc.value.length}/200`;
+          clearExtraErrors();
+          $('dialogText').textContent = 'Preencha os dados do extra individualmente.';
           readVisibleStep();
         };
 
@@ -1108,22 +1139,49 @@
           }
         }, 40);
 
-        t.sizeTo('#document');
+        t.sizeTo('body');
+      };
+
+      const clearExtraErrors = () => {
+        $('extraForm')?.querySelectorAll('.inputError').forEach(el=>el.classList.remove('inputError'));
+        $('extraForm')?.querySelectorAll('.extraFieldError').forEach(el=>el.remove());
+      };
+
+      const showExtraFieldError = (field, message) => {
+        clearExtraErrors();
+        let target = null;
+        if(field === 'qtd') target = $('extraQuantidade');
+        if(field === 'desc') target = $('extraForm')?.querySelector('[data-extra-desc]');
+        if(field === 'inicioDate') target = $('extraForm')?.querySelector('[data-extra-inicio-date]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        if(field === 'inicioTime') target = $('extraForm')?.querySelector('[data-extra-inicio-time]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        if(field === 'fimDate') target = $('extraForm')?.querySelector('[data-extra-fim-date]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        if(field === 'fimTime') target = $('extraForm')?.querySelector('[data-extra-fim-time]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+
+        if(target){
+          target.classList.add('inputError');
+          const error = document.createElement('div');
+          error.className = 'fieldError extraFieldError';
+          error.textContent = message || 'Campo obrigatório.';
+          const host = target.closest('.textareaWrap') || target.closest('.customPickerWrap') || target.parentElement;
+          if(host) host.insertAdjacentElement('afterend', error);
+          try{ target.focus(); }catch(_){}
+        }
+        $('dialogText').textContent = 'Preencha os campos obrigatórios destacados.';
       };
 
       const validateStep = (index) => {
         const item = extraDrafts[index] || {};
         const inicio = splitDateTime(item.inicioAt || '');
         const fim = splitDateTime(item.fimAt || '');
-        if(!String(item.descricao || '').trim()) return `Informe a descrição do extra ${index + 1}.`;
-        if(!inicio.date) return `Informe o dia de início do extra ${index + 1}.`;
-        if(!inicio.time) return `Informe a hora de início do extra ${index + 1}.`;
-        if(isPastDateValue(inicio.date)) return `O dia de início do extra ${index + 1} não pode ser uma data passada.`;
-        if(!fim.date) return `Informe o dia de fim do extra ${index + 1}.`;
-        if(!fim.time) return `Informe a hora de fim do extra ${index + 1}.`;
-        if(isPastDateValue(fim.date)) return `O dia de fim do extra ${index + 1} não pode ser uma data passada.`;
-        if(new Date(item.fimAt).getTime() <= new Date(item.inicioAt).getTime()) return `O fim do extra ${index + 1} precisa ser depois do início.`;
-        return '';
+        if(!String(item.descricao || '').trim()) return { field:'desc', message:`Descrição do extra ${index + 1} é obrigatória.` };
+        if(!inicio.date) return { field:'inicioDate', message:`Data de início do extra ${index + 1} é obrigatória.` };
+        if(!inicio.time) return { field:'inicioTime', message:`Hora de início do extra ${index + 1} é obrigatória.` };
+        if(isPastDateValue(inicio.date)) return { field:'inicioDate', message:`O dia de início do extra ${index + 1} não pode ser uma data passada.` };
+        if(!fim.date) return { field:'fimDate', message:`Data de fim do extra ${index + 1} é obrigatória.` };
+        if(!fim.time) return { field:'fimTime', message:`Hora de fim do extra ${index + 1} é obrigatória.` };
+        if(isPastDateValue(fim.date)) return { field:'fimDate', message:`O dia de fim do extra ${index + 1} não pode ser uma data passada.` };
+        if(new Date(item.fimAt).getTime() <= new Date(item.inicioAt).getTime()) return { field:'fimTime', message:`O fim do extra ${index + 1} precisa ser depois do início.` };
+        return null;
       };
 
       $('dialogCancel').onclick = () => {
@@ -1140,12 +1198,12 @@
       $('dialogOk').onclick = () => {
         readVisibleStep();
         const qtd = quantidadeAtual();
-        if(!Number.isInteger(qtd) || qtd < 1){ $('dialogText').textContent = 'Informe uma quantidade válida de extras.'; $('extraQuantidade').focus(); return; }
-        if(qtd > data.fila.length){ $('dialogText').textContent = `Você solicitou ${qtd} extras, mas há apenas ${data.fila.length} pessoa(s) na fila.`; $('extraQuantidade').focus(); return; }
+        if(!Number.isInteger(qtd) || qtd < 1){ showExtraFieldError('qtd', 'Quantidade obrigatória.'); return; }
+        if(qtd > data.fila.length){ showExtraFieldError('qtd', `Você solicitou ${qtd} extras, mas há apenas ${data.fila.length} pessoa(s) na fila.`); return; }
 
         const currentError = validateStep(currentExtraStep);
         if(currentError){
-          $('dialogText').textContent = currentError;
+          showExtraFieldError(currentError.field, currentError.message);
           return;
         }
 
@@ -1161,8 +1219,8 @@
           const err = validateStep(i);
           if(err){
             currentExtraStep = i;
-            $('dialogText').textContent = err;
             renderExtraWizard();
+            setTimeout(() => showExtraFieldError(err.field, err.message), 60);
             return;
           }
           itens.push({
@@ -1178,18 +1236,75 @@
 
       $('appDialog').classList.remove('hide');
       setTimeout(()=>$('extraForm')?.querySelector('[data-extra-desc]')?.focus(),60);
-      t.sizeTo('#document');
-      function close(value){ $('appDialog').classList.add('hide'); $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
+      t.sizeTo('body');
+      function close(value){ $('appDialog').classList.add('hide'); $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('body'),30); }
     }); }
 
-    function openDialog({title,text='',mode='info',initialValue=''}){ return new Promise(resolve=>{
-      $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox');
-      $('dialogTitle').textContent=title||'Aviso'; $('dialogText').textContent=text||''; $('dialogInput').classList.add('hide'); $('dialogTextarea').classList.add('hide'); $('extraForm').classList.add('hide'); $('dialogCancel').classList.toggle('hide', mode==='info');
-      $('dialogCancel').onclick=()=>close(null); $('dialogOk').onclick=()=>{ if(mode==='prompt') return close($('dialogInput').value); if(mode==='textarea') return close($('dialogTextarea').value); close(true); };
-      if(mode==='prompt'){ $('dialogInput').classList.remove('hide'); $('dialogInput').value=initialValue||''; setTimeout(()=>$('dialogInput').focus(),30); }
-      if(mode==='textarea'){ $('dialogTextarea').classList.remove('hide'); $('dialogTextarea').value=initialValue||''; setTimeout(()=>$('dialogTextarea').focus(),30); }
-      $('appDialog').classList.remove('hide'); t.sizeTo('#document');
-      function close(value){ $('appDialog').classList.add('hide'); resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
+    function openDialog({title,text='',mode='info',initialValue='',required=false,requiredMessage='Campo obrigatório.'}){ return new Promise(resolve=>{
+      const box = $('appDialog').querySelector('.dialogBox');
+      box.classList.remove('extraDialogBox');
+      $('dialogTitle').textContent = title || 'Aviso';
+      $('dialogText').innerHTML = `${escapeHtml(text || '')}${required ? ' <span class="requiredMark">*</span>' : ''}`;
+      $('dialogInput').classList.add('hide');
+      $('dialogTextarea').classList.add('hide');
+      $('dialogInput').classList.remove('inputError');
+      $('dialogTextarea').classList.remove('inputError');
+      $('dialogInput').oninput = null;
+      $('dialogTextarea').oninput = null;
+      $('dialogError').classList.add('hide');
+      $('dialogError').textContent = '';
+      $('extraForm').classList.add('hide');
+      $('dialogCancel').classList.toggle('hide', mode==='info');
+
+      const currentField = () => mode === 'textarea' ? $('dialogTextarea') : $('dialogInput');
+      const clearDialogError = () => {
+        $('dialogInput').classList.remove('inputError');
+        $('dialogTextarea').classList.remove('inputError');
+        $('dialogError').classList.add('hide');
+        $('dialogError').textContent = '';
+      };
+      const showDialogError = (message) => {
+        const field = currentField();
+        field.classList.add('inputError');
+        $('dialogError').textContent = message || requiredMessage;
+        $('dialogError').classList.remove('hide');
+        field.focus();
+      };
+
+      $('dialogCancel').onclick = () => close(null);
+      $('dialogOk').onclick = () => {
+        if(mode === 'prompt' || mode === 'textarea'){
+          const field = currentField();
+          if(required && !String(field.value || '').trim()){
+            showDialogError(requiredMessage);
+            return;
+          }
+          return close(field.value);
+        }
+        close(true);
+      };
+
+      if(mode === 'prompt'){
+        $('dialogInput').classList.remove('hide');
+        $('dialogInput').value = initialValue || '';
+        $('dialogInput').oninput = clearDialogError;
+        setTimeout(()=>$('dialogInput').focus(),30);
+      }
+      if(mode === 'textarea'){
+        $('dialogTextarea').classList.remove('hide');
+        $('dialogTextarea').value = initialValue || '';
+        $('dialogTextarea').oninput = clearDialogError;
+        setTimeout(()=>$('dialogTextarea').focus(),30);
+      }
+
+      $('appDialog').classList.remove('hide');
+      t.sizeTo('body');
+      function close(value){
+        $('appDialog').classList.add('hide');
+        clearDialogError();
+        resolve(value);
+        setTimeout(()=>t.sizeTo('body'),30);
+      }
     }); }
     function htmlDialog(title, html){ return new Promise(resolve=>{
       $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox');
@@ -1201,12 +1316,12 @@
       $('dialogCancel').classList.add('hide');
       $('dialogOk').onclick = () => close(true);
       $('appDialog').classList.remove('hide');
-      t.sizeTo('#document');
-      function close(value){ $('appDialog').classList.add('hide'); $('dialogText').textContent = ''; resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
+      t.sizeTo('body');
+      function close(value){ $('appDialog').classList.add('hide'); $('dialogText').textContent = ''; resolve(value); setTimeout(()=>t.sizeTo('body'),30); }
     }); }
     const infoDialog=(title,text)=>openDialog({title,text,mode:'info'});
     const confirmDialog=(title,text)=>openDialog({title,text,mode:'confirm'});
-    const promptDialog=(title,text,initialValue='')=>openDialog({title,text,mode:'prompt',initialValue});
+    const promptDialog=(title,text,initialValue='',requiredMessage='Campo obrigatório.')=>openDialog({title,text,mode:'prompt',initialValue,required:true,requiredMessage});
 
     init();
   </script>
