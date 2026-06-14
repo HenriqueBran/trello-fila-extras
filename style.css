@@ -950,3 +950,86 @@ body,button,input,select,textarea,.pickerField,.dialogInput,.dialogTextarea,.sug
   animation:loadingSpin .8s linear infinite;
 }
 @keyframes loadingSpin{to{transform:rotate(360deg)}}
+
+/* v69 - tela fixa com rolagem interna + sucesso com CTA */
+html,body{
+  height:100vh !important;
+  min-height:0 !important;
+  overflow:hidden !important;
+}
+body{
+  background:var(--bg) !important;
+}
+#document.wrap{
+  height:min(760px, 100vh) !important;
+  max-height:min(760px, 100vh) !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  padding:22px !important;
+  max-width:760px !important;
+  margin:0 auto !important;
+  scrollbar-gutter:stable;
+}
+.dialogOverlay,
+.loadingOverlay,
+.successOverlay{
+  position:fixed !important;
+}
+.successOverlay{
+  inset:0;
+  z-index:200100;
+  background:rgba(0,0,0,.34);
+  backdrop-filter:blur(2px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.successBox{
+  width:min(340px, calc(100vw - 44px));
+  min-height:190px;
+  background:#fff;
+  border:1px solid #e7ebf2;
+  border-radius:24px;
+  box-shadow:0 28px 70px rgba(0,0,0,.18);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  text-align:center;
+  padding:26px 24px;
+}
+.successIcon{
+  width:44px;
+  height:44px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--blue);
+  color:#fff;
+  font-size:24px;
+  font-weight:900;
+}
+.successBox strong{
+  color:var(--black);
+  font-size:17px;
+  font-weight:800;
+}
+.successBox span{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:600;
+}
+.successBox .btn{
+  margin-top:8px;
+  min-width:130px;
+}
+@media(max-width:800px){
+  #document.wrap{
+    max-width:100% !important;
+    height:100vh !important;
+    max-height:100vh !important;
+  }
+}
