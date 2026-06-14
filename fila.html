@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
+  <div id="frameSizer" aria-hidden="true"></div>
   <div id="document" class="wrap">
     <div class="topbarInternal">
       <button id="trocarModoBtn" class="btn linklike hide">← Voltar</button>
@@ -276,13 +277,13 @@
       $('loadingTitle').textContent = title;
       $('loadingText').textContent = text;
       overlay.classList.remove('hide');
-      try { t.sizeTo('#document'); } catch(_) {}
+      try { t.sizeTo('#frameSizer'); } catch(_) {}
     }
     function hideLoading(){
       const overlay = $('loadingOverlay');
       if(!overlay) return;
       overlay.classList.add('hide');
-      try { t.sizeTo('#document'); } catch(_) {}
+      try { t.sizeTo('#frameSizer'); } catch(_) {}
     }
     function showSuccess(text='Alteração salva no sistema.'){
       hideLoading();
@@ -290,13 +291,13 @@
       if(!overlay) return;
       $('successText').textContent = text;
       overlay.classList.remove('hide');
-      try { t.sizeTo('#document'); } catch(_) {}
+      try { t.sizeTo('#frameSizer'); } catch(_) {}
     }
     function hideSuccess(){
       const overlay = $('successOverlay');
       if(!overlay) return;
       overlay.classList.add('hide');
-      try { t.sizeTo('#document'); } catch(_) {}
+      try { t.sizeTo('#frameSizer'); } catch(_) {}
     }
     async function persistAndRender(){
       showLoading('Salvando alterações...', 'Estamos registrando a ação no sistema.');
@@ -376,7 +377,7 @@
       $('modoBadge').textContent = mode === 'coordenador' ? 'COORDENADOR' : mode === 'membro' ? 'MEMBRO' : '';
       if(mode === 'coordenador') renderCoordenador();
       if(mode === 'membro') renderMembro();
-      t.sizeTo('#document');
+      t.sizeTo('#frameSizer');
     }
     function ensurePage(total, current, size){ const pages = Math.max(1, Math.ceil(total / size)); return Math.min(Math.max(1, current), pages); }
     function pageButtons(containerId, total, current, size, fn){
@@ -1165,7 +1166,7 @@
           }
         }, 40);
 
-        t.sizeTo('#document');
+        t.sizeTo('#frameSizer');
       };
 
       const clearExtraErrors = () => {
@@ -1262,8 +1263,8 @@
 
       $('appDialog').classList.remove('hide');
       setTimeout(()=>$('extraForm')?.querySelector('[data-extra-desc]')?.focus(),60);
-      t.sizeTo('#document');
-      function close(value){ $('appDialog').classList.add('hide'); $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
+      t.sizeTo('#frameSizer');
+      function close(value){ $('appDialog').classList.add('hide'); $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('#frameSizer'),30); }
     }); }
 
     function openDialog({title,text='',mode='info',initialValue='',required=false,requiredMessage='Campo obrigatório.'}){ return new Promise(resolve=>{
@@ -1324,12 +1325,12 @@
       }
 
       $('appDialog').classList.remove('hide');
-      t.sizeTo('#document');
+      t.sizeTo('#frameSizer');
       function close(value){
         $('appDialog').classList.add('hide');
         clearDialogError();
         resolve(value);
-        setTimeout(()=>t.sizeTo('#document'),30);
+        setTimeout(()=>t.sizeTo('#frameSizer'),30);
       }
     }); }
     function htmlDialog(title, html){ return new Promise(resolve=>{
@@ -1342,8 +1343,8 @@
       $('dialogCancel').classList.add('hide');
       $('dialogOk').onclick = () => close(true);
       $('appDialog').classList.remove('hide');
-      t.sizeTo('#document');
-      function close(value){ $('appDialog').classList.add('hide'); $('dialogText').textContent = ''; resolve(value); setTimeout(()=>t.sizeTo('#document'),30); }
+      t.sizeTo('#frameSizer');
+      function close(value){ $('appDialog').classList.add('hide'); $('dialogText').textContent = ''; resolve(value); setTimeout(()=>t.sizeTo('#frameSizer'),30); }
     }); }
     const infoDialog=(title,text)=>openDialog({title,text,mode:'info'});
     const confirmDialog=(title,text)=>openDialog({title,text,mode:'confirm'});
