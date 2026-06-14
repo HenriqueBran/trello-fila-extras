@@ -89,6 +89,18 @@ input,select,.dialogInput,.dialogTextarea{
   transition:border-color .18s ease, box-shadow .18s ease;
 }
 input,select{height:50px;padding:0 16px;font-size:15px;font-weight:500}
+select{
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  appearance:none;
+  padding-right:46px;
+  background-color:var(--white);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%23111111' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 14px center;
+  background-size:14px 14px;
+}
+select::-ms-expand{display:none}
 textarea{font-size:15px;font-weight:500}
 input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(0,80,242,.12)}
 
