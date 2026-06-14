@@ -720,6 +720,9 @@
       const usuario = await promptDialog('Vincular usuário Trello', `Informe o usuário Trello de ${p.nome} sem @:`, p.trelloUsername || '', 'Usuário Trello obrigatório.');
       if(usuario === null) return;
       const limpo = cleanUsername(usuario);
+      const atual = cleanUsername(p.trelloUsername || '');
+      if(!limpo) return infoDialog('Atenção', 'Informe um usuário Trello válido.');
+      if(limpo === atual) return infoDialog('Atenção', 'Esse já é o nome atual do usuário.');
       const antigo = p.trelloUsername || 'sem vínculo';
       p.trelloUsername = limpo;
       log('USUÁRIO VINCULADO', `${p.nome} foi vinculado ao usuário @${limpo}. Anterior: ${antigo}.`);
