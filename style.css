@@ -1091,3 +1091,18 @@ html,body{
     max-width:100% !important;
   }
 }
+
+/* v71 - erro dos campos de data/hora abaixo do grupo + sumiço automático */
+.dateSection > .extraFieldError,
+.extraWizardTop .extraFieldError{
+  display:block;
+  width:100%;
+  margin-top:9px;
+}
+.dateSection .dateHourGroup + .extraFieldError{
+  grid-column:1 / -1;
+}
+.customPickerWrap + .extraFieldError{
+  display:block;
+  width:100%;
+}

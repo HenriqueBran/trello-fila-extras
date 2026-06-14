@@ -875,6 +875,7 @@
             }
             hidden.value = btn.dataset.dateValue;
             label.textContent = formatPickerDate(hidden.value);
+            try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){}
             closePickers(pop.closest('.extraItems') || document);
           };
         });
@@ -910,6 +911,7 @@
           if(pop.dataset.hour && pop.dataset.minute){
             hidden.value = `${pop.dataset.hour}:${pop.dataset.minute}`;
             label.textContent = hidden.value;
+            try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){}
             closePickers(pop.closest('.extraItems') || document);
           }
         };
@@ -1130,6 +1132,7 @@
 
         const qtyInput = $('extraQuantidade');
         qtyInput.oninput = () => {
+          clearExtraFieldError('qtd');
           readVisibleStep();
           const nextQtd = quantidadeAtual();
           qtyInput.value = String(nextQtd);
@@ -1142,10 +1145,22 @@
         const counter = $('extraForm').querySelector('[data-char-counter]');
         desc.oninput = () => {
           if(counter) counter.textContent = `${desc.value.length}/200`;
-          clearExtraErrors();
-          $('dialogText').textContent = 'Preencha os dados do extra individualmente.';
+          if(String(desc.value || '').trim()) clearExtraFieldError('desc');
           readVisibleStep();
         };
+
+        $('extraForm').querySelector('[data-extra-inicio-date]')?.addEventListener('change', () => {
+          if($('extraForm').querySelector('[data-extra-inicio-date]')?.value) clearExtraFieldError('inicioDate');
+        });
+        $('extraForm').querySelector('[data-extra-inicio-time]')?.addEventListener('change', () => {
+          if($('extraForm').querySelector('[data-extra-inicio-time]')?.value) clearExtraFieldError('inicioTime');
+        });
+        $('extraForm').querySelector('[data-extra-fim-date]')?.addEventListener('change', () => {
+          if($('extraForm').querySelector('[data-extra-fim-date]')?.value) clearExtraFieldError('fimDate');
+        });
+        $('extraForm').querySelector('[data-extra-fim-time]')?.addEventListener('change', () => {
+          if($('extraForm').querySelector('[data-extra-fim-time]')?.value) clearExtraFieldError('fimTime');
+        });
 
         setupCustomDateTimePickers($('extraForm'));
 
@@ -1174,23 +1189,52 @@
         $('extraForm')?.querySelectorAll('.extraFieldError').forEach(el=>el.remove());
       };
 
+      const getExtraFieldTarget = (field) => {
+        if(field === 'qtd') return $('extraQuantidade');
+        if(field === 'desc') return $('extraForm')?.querySelector('[data-extra-desc]');
+        if(field === 'inicioDate') return $('extraForm')?.querySelector('[data-extra-inicio-date]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        if(field === 'inicioTime') return $('extraForm')?.querySelector('[data-extra-inicio-time]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        if(field === 'fimDate') return $('extraForm')?.querySelector('[data-extra-fim-date]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        if(field === 'fimTime') return $('extraForm')?.querySelector('[data-extra-fim-time]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        return null;
+      };
+
+      const clearExtraFieldError = (field) => {
+        const target = getExtraFieldTarget(field);
+        if(target) target.classList.remove('inputError');
+
+        const related = {
+          inicioDate: ['inicioDate', 'inicioTime'],
+          inicioTime: ['inicioDate', 'inicioTime'],
+          fimDate: ['fimDate', 'fimTime'],
+          fimTime: ['fimDate', 'fimTime']
+        };
+        const keys = related[field] || [field];
+        keys.forEach(k => $('extraForm')?.querySelectorAll(`.extraFieldError[data-error-for="${k}"]`).forEach(el=>el.remove()));
+
+        if(!$('extraForm')?.querySelector('.extraFieldError')){
+          $('dialogText').textContent = 'Preencha os dados do extra individualmente.';
+        }
+      };
+
       const showExtraFieldError = (field, message) => {
         clearExtraErrors();
-        let target = null;
-        if(field === 'qtd') target = $('extraQuantidade');
-        if(field === 'desc') target = $('extraForm')?.querySelector('[data-extra-desc]');
-        if(field === 'inicioDate') target = $('extraForm')?.querySelector('[data-extra-inicio-date]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
-        if(field === 'inicioTime') target = $('extraForm')?.querySelector('[data-extra-inicio-time]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
-        if(field === 'fimDate') target = $('extraForm')?.querySelector('[data-extra-fim-date]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
-        if(field === 'fimTime') target = $('extraForm')?.querySelector('[data-extra-fim-time]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
-
+        const target = getExtraFieldTarget(field);
         if(target){
           target.classList.add('inputError');
           const error = document.createElement('div');
           error.className = 'fieldError extraFieldError';
+          error.dataset.errorFor = field;
           error.textContent = message || 'Campo obrigatório.';
-          const host = target.closest('.textareaWrap') || target.closest('.customPickerWrap') || target.parentElement;
-          if(host) host.insertAdjacentElement('afterend', error);
+
+          let host = null;
+          if(field === 'qtd') host = target.closest('.extraWizardTop > div') || target.parentElement;
+          else if(field === 'desc') host = target.closest('.textareaWrap') || target.parentElement;
+          else if(field === 'inicioDate' || field === 'inicioTime') host = target.closest('.dateSection');
+          else if(field === 'fimDate' || field === 'fimTime') host = target.closest('.dateSection');
+          else host = target.parentElement;
+
+          if(host) host.insertAdjacentElement('beforeend', error);
           try{ target.focus(); }catch(_){}
         }
         $('dialogText').textContent = 'Preencha os campos obrigatórios destacados.';
