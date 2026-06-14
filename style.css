@@ -1092,17 +1092,10 @@ html,body{
   }
 }
 
-/* v71 - erro dos campos de data/hora abaixo do grupo + sumiço automático */
-.dateSection > .extraFieldError,
-.extraWizardTop .extraFieldError{
+/* v71 - mensagens de erro abaixo do grupo e remoção automática */
+.dateSection .fieldError,
+.extraWizardTop .fieldError{
   display:block;
   width:100%;
-  margin-top:9px;
-}
-.dateSection .dateHourGroup + .extraFieldError{
-  grid-column:1 / -1;
-}
-.customPickerWrap + .extraFieldError{
-  display:block;
-  width:100%;
+  margin-top:8px;
 }

@@ -1,146 +1,4 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fila de Extras</title>
-  <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css" />
-</head>
-<body>
-  <div id="frameSizer" aria-hidden="true"></div>
-  <div id="document" class="wrap">
-    <div class="topbarInternal">
-      <button id="trocarModoBtn" class="btn linklike hide">← Voltar</button>
-      <span id="trocarModoHint" class="muted small hide"></span>
-      <span id="syncStatus" class="syncStatus hide"></span>
-      <button id="refreshNowBtn" class="btn ghost refreshBtn hide" type="button"></button>
-    </div>
 
-    <header id="heroBox" class="hero heroCentered">
-      <div>
-        <h1>Fila de Extras</h1>
-        <p id="heroSubtitle" class="heroSubtitle hide">Controle de extras com modo Coordenador e modo Membro.</p>
-      </div>
-      <span id="modoBadge" class="badge hide">CONFIGURAR</span>
-    </header>
-
-    <section id="configInicial" class="card hide">
-      <h2>Configuração de acesso</h2>
-      <p class="muted">Escolha como esta conta vai usar o painel neste quadro.</p>
-      <div class="row gap">
-        <button class="btn primary" id="setCoordenador">Usar como Modo Coordenador</button>
-        <button class="btn dark" id="setMembro">Usar como Modo Membro</button>
-      </div>
-    </section>
-
-    <main id="coordenador" class="grid hide">
-      <section class="card">
-        <h2>Pessoa da vez</h2>
-        <div id="pessoaDaVez" class="person">Nenhuma pessoa cadastrada</div>
-        <div id="extraStatus" class="status muted">Nenhuma extra ativa.</div>
-        <div class="actions">
-          <button class="btn green" id="gerarExtra">Gerar extra</button>
-          <button class="btn orange" id="pularVez">Pular vez</button>
-        </div>
-        <p class="muted small">Pular vez exige motivo. O cancelamento fica disponível no histórico conforme o status da solicitação.</p>
-      </section>
-
-      <section class="card">
-        <h2>Gerenciar fila</h2>
-        <div class="inputRow inputRowSuggest">
-          <input id="novoNome" placeholder="Nome da pessoa" autocomplete="off" />
-          <div class="suggestWrap">
-            <input id="novoUsuario" placeholder="Usuário Trello" autocomplete="off" />
-            <div id="membroSugestoes" class="suggestions hide"></div>
-          </div>
-          <button class="btn dark" id="addPessoa">Adicionar</button>
-        </div>
-        <div class="quickTopBox">
-          <label for="puxarPessoaSelect">Alterar posição de uma pessoa na fila</label>
-          <div class="quickTopRow positionRow">
-            <select id="puxarPessoaSelect"></select>
-            <select id="posicaoDestinoSelect"></select>
-            <button class="btn primary" id="puxarPessoaBtn">Mover pessoa</button>
-          </div>
-          <p class="muted small">Use para colocar uma pessoa em qualquer posição da fila, sem precisar pular pessoa por pessoa.</p>
-        </div>
-        <div id="listaCoordenador" class="list"></div>
-        <div id="paginacaoCoordenador" class="pagination"></div>
-      </section>
-
-      <section class="card full">
-        <div class="row between">
-          <h2>Histórico completo</h2>
-          <span class="muted small">Histórico mensal</span>
-        </div>
-        <div id="historicoCoordenador" class="history"></div>
-        <div id="paginacaoHistCoordenador" class="pagination"></div>
-      </section>
-    </main>
-
-    <main id="membro" class="grid hide">
-      <section class="card">
-        <h2>Fila pública</h2>
-        <div id="listaMembro" class="list public"></div>
-        <div id="paginacaoMembro" class="pagination"></div>
-      </section>
-
-      <section class="card">
-        <h2>Extras ativas</h2>
-        <div id="membroExtraBox"></div>
-      </section>
-
-      <section class="card full">
-        <div class="row between">
-          <h2>Histórico público</h2>
-          <span class="muted small">Histórico mensal</span>
-        </div>
-        <div id="historicoMembro" class="history"></div>
-        <div id="paginacaoHistMembro" class="pagination"></div>
-      </section>
-    </main>
-  </div>
-
-  <div id="loadingOverlay" class="loadingOverlay hide">
-    <div class="loadingBox">
-      <div class="loadingSpinner"></div>
-      <strong id="loadingTitle">Salvando alterações...</strong>
-      <span id="loadingText">Aguarde um instante.</span>
-    </div>
-  </div>
-
-  <div id="successOverlay" class="successOverlay hide">
-    <div class="successBox">
-      <div class="successIcon">✓</div>
-      <strong>Ação feita com sucesso</strong>
-      <span id="successText">Alteração salva no sistema.</span>
-      <button type="button" id="successCloseBtn" class="btn primary">Fechar</button>
-    </div>
-  </div>
-
-  <div id="appDialog" class="dialogOverlay hide">
-    <div class="dialogBox">
-      <div class="dialogTitle" id="dialogTitle">Aviso</div>
-      <div class="dialogText" id="dialogText"></div>
-      <input id="dialogInput" class="dialogInput hide" />
-      <textarea id="dialogTextarea" class="dialogTextarea hide"></textarea>
-      <div id="dialogError" class="fieldError hide"></div>
-      <div id="extraForm" class="extraForm hide">
-        <label>Quantidade de extras</label>
-        <input id="extraQuantidade" class="dialogInput" type="number" min="1" step="1" value="1" placeholder="Quantidade de extras" />
-        <small class="muted">Cada extra será direcionada para uma pessoa seguindo a ordem atual da fila.</small>
-        <div id="extraItems" class="extraItems"></div>
-      </div>
-      <div class="dialogActions">
-        <button class="btn dark hide" id="dialogCancel">Cancelar</button>
-        <button class="btn primary" id="dialogOk">OK</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="https://p.trellocdn.com/power-up.min.js"></script>
-  <script>
     const t = window.TrelloPowerUp.iframe();
     const DEFAULT_DATA = { fila: [], extrasAtivas: [], historico: [], historicoMes: '', historicoArquivado: {}, fechamentoMensal: {}, extrasAceitasCancelaveis: {}, userModes: {} };
     let data = structuredClone(DEFAULT_DATA);
@@ -875,7 +733,7 @@
             }
             hidden.value = btn.dataset.dateValue;
             label.textContent = formatPickerDate(hidden.value);
-            try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){}
+            try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ }
             closePickers(pop.closest('.extraItems') || document);
           };
         });
@@ -911,7 +769,7 @@
           if(pop.dataset.hour && pop.dataset.minute){
             hidden.value = `${pop.dataset.hour}:${pop.dataset.minute}`;
             label.textContent = hidden.value;
-            try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){}
+            try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ }
             closePickers(pop.closest('.extraItems') || document);
           }
         };
@@ -1145,21 +1003,25 @@
         const counter = $('extraForm').querySelector('[data-char-counter]');
         desc.oninput = () => {
           if(counter) counter.textContent = `${desc.value.length}/200`;
-          readVisibleStep();
           if(String(desc.value || '').trim()) clearExtraFieldError('desc');
+          readVisibleStep();
         };
 
         $('extraForm').querySelector('[data-extra-inicio-date]')?.addEventListener('change', () => {
           if($('extraForm').querySelector('[data-extra-inicio-date]')?.value) clearExtraFieldError('inicioDate');
+          readVisibleStep();
         });
         $('extraForm').querySelector('[data-extra-inicio-time]')?.addEventListener('change', () => {
           if($('extraForm').querySelector('[data-extra-inicio-time]')?.value) clearExtraFieldError('inicioTime');
+          readVisibleStep();
         });
         $('extraForm').querySelector('[data-extra-fim-date]')?.addEventListener('change', () => {
           if($('extraForm').querySelector('[data-extra-fim-date]')?.value) clearExtraFieldError('fimDate');
+          readVisibleStep();
         });
         $('extraForm').querySelector('[data-extra-fim-time]')?.addEventListener('change', () => {
           if($('extraForm').querySelector('[data-extra-fim-time]')?.value) clearExtraFieldError('fimTime');
+          readVisibleStep();
         });
 
         setupCustomDateTimePickers($('extraForm'));
@@ -1184,11 +1046,6 @@
         t.sizeTo('#frameSizer');
       };
 
-      const clearExtraErrors = () => {
-        $('extraForm')?.querySelectorAll('.inputError').forEach(el=>el.classList.remove('inputError'));
-        $('extraForm')?.querySelectorAll('.extraFieldError').forEach(el=>el.remove());
-      };
-
       const getExtraFieldTarget = (field) => {
         if(field === 'qtd') return $('extraQuantidade');
         if(field === 'desc') return $('extraForm')?.querySelector('[data-extra-desc]');
@@ -1197,6 +1054,11 @@
         if(field === 'fimDate') return $('extraForm')?.querySelector('[data-extra-fim-date]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
         if(field === 'fimTime') return $('extraForm')?.querySelector('[data-extra-fim-time]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
         return null;
+      };
+
+      const clearExtraErrors = () => {
+        $('extraForm')?.querySelectorAll('.inputError').forEach(el=>el.classList.remove('inputError'));
+        $('extraForm')?.querySelectorAll('.extraFieldError').forEach(el=>el.remove());
       };
 
       const clearExtraFieldError = (field) => {
@@ -1209,51 +1071,38 @@
       };
 
       const showExtraFieldError = (field, message) => {
-        const target = getExtraFieldTarget(field);
-        if(!target) return;
-        target.classList.add('inputError');
-        if($('extraForm')?.querySelector(`.extraFieldError[data-error-for="${field}"]`)) return;
-        const error = document.createElement('div');
-        error.className = 'fieldError extraFieldError';
-        error.dataset.errorFor = field;
-        error.textContent = message || 'Campo obrigatório.';
-        let host = null;
-        if(field === 'qtd') host = target.closest('.extraWizardTop > div') || target.parentElement;
-        else if(field === 'desc') host = target.closest('.textareaWrap') || target.parentElement;
-        else if(field === 'inicioDate' || field === 'inicioTime') host = target.closest('.dateSection');
-        else if(field === 'fimDate' || field === 'fimTime') host = target.closest('.dateSection');
-        else host = target.parentElement;
-        if(host) host.insertAdjacentElement('beforeend', error);
-      };
-
-      const showExtraFieldErrors = (errors=[]) => {
         clearExtraErrors();
-        if(!errors.length){
-          $('dialogText').textContent = 'Preencha os dados do extra individualmente.';
-          return;
+        const target = getExtraFieldTarget(field);
+        if(target){
+          target.classList.add('inputError');
+          const error = document.createElement('div');
+          error.className = 'fieldError extraFieldError';
+          error.dataset.errorFor = field;
+          error.textContent = message || 'Campo obrigatório.';
+          let host = null;
+          if(field === 'qtd') host = target.closest('.extraWizardTop > div') || target.parentElement;
+          else if(field === 'desc') host = target.closest('.textareaWrap') || target.parentElement;
+          else if(field === 'inicioDate' || field === 'inicioTime' || field === 'fimDate' || field === 'fimTime') host = target.closest('.dateSection');
+          else host = target.parentElement;
+          if(host) host.insertAdjacentElement('beforeend', error);
+          try{ target.focus(); }catch(_){ }
         }
-        errors.forEach(err => showExtraFieldError(err.field, err.message));
         $('dialogText').textContent = 'Preencha os campos obrigatórios destacados.';
-        const firstTarget = getExtraFieldTarget(errors[0].field);
-        try{ firstTarget?.focus(); }catch(_){ }
       };
 
-      const validateStepAll = (index) => {
+      const validateStep = (index) => {
         const item = extraDrafts[index] || {};
         const inicio = splitDateTime(item.inicioAt || '');
         const fim = splitDateTime(item.fimAt || '');
-        const errors = [];
-        if(!String(item.descricao || '').trim()) errors.push({ field:'desc', message:`Descrição do extra ${index + 1} é obrigatória.` });
-        if(!inicio.date) errors.push({ field:'inicioDate', message:`Data de início do extra ${index + 1} é obrigatória.` });
-        else if(isPastDateValue(inicio.date)) errors.push({ field:'inicioDate', message:`O dia de início do extra ${index + 1} não pode ser uma data passada.` });
-        if(!inicio.time) errors.push({ field:'inicioTime', message:`Hora de início do extra ${index + 1} é obrigatória.` });
-        if(!fim.date) errors.push({ field:'fimDate', message:`Data de fim do extra ${index + 1} é obrigatória.` });
-        else if(isPastDateValue(fim.date)) errors.push({ field:'fimDate', message:`O dia de fim do extra ${index + 1} não pode ser uma data passada.` });
-        if(!fim.time) errors.push({ field:'fimTime', message:`Hora de fim do extra ${index + 1} é obrigatória.` });
-        if(!errors.length && new Date(item.fimAt).getTime() <= new Date(item.inicioAt).getTime()) {
-          errors.push({ field:'fimTime', message:`O fim do extra ${index + 1} precisa ser depois do início.` });
-        }
-        return errors;
+        if(!String(item.descricao || '').trim()) return { field:'desc', message:`Descrição do extra ${index + 1} é obrigatória.` };
+        if(!inicio.date) return { field:'inicioDate', message:`Data de início do extra ${index + 1} é obrigatória.` };
+        if(!inicio.time) return { field:'inicioTime', message:`Hora de início do extra ${index + 1} é obrigatória.` };
+        if(isPastDateValue(inicio.date)) return { field:'inicioDate', message:`O dia de início do extra ${index + 1} não pode ser uma data passada.` };
+        if(!fim.date) return { field:'fimDate', message:`Data de fim do extra ${index + 1} é obrigatória.` };
+        if(!fim.time) return { field:'fimTime', message:`Hora de fim do extra ${index + 1} é obrigatória.` };
+        if(isPastDateValue(fim.date)) return { field:'fimDate', message:`O dia de fim do extra ${index + 1} não pode ser uma data passada.` };
+        if(new Date(item.fimAt).getTime() <= new Date(item.inicioAt).getTime()) return { field:'fimTime', message:`O fim do extra ${index + 1} precisa ser depois do início.` };
+        return null;
       };
 
       $('dialogCancel').onclick = () => {
@@ -1270,12 +1119,12 @@
       $('dialogOk').onclick = () => {
         readVisibleStep();
         const qtd = quantidadeAtual();
-        if(!Number.isInteger(qtd) || qtd < 1){ showExtraFieldErrors([{ field:'qtd', message:'Quantidade obrigatória.' }]); return; }
-        if(qtd > data.fila.length){ showExtraFieldErrors([{ field:'qtd', message:`Você solicitou ${qtd} extras, mas há apenas ${data.fila.length} pessoa(s) na fila.` }]); return; }
+        if(!Number.isInteger(qtd) || qtd < 1){ showExtraFieldError('qtd', 'Quantidade obrigatória.'); return; }
+        if(qtd > data.fila.length){ showExtraFieldError('qtd', `Você solicitou ${qtd} extras, mas há apenas ${data.fila.length} pessoa(s) na fila.`); return; }
 
-        const currentErrors = validateStepAll(currentExtraStep);
-        if(currentErrors.length){
-          showExtraFieldErrors(currentErrors);
+        const currentError = validateStep(currentExtraStep);
+        if(currentError){
+          showExtraFieldError(currentError.field, currentError.message);
           return;
         }
 
@@ -1288,11 +1137,11 @@
 
         const itens = [];
         for(let i=0;i<qtd;i++){
-          const errs = validateStepAll(i);
-          if(errs.length){
+          const err = validateStep(i);
+          if(err){
             currentExtraStep = i;
             renderExtraWizard();
-            setTimeout(() => showExtraFieldErrors(errs), 60);
+            setTimeout(() => showExtraFieldError(err.field, err.message), 60);
             return;
           }
           itens.push({
@@ -1398,6 +1247,4 @@
     $('successCloseBtn')?.addEventListener('click', hideSuccess);
 
     init();
-  </script>
-</body>
-</html>
+  
