@@ -1399,6 +1399,12 @@
         if(!inicio.date) errors.push({ field:'inicioDate', message:`Data de início do extra ${index + 1} é obrigatória.` });
         else if(isPastDateValue(inicio.date)) errors.push({ field:'inicioDate', message:`O dia de início do extra ${index + 1} não pode ser uma data passada.` });
         if(!inicio.time) errors.push({ field:'inicioTime', message:`Hora de início do extra ${index + 1} é obrigatória.` });
+        if(inicio.date && inicio.time){
+          const inicioMs = new Date(item.inicioAt).getTime();
+          if(Number.isFinite(inicioMs) && inicioMs <= Date.now()){
+            errors.push({ field:'inicioTime', message:`O início do extra ${index + 1} precisa ser um horário futuro.` });
+          }
+        }
         if(!fim.date) errors.push({ field:'fimDate', message:`Data de fim do extra ${index + 1} é obrigatória.` });
         else if(isPastDateValue(fim.date)) errors.push({ field:'fimDate', message:`O dia de fim do extra ${index + 1} não pode ser uma data passada.` });
         if(!fim.time) errors.push({ field:'fimTime', message:`Hora de fim do extra ${index + 1} é obrigatória.` });
