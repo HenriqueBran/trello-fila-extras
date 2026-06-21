@@ -159,6 +159,7 @@
     const currentUsername = () => cleanUsername(member?.username || '');
     const EXTRA_RESPONSAVEL_OPTIONS = ['Danilo', 'Camille'];
     const EXTRA_SQUAD_OPTIONS = ['AER', 'VIA', 'CLUBE', 'B2C', 'BANCOS', 'COB', 'MKT'];
+    const EXTRA_SQUAD_ROOT_OPTIONS = ['GOL', 'Smiles'];
     const EXTRA_ATENDIMENTO_GRUPOS = {
       GOL: [
         { label: 'GOL', options: ['Atendimento 1', 'Atendimento 2'] }
@@ -980,7 +981,7 @@
           return { placeholder: 'Responsável solicitante', groups: [{ label:'', options: EXTRA_RESPONSAVEL_OPTIONS }] };
         }
         if(kind === 'squad'){
-          return { placeholder: 'Squad', groups: [{ label:'', options: EXTRA_SQUAD_OPTIONS }] };
+          return { placeholder: 'Squad', mode: 'squad' };
         }
         if(kind === 'responsavelAtendimento'){
           return { placeholder: 'Responsável atendimento', mode: 'atendimento' };
@@ -1005,6 +1006,60 @@
               </div>
             `).join('')}
           </div>`;
+        pop.querySelectorAll('[data-select-value]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            hidden.value = btn.dataset.selectValue || '';
+            label.textContent = hidden.value || placeholder;
+            try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ }
+            closePickers(pop.closest('.extraItems') || document);
+          };
+        });
+      };
+
+      const renderSquadRoot = (pop, hidden, label, placeholder='Squad') => {
+        pop.innerHTML = `
+          <div class="selectPickerList atendimentoRoot">
+            <button type="button" class="selectCategoryButton" data-squad-root="GOL">
+              <span>GOL</span>
+            </button>
+            <button type="button" class="selectCategoryButton" data-squad-root="Smiles">
+              <span>Smiles</span><em>›</em>
+            </button>
+          </div>`;
+        pop.querySelectorAll('[data-squad-root]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            const selected = btn.dataset.squadRoot || '';
+            if(selected === 'GOL'){
+              hidden.value = 'GOL';
+              label.textContent = 'GOL';
+              try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ }
+              closePickers(pop.closest('.extraItems') || document);
+              return;
+            }
+            renderSquadSmilesList(pop, hidden, label, placeholder);
+          };
+        });
+      };
+
+      const renderSquadSmilesList = (pop, hidden, label, placeholder='Squad') => {
+        pop.innerHTML = `
+          <div class="selectPickerList">
+            <button type="button" class="selectBackButton" data-squad-back>← Voltar</button>
+            <strong class="selectCategoryTitle">Smiles</strong>
+            <div class="selectOptionGroup">
+              <div class="selectOptionItems">
+                ${EXTRA_SQUAD_OPTIONS.map(option => `
+                  <button type="button" class="selectOption${hidden.value === option ? ' active' : ''}" data-select-value="${escapeHtml(option)}">${escapeHtml(option)}</button>
+                `).join('')}
+              </div>
+            </div>
+          </div>`;
+        pop.querySelector('[data-squad-back]')?.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          renderSquadRoot(pop, hidden, label, placeholder);
+        });
         pop.querySelectorAll('[data-select-value]').forEach(btn => {
           btn.onclick = (ev) => {
             ev.stopPropagation();
@@ -1069,6 +1124,10 @@
       const renderSelectPicker = (pop, hidden, label, configOrGroups, placeholder='Selecionar') => {
         if(configOrGroups?.mode === 'atendimento'){
           renderAtendimentoRoot(pop, hidden, label, configOrGroups.placeholder || placeholder);
+          return;
+        }
+        if(configOrGroups?.mode === 'squad'){
+          renderSquadRoot(pop, hidden, label, configOrGroups.placeholder || placeholder);
           return;
         }
         renderSimpleSelectList(pop, hidden, label, configOrGroups, placeholder);
@@ -1181,7 +1240,7 @@
             closePickers(scope);
             if(wasOpen) return;
             const config = getSelectConfig(wrap);
-            renderSelectPicker(pop, hidden, label, config.mode === 'atendimento' ? config : config.groups, config.placeholder);
+            renderSelectPicker(pop, hidden, label, (config.mode === 'atendimento' || config.mode === 'squad') ? config : config.groups, config.placeholder);
             pop.classList.remove('hide');
             positionPickerPopover(pop, btn);
           };
