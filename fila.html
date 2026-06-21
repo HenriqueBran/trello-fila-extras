@@ -160,6 +160,8 @@
     const EXTRA_RESPONSAVEL_OPTIONS = ['Danilo', 'Camille'];
     const EXTRA_SQUAD_OPTIONS = ['AER', 'VIA', 'CLUBE', 'B2C', 'BANCOS', 'COB', 'MKT'];
     const EXTRA_ATENDIMENTO_GROUPS = [
+      { label: 'GOL', squadKeys: [], options: ['Atendimento 1', 'Atendimento 2'] },
+      { label: 'Smiles', isCategory: true, squadKeys: [], options: [] },
       { label: 'AER', squadKeys: ['AER'], options: ['Fernanda Barzagui', 'Alex Mathias'] },
       { label: 'VIA', squadKeys: ['VIA'], options: ['Fernanda Queiroga', 'Ana Cestari'] },
       { label: 'Clube | B2C', squadKeys: ['CLUBE', 'B2C'], options: ['Victória Ieno'] },
@@ -967,11 +969,7 @@
       };
 
       const getAtendimentoGroupsForSquad = (squad='') => {
-        const upper = String(squad || '').trim().toUpperCase();
-        if(!upper) return EXTRA_ATENDIMENTO_GROUPS;
-        const primary = EXTRA_ATENDIMENTO_GROUPS.filter(group => Array.isArray(group.squadKeys) && group.squadKeys.includes(upper));
-        const remaining = EXTRA_ATENDIMENTO_GROUPS.filter(group => !primary.includes(group));
-        return [...primary, ...remaining];
+        return EXTRA_ATENDIMENTO_GROUPS;
       };
       const getSelectConfig = (wrap) => {
         const kind = wrap?.dataset?.selectKind || '';
@@ -995,13 +993,13 @@
         pop.innerHTML = `
           <div class="selectPickerList">
             ${safeGroups.map(group => `
-              <div class="selectOptionGroup">
-                ${group?.label ? `<strong class="selectGroupTitle">${escapeHtml(group.label)}</strong>` : ''}
-                <div class="selectOptionItems">
+              <div class="selectOptionGroup ${group?.isCategory ? 'selectCategoryOnly' : ''}">
+                ${group?.label ? `<strong class="${group?.isCategory ? 'selectCategoryTitle' : 'selectGroupTitle'}">${escapeHtml(group.label)}</strong>` : ''}
+                ${group?.isCategory ? '' : `<div class="selectOptionItems">
                   ${(Array.isArray(group?.options) ? group.options : []).map(option => `
                     <button type="button" class="selectOption${current === option ? ' active' : ''}" data-select-value="${escapeHtml(option)}">${escapeHtml(option)}</button>
                   `).join('')}
-                </div>
+                </div>`}
               </div>
             `).join('')}
           </div>`;
