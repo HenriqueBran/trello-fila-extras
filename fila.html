@@ -157,6 +157,17 @@
     const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
     const cleanUsername = (v) => String(v || '').trim().replace(/^@+/, '').toLowerCase();
     const currentUsername = () => cleanUsername(member?.username || '');
+    const EXTRA_RESPONSAVEL_OPTIONS = ['Danilo', 'Camille'];
+    const EXTRA_SQUAD_OPTIONS = ['AER', 'VIA', 'CLUBE', 'B2C', 'BANCOS', 'COB', 'MKT'];
+    const EXTRA_ATENDIMENTO_GROUPS = [
+      { label: 'AER', squadKeys: ['AER'], options: ['Fernanda Barzagui', 'Alex Mathias'] },
+      { label: 'VIA', squadKeys: ['VIA'], options: ['Fernanda Queiroga', 'Ana Cestari'] },
+      { label: 'Clube | B2C', squadKeys: ['CLUBE', 'B2C'], options: ['Victória Ieno'] },
+      { label: 'Bancos | Cob', squadKeys: ['BANCOS', 'COB'], options: ['Berg Rodrigues'] },
+      { label: 'MKT', squadKeys: ['MKT'], options: ['Andreza Pereira'] },
+      { label: 'Noturno', squadKeys: [], options: ['Priscila Albuquerque'] },
+      { label: 'Rotativo', squadKeys: [], options: ['Micaely Mayara'] }
+    ];
     const toTime = (v) => { const t = new Date(v || '').getTime(); return Number.isFinite(t) ? t : null; };
     const isExtraStarted = (extra) => { const t = toTime(extra?.inicioAt); return t !== null && Date.now() >= t; };
     const canCancelExtra = (extra) => !isExtraStarted(extra);
@@ -175,6 +186,21 @@
       const ini = formatDateTime(extra?.inicioAt);
       const fim = formatDateTime(extra?.fimAt);
       return ini || fim ? ` Início: ${ini || '-'} • Fim: ${fim || '-'}.` : '';
+    }
+
+    function extraResponsaveisHtml(extra){
+      const rows = [];
+      if(extra?.responsavelSolicitante) rows.push(`<p><b>Responsável solicitante:</b> ${escapeHtml(extra.responsavelSolicitante)}</p>`);
+      if(extra?.squad) rows.push(`<p><b>Squad:</b> ${escapeHtml(extra.squad)}</p>`);
+      if(extra?.responsavelAtendimento) rows.push(`<p><b>Responsável atendimento:</b> ${escapeHtml(extra.responsavelAtendimento)}</p>`);
+      return rows.join('');
+    }
+    function extraResponsaveisTexto(extra){
+      const parts = [];
+      if(extra?.responsavelSolicitante) parts.push(`Responsável solicitante: ${extra.responsavelSolicitante}`);
+      if(extra?.squad) parts.push(`Squad: ${extra.squad}`);
+      if(extra?.responsavelAtendimento) parts.push(`Responsável atendimento: ${extra.responsavelAtendimento}`);
+      return parts.length ? ` ${parts.join(' • ')}.` : '';
     }
 
     function normalizeBoardMember(m){
@@ -499,7 +525,7 @@
         $('membroExtraBox').innerHTML = `<p class="muted">Nenhuma extra disponível para você no momento.</p>${totalOutras ? '<p class="muted small">Existe solicitação ativa para outro membro da fila.</p>' : ''}`;
       }
       else {
-        $('membroExtraBox').innerHTML = `<div class="extrasList">${minhasExtras.map(e=>`<div class="extraCard"><div class="notice"><b>${escapeHtml(e.pessoaNome)}</b>, você foi chamado para uma extra.</div><p><b>Descrição:</b> ${escapeHtml(e.descricao || 'Extra gerada pelo coordenador.')}</p>${extraPeriodoHtml(e)}<div class="actions"><button class="btn green" onclick="aceitarExtra('${e.id}')">Aceitar extra</button><button class="btn red" onclick="recusarExtra('${e.id}')">Recusar extra</button></div></div>`).join('')}</div>`;
+        $('membroExtraBox').innerHTML = `<div class="extrasList">${minhasExtras.map(e=>`<div class="extraCard"><div class="notice"><b>${escapeHtml(e.pessoaNome)}</b>, você foi chamado para uma extra.</div><p><b>Descrição:</b> ${escapeHtml(e.descricao || 'Extra gerada pelo coordenador.')}</p>${extraResponsaveisHtml(e)}${extraPeriodoHtml(e)}<div class="actions"><button class="btn green" onclick="aceitarExtra('${e.id}')">Aceitar extra</button><button class="btn red" onclick="recusarExtra('${e.id}')">Recusar extra</button></div></div>`).join('')}</div>`;
       }
       renderHistory('historicoMembro', 'paginacaoHistMembro', false);
     }
@@ -578,6 +604,9 @@
           descricao: item.descricao,
           inicioAt: item.inicioAt,
           fimAt: item.fimAt,
+          responsavelSolicitante: item.responsavelSolicitante,
+          squad: item.squad,
+          responsavelAtendimento: item.responsavelAtendimento,
           status:'AGUARDANDO',
           criadaEm:now(),
           loteId,
@@ -585,7 +614,7 @@
           totalNoLote: quantidade
         };
         data.extrasAtivas.push(extra);
-        log('EXTRA GERADA', `Extra ${i+1}/${quantidade} gerada para ${p.nome}.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra} });
+        log('EXTRA GERADA', `Extra ${i+1}/${quantidade} gerada para ${p.nome}.${extraPeriodoTexto(extra)}${extraResponsaveisTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra} });
         advanceQueueAfterGenerate();
       }
       await persistAndRender();
@@ -668,6 +697,7 @@
               <small><strong>Fim:</strong> ${escapeHtml(fim)}</small>
             </div>
             ${e.descricao ? `<p>${escapeHtml(e.descricao)}</p>` : ''}
+            ${extraResponsaveisHtml(e)}
           </div>
         </div>`;
       }).join('');
@@ -935,6 +965,56 @@
           };
         });
       };
+
+      const getAtendimentoGroupsForSquad = (squad='') => {
+        const upper = String(squad || '').trim().toUpperCase();
+        if(!upper) return EXTRA_ATENDIMENTO_GROUPS;
+        const primary = EXTRA_ATENDIMENTO_GROUPS.filter(group => Array.isArray(group.squadKeys) && group.squadKeys.includes(upper));
+        const remaining = EXTRA_ATENDIMENTO_GROUPS.filter(group => !primary.includes(group));
+        return [...primary, ...remaining];
+      };
+      const getSelectConfig = (wrap) => {
+        const kind = wrap?.dataset?.selectKind || '';
+        if(kind === 'responsavelSolicitante'){
+          return { placeholder: 'Responsável solicitante', groups: [{ label:'', options: EXTRA_RESPONSAVEL_OPTIONS }] };
+        }
+        if(kind === 'squad'){
+          return { placeholder: 'Squad', groups: [{ label:'', options: EXTRA_SQUAD_OPTIONS }] };
+        }
+        if(kind === 'responsavelAtendimento'){
+          const card = wrap.closest('.extraStepCard');
+          const squad = card?.querySelector('[data-extra-squad]')?.value || '';
+          return { placeholder: 'Responsável atendimento', groups: getAtendimentoGroupsForSquad(squad) };
+        }
+        return { placeholder: 'Selecionar', groups: [] };
+      };
+      const flattenSelectGroups = (groups=[]) => groups.flatMap(group => Array.isArray(group?.options) ? group.options : []);
+      const renderSelectPicker = (pop, hidden, label, groups, placeholder='Selecionar') => {
+        const current = String(hidden?.value || '');
+        const safeGroups = Array.isArray(groups) ? groups : [];
+        pop.innerHTML = `
+          <div class="selectPickerList">
+            ${safeGroups.map(group => `
+              <div class="selectOptionGroup">
+                ${group?.label ? `<strong class="selectGroupTitle">${escapeHtml(group.label)}</strong>` : ''}
+                <div class="selectOptionItems">
+                  ${(Array.isArray(group?.options) ? group.options : []).map(option => `
+                    <button type="button" class="selectOption${current === option ? ' active' : ''}" data-select-value="${escapeHtml(option)}">${escapeHtml(option)}</button>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>`;
+        pop.querySelectorAll('[data-select-value]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            hidden.value = btn.dataset.selectValue || '';
+            label.textContent = hidden.value || placeholder;
+            try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ }
+            closePickers(pop.closest('.extraItems') || document);
+          };
+        });
+      };
       const positionPickerPopover = (pop, btn) => {
         if(!pop || !btn) return;
         pop.classList.remove('open-up','align-left','align-right');
@@ -1023,12 +1103,29 @@
             positionPickerPopover(pop, btn);
           };
         });
+        scope.querySelectorAll('[data-select-button]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            ensurePickerVisible(btn);
+            const wrap = btn.closest('.customPickerWrap');
+            const hidden = wrap.querySelector('input[type="hidden"]');
+            const pop = wrap.querySelector('.selectPopover');
+            const label = btn.querySelector('span');
+            const wasOpen = !pop.classList.contains('hide');
+            closePickers(scope);
+            if(wasOpen) return;
+            const config = getSelectConfig(wrap);
+            renderSelectPicker(pop, hidden, label, config.groups, config.placeholder);
+            pop.classList.remove('hide');
+            positionPickerPopover(pop, btn);
+          };
+        });
       };
       document.addEventListener('click', (ev) => {
         if(!ev.target.closest('.customPickerWrap')) closePickers(document);
       });
       let currentExtraStep = 0;
-      let extraDrafts = [{ descricao:'', inicioAt:'', fimAt:'' }];
+      let extraDrafts = [{ descricao:'', inicioAt:'', fimAt:'', responsavelSolicitante:'', squad:'', responsavelAtendimento:'' }];
 
       const quantidadeAtual = () => Math.max(1, Math.min(50, Number($('extraQuantidade')?.value || 1)));
 
@@ -1042,12 +1139,15 @@
         extraDrafts[currentExtraStep] = {
           descricao: card.querySelector('[data-extra-desc]')?.value || '',
           inicioAt: (inicioDate && inicioTime) ? `${inicioDate}T${inicioTime}` : '',
-          fimAt: (fimDate && fimTime) ? `${fimDate}T${fimTime}` : ''
+          fimAt: (fimDate && fimTime) ? `${fimDate}T${fimTime}` : '',
+          responsavelSolicitante: card.querySelector('[data-extra-responsavel-solicitante]')?.value || '',
+          squad: card.querySelector('[data-extra-squad]')?.value || '',
+          responsavelAtendimento: card.querySelector('[data-extra-responsavel-atendimento]')?.value || ''
         };
       };
 
       const normalizeDrafts = (qtd) => {
-        extraDrafts = Array.from({length:qtd}, (_, i) => extraDrafts[i] || { descricao:'', inicioAt:'', fimAt:'' });
+        extraDrafts = Array.from({length:qtd}, (_, i) => extraDrafts[i] || { descricao:'', inicioAt:'', fimAt:'', responsavelSolicitante:'', squad:'', responsavelAtendimento:'' });
         currentExtraStep = Math.max(0, Math.min(currentExtraStep, qtd - 1));
       };
 
@@ -1059,7 +1159,7 @@
       const renderExtraWizard = () => {
         const qtd = quantidadeAtual();
         normalizeDrafts(qtd);
-        const old = extraDrafts[currentExtraStep] || { descricao:'', inicioAt:'', fimAt:'' };
+        const old = extraDrafts[currentExtraStep] || { descricao:'', inicioAt:'', fimAt:'', responsavelSolicitante:'', squad:'', responsavelAtendimento:'' };
         const inicio = splitDateTime(old.inicioAt || '');
         const fim = splitDateTime(old.fimAt || '');
         const descLen = String(old.descricao || '').length;
@@ -1130,6 +1230,42 @@
                   </div>
                 </div>
               </div>
+
+
+              <div class="extraMetaRow">
+                <div class="extraMetaField">
+                  <label class="metaFieldTitle">Responsável solicitante <span class="requiredMark">*</span></label>
+                  <div class="customPickerWrap" data-select-kind="responsavelSolicitante">
+                    <input type="hidden" data-extra-responsavel-solicitante value="${escapeHtml(old.responsavelSolicitante || '')}" />
+                    <button type="button" class="pickerField" data-select-button>
+                      <span>${escapeHtml(old.responsavelSolicitante || 'Selecionar responsável')}</span><em>⌄</em>
+                    </button>
+                    <div class="pickerPopover selectPopover hide"></div>
+                  </div>
+                </div>
+
+                <div class="extraMetaField extraMetaFieldSquad">
+                  <label class="metaFieldTitle">Squad <span class="requiredMark">*</span></label>
+                  <div class="customPickerWrap" data-select-kind="squad">
+                    <input type="hidden" data-extra-squad value="${escapeHtml(old.squad || '')}" />
+                    <button type="button" class="pickerField" data-select-button>
+                      <span>${escapeHtml(old.squad || 'Selecionar squad')}</span><em>⌄</em>
+                    </button>
+                    <div class="pickerPopover selectPopover hide"></div>
+                  </div>
+                </div>
+
+                <div class="extraMetaField">
+                  <label class="metaFieldTitle">Responsável atendimento <span class="requiredMark">*</span></label>
+                  <div class="customPickerWrap" data-select-kind="responsavelAtendimento">
+                    <input type="hidden" data-extra-responsavel-atendimento value="${escapeHtml(old.responsavelAtendimento || '')}" />
+                    <button type="button" class="pickerField" data-select-button>
+                      <span>${escapeHtml(old.responsavelAtendimento || 'Selecionar atendimento')}</span><em>⌄</em>
+                    </button>
+                    <div class="pickerPopover selectPopover hide"></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>`;
 
@@ -1163,6 +1299,15 @@
         });
         $('extraForm').querySelector('[data-extra-fim-time]')?.addEventListener('change', () => {
           if($('extraForm').querySelector('[data-extra-fim-time]')?.value) clearExtraFieldError('fimTime');
+        });
+        $('extraForm').querySelector('[data-extra-responsavel-solicitante]')?.addEventListener('change', () => {
+          if($('extraForm').querySelector('[data-extra-responsavel-solicitante]')?.value) clearExtraFieldError('responsavelSolicitante');
+        });
+        $('extraForm').querySelector('[data-extra-squad]')?.addEventListener('change', () => {
+          if($('extraForm').querySelector('[data-extra-squad]')?.value) clearExtraFieldError('squad');
+        });
+        $('extraForm').querySelector('[data-extra-responsavel-atendimento]')?.addEventListener('change', () => {
+          if($('extraForm').querySelector('[data-extra-responsavel-atendimento]')?.value) clearExtraFieldError('responsavelAtendimento');
         });
 
         setupCustomDateTimePickers($('extraForm'));
@@ -1199,6 +1344,9 @@
         if(field === 'inicioTime') return $('extraForm')?.querySelector('[data-extra-inicio-time]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
         if(field === 'fimDate') return $('extraForm')?.querySelector('[data-extra-fim-date]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
         if(field === 'fimTime') return $('extraForm')?.querySelector('[data-extra-fim-time]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        if(field === 'responsavelSolicitante') return $('extraForm')?.querySelector('[data-extra-responsavel-solicitante]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        if(field === 'squad') return $('extraForm')?.querySelector('[data-extra-squad]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        if(field === 'responsavelAtendimento') return $('extraForm')?.querySelector('[data-extra-responsavel-atendimento]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
         return null;
       };
 
@@ -1225,6 +1373,7 @@
         else if(field === 'desc') host = target.closest('.textareaWrap') || target.parentElement;
         else if(field === 'inicioDate' || field === 'inicioTime') host = target.closest('.dateSection');
         else if(field === 'fimDate' || field === 'fimTime') host = target.closest('.dateSection');
+        else if(field === 'responsavelSolicitante' || field === 'squad' || field === 'responsavelAtendimento') host = target.closest('.extraMetaField');
         else host = target.parentElement;
         if(host) host.insertAdjacentElement('beforeend', error);
       };
@@ -1253,6 +1402,9 @@
         if(!fim.date) errors.push({ field:'fimDate', message:`Data de fim do extra ${index + 1} é obrigatória.` });
         else if(isPastDateValue(fim.date)) errors.push({ field:'fimDate', message:`O dia de fim do extra ${index + 1} não pode ser uma data passada.` });
         if(!fim.time) errors.push({ field:'fimTime', message:`Hora de fim do extra ${index + 1} é obrigatória.` });
+        if(!String(item.responsavelSolicitante || '').trim()) errors.push({ field:'responsavelSolicitante', message:`Responsável solicitante do extra ${index + 1} é obrigatório.` });
+        if(!String(item.squad || '').trim()) errors.push({ field:'squad', message:`Squad do extra ${index + 1} é obrigatória.` });
+        if(!String(item.responsavelAtendimento || '').trim()) errors.push({ field:'responsavelAtendimento', message:`Responsável atendimento do extra ${index + 1} é obrigatório.` });
         if(!errors.length && new Date(item.fimAt).getTime() <= new Date(item.inicioAt).getTime()) {
           errors.push({ field:'fimTime', message:`O fim do extra ${index + 1} precisa ser depois do início.` });
         }
@@ -1301,7 +1453,10 @@
           itens.push({
             descricao: String(extraDrafts[i].descricao || '').trim(),
             inicioAt: extraDrafts[i].inicioAt,
-            fimAt: extraDrafts[i].fimAt
+            fimAt: extraDrafts[i].fimAt,
+            responsavelSolicitante: String(extraDrafts[i].responsavelSolicitante || '').trim(),
+            squad: String(extraDrafts[i].squad || '').trim(),
+            responsavelAtendimento: String(extraDrafts[i].responsavelAtendimento || '').trim()
           });
         }
         close({ quantidade: qtd, itens, loteId: uid() });

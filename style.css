@@ -1111,3 +1111,96 @@ html,body{
   width:100%;
   margin-top:8px;
 }
+
+/* v75 - campos adicionais no modal gerar extra */
+.extraMetaRow{
+  display:grid;
+  grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr) minmax(0,1.2fr);
+  gap:14px;
+  margin-top:18px;
+  align-items:start;
+}
+.extraMetaField{min-width:0;}
+.metaFieldTitle{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:0 0 8px;
+  font-size:13px;
+  font-weight:700;
+  color:var(--muted);
+}
+.extraMetaField .pickerField{
+  min-height:36px;
+  border-radius:10px;
+  font-size:14px;
+  padding:0 12px;
+  background:#fff;
+}
+.extraMetaField .pickerField span{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.extraMetaFieldSquad .pickerField{min-width:120px;}
+.selectPopover{
+  width:min(320px, calc(100vw - 32px));
+  max-height:280px;
+  overflow:auto;
+  padding:10px;
+}
+.selectPickerList{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.selectOptionGroup{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.selectGroupTitle{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.02em;
+  text-transform:uppercase;
+  color:#8a93a3;
+  padding:2px 4px 0;
+}
+.selectOptionItems{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.selectOption{
+  width:100%;
+  min-height:36px;
+  border:0;
+  border-radius:10px;
+  background:var(--gray-3);
+  color:var(--black);
+  font-size:13px;
+  font-weight:800;
+  text-align:left;
+  padding:0 12px;
+  cursor:pointer;
+}
+.selectOption:hover{
+  background:var(--blue-soft);
+  color:var(--blue);
+}
+.selectOption.active{
+  background:var(--blue);
+  color:#fff;
+  box-shadow:none;
+}
+.extraMetaField .fieldError,
+.extraMetaField .extraFieldError{
+  margin-top:7px;
+  margin-bottom:0;
+}
+.extraCard p{margin:6px 0;}
+@media(max-width:760px){
+  .extraMetaRow{grid-template-columns:1fr;gap:12px;}
+  .selectPopover{width:min(320px, calc(100vw - 28px));}
+}
