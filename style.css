@@ -1400,3 +1400,57 @@ html,body{
   letter-spacing:.03em;
   text-transform:uppercase;
 }
+
+
+/* v80 - centralização e popovers do modal gerar extra */
+#configInicial{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+#configInicial h2,
+#configInicial .muted{
+  text-align:center;
+}
+#configInicial .row{
+  justify-content:center;
+  flex-wrap:wrap;
+}
+.dialogBox.extraDialogBox .extraWizardTop,
+.dialogBox.extraDialogBox .extraStepProgress,
+.dialogBox.extraDialogBox .extraStepHeader,
+.dialogBox.extraDialogBox .iconLabel,
+.dialogBox.extraDialogBox .textareaWrap,
+.dialogBox.extraDialogBox .extraDateSections,
+.dialogBox.extraDialogBox .extraMetaRow{
+  max-width:680px;
+  width:100%;
+  margin-left:auto;
+  margin-right:auto;
+}
+.dialogBox.extraDialogBox .extraDateSections,
+.dialogBox.extraDialogBox .extraMetaRow{
+  justify-content:center;
+}
+.dialogBox.extraDialogBox .extraMetaRow{
+  grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+}
+.dialogBox.extraDialogBox .customPickerWrap[data-force-open-up="true"] .pickerField em{
+  color:var(--blue);
+}
+.dialogBox.extraDialogBox .timePopover,
+.dialogBox.extraDialogBox .datePopover,
+.dialogBox.extraDialogBox .selectPopover{
+  z-index:10160 !important;
+}
+@media(max-width:760px){
+  .dialogBox.extraDialogBox .extraWizardTop,
+  .dialogBox.extraDialogBox .extraStepProgress,
+  .dialogBox.extraDialogBox .extraStepHeader,
+  .dialogBox.extraDialogBox .iconLabel,
+  .dialogBox.extraDialogBox .textareaWrap,
+  .dialogBox.extraDialogBox .extraDateSections,
+  .dialogBox.extraDialogBox .extraMetaRow{
+    max-width:none;
+  }
+}

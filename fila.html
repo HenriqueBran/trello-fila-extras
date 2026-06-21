@@ -1091,16 +1091,23 @@
           const modal = btn.closest('.dialogBox.extraDialogBox') || btn.closest('.dialogBox') || document.body;
           const modalRect = modal.getBoundingClientRect ? modal.getBoundingClientRect() : { left: 0, right: window.innerWidth, top: 0, bottom: window.innerHeight };
           const limitLeft = Math.max(margin, modalRect.left + margin);
-          const limitRight = Math.min(window.innerWidth - margin, modalRect.right - margin);
+          const limitRight = Math.min(window.innerWidth - margin, modalRect.right - margin - 12);
           const spaceBelow = Math.max(0, Math.min(window.innerHeight - margin, modalRect.bottom - margin) - btnRect.bottom);
           const spaceAbove = Math.max(0, btnRect.top - Math.max(margin, modalRect.top + margin));
           const initialRect = pop.getBoundingClientRect();
-          if(spaceBelow < initialRect.height && spaceAbove > spaceBelow){
+          const forceOpenUp = wrap?.dataset?.forceOpenUp === 'true' || btn?.dataset?.forceOpenUp === 'true';
+          const popAlign = wrap?.dataset?.popoverAlign || btn?.dataset?.popoverAlign || '';
+          const popShift = Number(wrap?.dataset?.popoverShift || btn?.dataset?.popoverShift || 0) || 0;
+          if(forceOpenUp || (spaceBelow < initialRect.height && spaceAbove > spaceBelow)){
             pop.classList.add('open-up');
           }
 
           const popWidth = pop.offsetWidth || initialRect.width;
+          const anchorWidth = wrapRect.width || btnRect.width;
           let desiredLeft = 0;
+          if(popAlign === 'right-edge') desiredLeft = anchorWidth - popWidth;
+          else if(popAlign === 'center') desiredLeft = Math.round((anchorWidth - popWidth) / 2);
+          desiredLeft += popShift;
           if((wrapRect.left + desiredLeft + popWidth) > limitRight){
             desiredLeft = limitRight - wrapRect.left - popWidth;
           }
@@ -1259,10 +1266,10 @@
                       </button>
                       <div class="pickerPopover datePopover hide"></div>
                     </div>
-                    <div class="customPickerWrap compactPicker">
+                    <div class="customPickerWrap compactPicker" data-force-open-up="true">
                       <input type="hidden" data-extra-inicio-time value="${escapeHtml(inicio.time)}" />
                       <button type="button" class="pickerField" data-time-button>
-                        <span>${inicio.time || 'Hora'}</span><em>⌄</em>
+                        <span>${inicio.time || 'Hora'}</span><em>⌃</em>
                       </button>
                       <div class="pickerPopover timePopover hide"></div>
                     </div>
@@ -1272,17 +1279,17 @@
                 <div class="dateSection">
                   <label class="dateSectionTitle"><span>🕘</span>Fim <span class="requiredMark">*</span></label>
                   <div class="dateHourGroup">
-                    <div class="customPickerWrap">
+                    <div class="customPickerWrap" data-force-open-up="true" data-popover-align="right-edge" data-popover-shift="-12">
                       <input type="hidden" data-extra-fim-date value="${escapeHtml(fim.date)}" />
                       <button type="button" class="pickerField" data-date-button>
                         <span>${formatPickerDate(fim.date)}</span><em>📅</em>
                       </button>
                       <div class="pickerPopover datePopover hide"></div>
                     </div>
-                    <div class="customPickerWrap compactPicker">
+                    <div class="customPickerWrap compactPicker" data-force-open-up="true" data-popover-align="right-edge" data-popover-shift="-14">
                       <input type="hidden" data-extra-fim-time value="${escapeHtml(fim.time)}" />
                       <button type="button" class="pickerField" data-time-button>
-                        <span>${fim.time || 'Hora'}</span><em>⌄</em>
+                        <span>${fim.time || 'Hora'}</span><em>⌃</em>
                       </button>
                       <div class="pickerPopover timePopover hide"></div>
                     </div>
@@ -1294,10 +1301,10 @@
               <div class="extraMetaRow">
                 <div class="extraMetaField">
                   <label class="metaFieldTitle">Responsável solicitante <span class="requiredMark">*</span></label>
-                  <div class="customPickerWrap" data-select-kind="responsavelSolicitante">
+                  <div class="customPickerWrap" data-select-kind="responsavelSolicitante" data-force-open-up="true" data-popover-align="center">
                     <input type="hidden" data-extra-responsavel-solicitante value="${escapeHtml(old.responsavelSolicitante || '')}" />
                     <button type="button" class="pickerField" data-select-button>
-                      <span>${escapeHtml(old.responsavelSolicitante || 'Selecionar responsável')}</span><em>⌄</em>
+                      <span>${escapeHtml(old.responsavelSolicitante || 'Selecionar responsável')}</span><em>⌃</em>
                     </button>
                     <div class="pickerPopover selectPopover hide"></div>
                   </div>
@@ -1305,10 +1312,10 @@
 
                 <div class="extraMetaField extraMetaFieldSquad">
                   <label class="metaFieldTitle">Squad <span class="requiredMark">*</span></label>
-                  <div class="customPickerWrap" data-select-kind="squad">
+                  <div class="customPickerWrap" data-select-kind="squad" data-force-open-up="true" data-popover-align="center">
                     <input type="hidden" data-extra-squad value="${escapeHtml(old.squad || '')}" />
                     <button type="button" class="pickerField" data-select-button>
-                      <span>${escapeHtml(old.squad || 'Selecionar squad')}</span><em>⌄</em>
+                      <span>${escapeHtml(old.squad || 'Selecionar squad')}</span><em>⌃</em>
                     </button>
                     <div class="pickerPopover selectPopover hide"></div>
                   </div>
@@ -1316,10 +1323,10 @@
 
                 <div class="extraMetaField">
                   <label class="metaFieldTitle">Responsável atendimento <span class="requiredMark">*</span></label>
-                  <div class="customPickerWrap" data-select-kind="responsavelAtendimento">
+                  <div class="customPickerWrap" data-select-kind="responsavelAtendimento" data-force-open-up="true" data-popover-align="right-edge" data-popover-shift="-12">
                     <input type="hidden" data-extra-responsavel-atendimento value="${escapeHtml(old.responsavelAtendimento || '')}" />
                     <button type="button" class="pickerField" data-select-button>
-                      <span>${escapeHtml(old.responsavelAtendimento || 'Selecionar atendimento')}</span><em>⌄</em>
+                      <span>${escapeHtml(old.responsavelAtendimento || 'Selecionar atendimento')}</span><em>⌃</em>
                     </button>
                     <div class="pickerPopover selectPopover hide"></div>
                   </div>
