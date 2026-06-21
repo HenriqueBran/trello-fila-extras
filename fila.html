@@ -159,17 +159,20 @@
     const currentUsername = () => cleanUsername(member?.username || '');
     const EXTRA_RESPONSAVEL_OPTIONS = ['Danilo', 'Camille'];
     const EXTRA_SQUAD_OPTIONS = ['AER', 'VIA', 'CLUBE', 'B2C', 'BANCOS', 'COB', 'MKT'];
-    const EXTRA_ATENDIMENTO_GROUPS = [
-      { label: 'GOL', squadKeys: [], options: ['Atendimento 1', 'Atendimento 2'] },
-      { label: 'Smiles', isCategory: true, squadKeys: [], options: [] },
-      { label: 'AER', squadKeys: ['AER'], options: ['Fernanda Barzagui', 'Alex Mathias'] },
-      { label: 'VIA', squadKeys: ['VIA'], options: ['Fernanda Queiroga', 'Ana Cestari'] },
-      { label: 'Clube | B2C', squadKeys: ['CLUBE', 'B2C'], options: ['Victória Ieno'] },
-      { label: 'Bancos | Cob', squadKeys: ['BANCOS', 'COB'], options: ['Berg Rodrigues'] },
-      { label: 'MKT', squadKeys: ['MKT'], options: ['Andreza Pereira'] },
-      { label: 'Noturno', squadKeys: [], options: ['Priscila Albuquerque'] },
-      { label: 'Rotativo', squadKeys: [], options: ['Micaely Mayara'] }
-    ];
+    const EXTRA_ATENDIMENTO_GRUPOS = {
+      GOL: [
+        { label: 'GOL', options: ['Atendimento 1', 'Atendimento 2'] }
+      ],
+      Smiles: [
+        { label: 'AER', options: ['Fernanda Barzagui', 'Alex Mathias'] },
+        { label: 'VIA', options: ['Fernanda Queiroga', 'Ana Cestari'] },
+        { label: 'Clube | B2C', options: ['Victória Ieno'] },
+        { label: 'Bancos | Cob', options: ['Berg Rodrigues'] },
+        { label: 'MKT', options: ['Andreza Pereira'] },
+        { label: 'Noturno', options: ['Priscila Albuquerque'] },
+        { label: 'Rotativo', options: ['Micaely Mayara'] }
+      ]
+    };
     const toTime = (v) => { const t = new Date(v || '').getTime(); return Number.isFinite(t) ? t : null; };
     const isExtraStarted = (extra) => { const t = toTime(extra?.inicioAt); return t !== null && Date.now() >= t; };
     const canCancelExtra = (extra) => !isExtraStarted(extra);
@@ -969,7 +972,7 @@
       };
 
       const getAtendimentoGroupsForSquad = (squad='') => {
-        return EXTRA_ATENDIMENTO_GROUPS;
+        return [...EXTRA_ATENDIMENTO_GRUPOS.GOL, ...EXTRA_ATENDIMENTO_GRUPOS.Smiles];
       };
       const getSelectConfig = (wrap) => {
         const kind = wrap?.dataset?.selectKind || '';
@@ -980,26 +983,25 @@
           return { placeholder: 'Squad', groups: [{ label:'', options: EXTRA_SQUAD_OPTIONS }] };
         }
         if(kind === 'responsavelAtendimento'){
-          const card = wrap.closest('.extraStepCard');
-          const squad = card?.querySelector('[data-extra-squad]')?.value || '';
-          return { placeholder: 'Responsável atendimento', groups: getAtendimentoGroupsForSquad(squad) };
+          return { placeholder: 'Responsável atendimento', mode: 'atendimento' };
         }
         return { placeholder: 'Selecionar', groups: [] };
       };
       const flattenSelectGroups = (groups=[]) => groups.flatMap(group => Array.isArray(group?.options) ? group.options : []);
-      const renderSelectPicker = (pop, hidden, label, groups, placeholder='Selecionar') => {
+
+      const renderSimpleSelectList = (pop, hidden, label, groups, placeholder='Selecionar') => {
         const current = String(hidden?.value || '');
         const safeGroups = Array.isArray(groups) ? groups : [];
         pop.innerHTML = `
           <div class="selectPickerList">
             ${safeGroups.map(group => `
-              <div class="selectOptionGroup ${group?.isCategory ? 'selectCategoryOnly' : ''}">
-                ${group?.label ? `<strong class="${group?.isCategory ? 'selectCategoryTitle' : 'selectGroupTitle'}">${escapeHtml(group.label)}</strong>` : ''}
-                ${group?.isCategory ? '' : `<div class="selectOptionItems">
+              <div class="selectOptionGroup">
+                ${group?.label ? `<strong class="selectGroupTitle">${escapeHtml(group.label)}</strong>` : ''}
+                <div class="selectOptionItems">
                   ${(Array.isArray(group?.options) ? group.options : []).map(option => `
                     <button type="button" class="selectOption${current === option ? ' active' : ''}" data-select-value="${escapeHtml(option)}">${escapeHtml(option)}</button>
                   `).join('')}
-                </div>`}
+                </div>
               </div>
             `).join('')}
           </div>`;
@@ -1013,6 +1015,65 @@
           };
         });
       };
+
+      const renderAtendimentoRoot = (pop, hidden, label, placeholder='Responsável atendimento') => {
+        pop.innerHTML = `
+          <div class="selectPickerList atendimentoRoot">
+            <button type="button" class="selectCategoryButton" data-atendimento-grupo="GOL">
+              <span>GOL</span><em>›</em>
+            </button>
+            <button type="button" class="selectCategoryButton" data-atendimento-grupo="Smiles">
+              <span>Smiles</span><em>›</em>
+            </button>
+          </div>`;
+        pop.querySelectorAll('[data-atendimento-grupo]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            renderAtendimentoGroup(pop, hidden, label, btn.dataset.atendimentoGrupo, placeholder);
+          };
+        });
+      };
+
+      const renderAtendimentoGroup = (pop, hidden, label, groupName, placeholder='Responsável atendimento') => {
+        const groups = EXTRA_ATENDIMENTO_GRUPOS[groupName] || [];
+        pop.innerHTML = `
+          <div class="selectPickerList">
+            <button type="button" class="selectBackButton" data-atendimento-back>← Voltar</button>
+            <strong class="selectCategoryTitle">${escapeHtml(groupName)}</strong>
+            ${groups.map(group => `
+              <div class="selectOptionGroup">
+                ${group?.label && group.label !== groupName ? `<strong class="selectGroupTitle">${escapeHtml(group.label)}</strong>` : ''}
+                <div class="selectOptionItems">
+                  ${(Array.isArray(group?.options) ? group.options : []).map(option => `
+                    <button type="button" class="selectOption${hidden.value === option ? ' active' : ''}" data-select-value="${escapeHtml(option)}">${escapeHtml(option)}</button>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>`;
+        pop.querySelector('[data-atendimento-back]')?.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          renderAtendimentoRoot(pop, hidden, label, placeholder);
+        });
+        pop.querySelectorAll('[data-select-value]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            hidden.value = btn.dataset.selectValue || '';
+            label.textContent = hidden.value || placeholder;
+            try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ }
+            closePickers(pop.closest('.extraItems') || document);
+          };
+        });
+      };
+
+      const renderSelectPicker = (pop, hidden, label, configOrGroups, placeholder='Selecionar') => {
+        if(configOrGroups?.mode === 'atendimento'){
+          renderAtendimentoRoot(pop, hidden, label, configOrGroups.placeholder || placeholder);
+          return;
+        }
+        renderSimpleSelectList(pop, hidden, label, configOrGroups, placeholder);
+      };
+
       const positionPickerPopover = (pop, btn) => {
         if(!pop || !btn) return;
         pop.classList.remove('open-up','align-left','align-right');
@@ -1113,7 +1174,7 @@
             closePickers(scope);
             if(wasOpen) return;
             const config = getSelectConfig(wrap);
-            renderSelectPicker(pop, hidden, label, config.groups, config.placeholder);
+            renderSelectPicker(pop, hidden, label, config.mode === 'atendimento' ? config : config.groups, config.placeholder);
             pop.classList.remove('hide');
             positionPickerPopover(pop, btn);
           };
