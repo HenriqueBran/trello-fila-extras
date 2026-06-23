@@ -1387,16 +1387,19 @@ html,body{
 }
 .selectCategoryLogo{
   display:block;
-  width:auto;
-  max-width:150px;
-  max-height:30px;
+  width:92px;
+  height:24px;
+  max-width:92px;
+  max-height:24px;
   object-fit:contain;
+  object-position:left center;
 }
-.selectCategoryLogo--gol{
-  max-height:34px;
-}
+.selectCategoryLogo--gol,
 .selectCategoryLogo--smiles{
-  max-height:28px;
+  width:92px;
+  height:24px;
+  max-width:92px;
+  max-height:24px;
 }
 .selectBackButton{
   width:max-content;
