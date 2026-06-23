@@ -77,3 +77,14 @@ Como funciona:
 - o fechamento também é conferido quando a extensão é aberta, como segurança caso o cron não rode.
 
 Essa rotina usa o Cron Job gratuito da Vercel com frequência diária.
+
+
+## Notificação por comentário no Trello
+
+Para avisar o usuário quando uma extra for gerada ou redirecionada, configure estas variáveis na Vercel:
+
+- `TRELLO_API_KEY`
+- `TRELLO_API_TOKEN`
+- `TRELLO_NOTIFICATION_CARD_ID`
+
+O sistema cria um comentário nesse cartão fixo mencionando o usuário com `@usuario`.

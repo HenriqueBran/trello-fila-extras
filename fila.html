@@ -303,6 +303,33 @@
       // O modo de acesso não é salvo; toda abertura começa no menu inicial.
       mode = mode || '';
     }
+
+    async function notificarExtraNoTrello(extra, tipo='gerada'){
+      try {
+        if(!extra || !extra.pessoaUsername) return;
+        await fetch('/api/notificar-extra', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            boardId: board?.id || '',
+            tipo,
+            extra: {
+              id: extra.id,
+              pessoaNome: extra.pessoaNome,
+              pessoaUsername: extra.pessoaUsername,
+              descricao: extra.descricao,
+              inicioAt: extra.inicioAt,
+              fimAt: extra.fimAt,
+              responsavelSolicitante: extra.responsavelSolicitante,
+              squad: extra.squad,
+              responsavelAtendimento: extra.responsavelAtendimento
+            }
+          })
+        });
+      } catch(e) {
+        console.warn('Não foi possível enviar notificação no Trello.', e);
+      }
+    }
     function showLoading(title='Salvando alterações...', text='Aguarde um instante.'){
       const overlay = $('loadingOverlay');
       if(!overlay) return;
@@ -598,6 +625,7 @@
       }
 
       const loteId = form.loteId || uid();
+      const extrasParaNotificar = [];
       for(let i=0;i<quantidade;i++){
         const item = itens[i];
         const p = proximaPessoaComUsuario();
@@ -620,9 +648,11 @@
           totalNoLote: quantidade
         };
         data.extrasAtivas.push(extra);
+        extrasParaNotificar.push(extra);
         log('EXTRA GERADA', `Extra ${i+1}/${quantidade} gerada para ${p.nome}.${extraPeriodoTexto(extra)}${extraResponsaveisTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra} });
         advanceQueueAfterGenerate();
       }
+      await Promise.allSettled(extrasParaNotificar.map(extra => notificarExtraNoTrello(extra, 'gerada')));
       await persistAndRender(quantidade > 1 ? 'Extras gerados e direcionados para as pessoas da fila com sucesso.' : 'Extra gerado e direcionado para a pessoa da vez com sucesso.');
     }
     async function pularVez(){
@@ -659,6 +689,7 @@
           extraOriginalId: extra.extraOriginalId || extra.id
         };
         data.extrasAtivas.push(redistribuida);
+        await notificarExtraNoTrello(redistribuida, 'redirecionada');
         log('EXTRA REDIRECIONADA', `Após recusa de ${extra.pessoaNome}, a extra foi enviada para ${proximo.nome}.${extraPeriodoTexto(redistribuida)}`, { extraId: redistribuida.id, extraSnapshot: {...redistribuida} });
         mensagemSucessoRecusa = 'Extra recusado e direcionado para o próximo da fila com sucesso.';
         advanceQueueAfterGenerate();
