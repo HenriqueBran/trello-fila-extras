@@ -162,7 +162,7 @@
     const EXTRA_SQUAD_ROOT_OPTIONS = ['GOL', 'Smiles'];
     const EXTRA_ATENDIMENTO_GRUPOS = {
       GOL: [
-        { label: 'GOL', options: ['Juliana ', 'Isabelle', 'Luana'] }
+        { label: 'GOL', options: ['Atendimento 1', 'Atendimento 2'] }
       ],
       Smiles: [
         { label: 'AER', options: ['Fernanda Barzagui', 'Alex Mathias'] },
@@ -331,12 +331,12 @@
       overlay.classList.add('hide');
       try { t.sizeTo('#frameSizer'); } catch(_) {}
     }
-    async function persistAndRender(){
+    async function persistAndRender(successMessage='Alteração salva com sucesso.'){
       showLoading('Salvando alterações...', 'Estamos registrando a ação no sistema.');
       try {
         await apiSave();
         render();
-        showSuccess('Alteração salva com sucesso.');
+        showSuccess(successMessage);
       } catch(e) {
         hideLoading();
         await infoDialog('Erro', 'Não foi possível salvar a alteração. Tente novamente.');
@@ -623,7 +623,7 @@
         log('EXTRA GERADA', `Extra ${i+1}/${quantidade} gerada para ${p.nome}.${extraPeriodoTexto(extra)}${extraResponsaveisTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra} });
         advanceQueueAfterGenerate();
       }
-      await persistAndRender();
+      await persistAndRender(quantidade > 1 ? 'Extras gerados e direcionados para as pessoas da fila com sucesso.' : 'Extra gerado e direcionado para a pessoa da vez com sucesso.');
     }
     async function pularVez(){
       const p = pessoaDaVez(); if(!p) return infoDialog('Atenção','Não há pessoa na fila.');
@@ -635,7 +635,7 @@
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
       const aceita = {...extra, aceitaEm: now()};
       log('EXTRA ACEITA', `${extra.pessoaNome} aceitou a extra.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: aceita });
-      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); data.extrasAceitasCancelaveis[extraId] = aceita; await persistAndRender();
+      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); data.extrasAceitasCancelaveis[extraId] = aceita; await persistAndRender('Extra aceito.');
     }
     window.recusarExtra = async function(extraId){
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
@@ -645,6 +645,7 @@
       data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId);
 
       const proximo = proximaPessoaComUsuario();
+      let mensagemSucessoRecusa = 'Extra recusado com sucesso. Não havia próximo da fila disponível.';
       if(proximo){
         const redistribuida = {
           ...extra,
@@ -659,11 +660,12 @@
         };
         data.extrasAtivas.push(redistribuida);
         log('EXTRA REDIRECIONADA', `Após recusa de ${extra.pessoaNome}, a extra foi enviada para ${proximo.nome}.${extraPeriodoTexto(redistribuida)}`, { extraId: redistribuida.id, extraSnapshot: {...redistribuida} });
+        mensagemSucessoRecusa = 'Extra recusado e direcionado para o próximo da fila com sucesso.';
         advanceQueueAfterGenerate();
       } else {
         log('EXTRA SEM DESTINO', `Após recusa de ${extra.pessoaNome}, não havia próximo membro com usuário Trello vinculado para receber a extra.`, { extraId });
       }
-      await persistAndRender();
+      await persistAndRender(mensagemSucessoRecusa);
     }
     window.cancelarSolicitacao = async function(extraId){
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
@@ -671,7 +673,7 @@
       const motivo = await promptDialog('Cancelar solicitação','Motivo do cancelamento:', '', 'Motivo obrigatório.');
       if(motivo===null) return;
       log('EXTRA CANCELADA', `Solicitação de ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
-      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); movePersonToTop(extra.pessoaId); await persistAndRender();
+      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); movePersonToTop(extra.pessoaId); await persistAndRender('Extra cancelado.');
     }
     window.cancelarAceita = async function(extraId){
       let extra = data.extrasAceitasCancelaveis[extraId];
@@ -684,7 +686,7 @@
       const motivo = await promptDialog('Cancelar extra aceita','Motivo do cancelamento:', '', 'Motivo obrigatório.');
       if(motivo===null) return;
       log('EXTRA CANCELADA', `Extra aceita por ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
-      movePersonToTop(extra.pessoaId); delete data.extrasAceitasCancelaveis[extraId]; await persistAndRender();
+      movePersonToTop(extra.pessoaId); delete data.extrasAceitasCancelaveis[extraId]; await persistAndRender('Extra cancelado.');
     }
 
     window.mostrarExtrasAguardando = async function(){

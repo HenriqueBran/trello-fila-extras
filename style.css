@@ -1376,31 +1376,6 @@ html,body{
   font-size:18px;
   line-height:1;
 }
-.selectCategoryButton.hasLogo{
-  padding:8px 12px;
-}
-.selectCategoryLogoWrap{
-  flex:1 1 auto;
-  display:flex;
-  align-items:center;
-  min-width:0;
-}
-.selectCategoryLogo{
-  display:block;
-  width:92px;
-  height:24px;
-  max-width:92px;
-  max-height:24px;
-  object-fit:contain;
-  object-position:left center;
-}
-.selectCategoryLogo--gol,
-.selectCategoryLogo--smiles{
-  width:92px;
-  height:24px;
-  max-width:92px;
-  max-height:24px;
-}
 .selectBackButton{
   width:max-content;
   border:0;
