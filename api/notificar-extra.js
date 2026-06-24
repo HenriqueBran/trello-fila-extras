@@ -3,7 +3,21 @@ function cleanUsername(value) {
 }
 
 function formatDateTime(value) {
-  const t = new Date(value || '').getTime();
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  // Os campos datetime-local do navegador chegam sem fuso, exemplo:
+  // 2026-06-24T11:07. No servidor da Vercel isso pode ser interpretado
+  // como UTC e virar 08:07 no Brasil. Por isso, quando vier sem timezone,
+  // formatamos manualmente mantendo exatamente o horário escolhido no modal.
+  const localMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(raw);
+  if (localMatch && !hasTimezone) {
+    const [, year, month, day, hour, minute] = localMatch;
+    return `${day}/${month}/${year}, ${hour}:${minute}`;
+  }
+
+  const t = new Date(raw).getTime();
   if (!Number.isFinite(t)) return '';
   return new Date(t).toLocaleString('pt-BR', {
     timeZone: 'America/Sao_Paulo',
