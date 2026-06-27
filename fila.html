@@ -275,6 +275,12 @@
     }
 
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+    function categoryLogoMarkup(name){
+      const normalized = String(name || '').toLowerCase();
+      const src = normalized === 'gol' ? './gol-logo.png' : './smiles-logo.png';
+      const cls = normalized === 'gol' ? 'gol' : 'smiles';
+      return `<span class="selectCategoryLogoWrap"><img class="selectCategoryLogo selectCategoryLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
+    }
     function normalize(d){
       const b = Object.assign(structuredClone(DEFAULT_DATA), d || {});
       b.fila = Array.isArray(b.fila) ? b.fila.map(p => ({...p, trelloUsername: cleanUsername(p.trelloUsername || p.username || '')})) : [];
@@ -1053,11 +1059,11 @@
       const renderSquadRoot = (pop, hidden, label, placeholder='Squad') => {
         pop.innerHTML = `
           <div class="selectPickerList atendimentoRoot">
-            <button type="button" class="selectCategoryButton" data-squad-root="GOL">
-              <span>GOL</span>
+            <button type="button" class="selectCategoryButton hasLogo" data-squad-root="GOL" aria-label="GOL">
+              ${categoryLogoMarkup('GOL')}
             </button>
-            <button type="button" class="selectCategoryButton" data-squad-root="Smiles">
-              <span>Smiles</span><em>›</em>
+            <button type="button" class="selectCategoryButton hasLogo" data-squad-root="Smiles" aria-label="Smiles">
+              ${categoryLogoMarkup('Smiles')}<em>›</em>
             </button>
           </div>`;
         pop.querySelectorAll('[data-squad-root]').forEach(btn => {
@@ -1107,11 +1113,11 @@
       const renderAtendimentoRoot = (pop, hidden, label, placeholder='Responsável atendimento') => {
         pop.innerHTML = `
           <div class="selectPickerList atendimentoRoot">
-            <button type="button" class="selectCategoryButton" data-atendimento-grupo="GOL">
-              <span>GOL</span><em>›</em>
+            <button type="button" class="selectCategoryButton hasLogo" data-atendimento-grupo="GOL" aria-label="GOL">
+              ${categoryLogoMarkup('GOL')}<em>›</em>
             </button>
-            <button type="button" class="selectCategoryButton" data-atendimento-grupo="Smiles">
-              <span>Smiles</span><em>›</em>
+            <button type="button" class="selectCategoryButton hasLogo" data-atendimento-grupo="Smiles" aria-label="Smiles">
+              ${categoryLogoMarkup('Smiles')}<em>›</em>
             </button>
           </div>`;
         pop.querySelectorAll('[data-atendimento-grupo]').forEach(btn => {
