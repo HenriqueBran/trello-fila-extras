@@ -159,6 +159,17 @@ input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:v
   outline:2px solid rgba(0,80,242,.35);
   outline-offset:2px;
 }
+.dialogTitle .dialogTitleHelpIcon{
+  position:static;
+  display:inline-flex;
+  vertical-align:middle;
+  margin-left:8px;
+  transform:translateY(-2px);
+  width:18px;
+  height:18px;
+  font-size:12px;
+  box-shadow:0 6px 14px rgba(0,80,242,.22);
+}
 .globalHelpTooltip{
   position:fixed;
   z-index:99999;

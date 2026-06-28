@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=95" />
+  <link rel="stylesheet" href="./style.css?v=96" />
 </head>
 <body>
   <div id="frameSizer" aria-hidden="true"></div>
@@ -321,13 +321,13 @@
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
     function categoryLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=95' : './smiles-logo.png?v=95';
+      const src = normalized === 'gol' ? './gol-logo.png?v=96' : './smiles-logo.png?v=96';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryLogoWrap"><img class="selectCategoryLogo selectCategoryLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
     function categoryTitleLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=95' : './smiles-logo.png?v=95';
+      const src = normalized === 'gol' ? './gol-logo.png?v=96' : './smiles-logo.png?v=96';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryTitleLogoWrap"><img class="selectCategoryTitleLogo selectCategoryTitleLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
@@ -560,10 +560,7 @@
           <span class="dragHandle" title="Arrastar">☰</span>
           <div style="flex:1"><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small><small>${p.trelloUsername ? '@' + escapeHtml(p.trelloUsername) : 'Usuário Trello não vinculado'}</small></div>
           <div class="miniBtns">
-            <span class="editUserHelpWrap">
-              <button onclick="editarUsuario('${p.id}')">Editar usuário</button>
-              <span class="ctaHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre editar usuário" data-tooltip="Permite corrigir ou alterar o @Trello vinculado a essa pessoa sem remover da fila. Esse vínculo é usado para notificações, aceite/recusa e identificação da extra no modo membro.">?</span>
-            </span>
+            <button onclick="editarUsuario('${p.id}')">Editar usuário</button>
             <button class="remove" onclick="removePessoa('${p.id}')">Remover</button>
           </div>
         </div>`;
@@ -845,7 +842,7 @@
 
     window.editarUsuario = async function(id){
       const p = data.fila.find(x=>x.id===id); if(!p) return;
-      const usuario = await promptDialog('Vincular usuário Trello', `Informe o usuário Trello de ${p.nome} sem @:`, p.trelloUsername || '', 'Usuário Trello obrigatório.');
+      const usuario = await promptDialog('Vincular usuário Trello', `Informe o usuário Trello de ${p.nome} sem @:`, p.trelloUsername || '', 'Usuário Trello obrigatório.', 'Permite corrigir ou alterar o @Trello vinculado a essa pessoa sem remover da fila. Esse vínculo é usado para notificações, aceite/recusa e identificação da extra no modo membro.');
       if(usuario === null) return;
       const limpo = cleanUsername(usuario);
       const atual = cleanUsername(p.trelloUsername || '');
@@ -1693,10 +1690,14 @@
       function close(value){ $('appDialog').classList.add('hide'); $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('#frameSizer'),30); }
     }); }
 
-    function openDialog({title,text='',mode='info',initialValue='',required=false,requiredMessage='Campo obrigatório.'}){ return new Promise(resolve=>{
+    function openDialog({title,text='',mode='info',initialValue='',required=false,requiredMessage='Campo obrigatório.',titleHelp=''}){ return new Promise(resolve=>{
       const box = $('appDialog').querySelector('.dialogBox');
       box.classList.remove('extraDialogBox');
-      $('dialogTitle').textContent = title || 'Aviso';
+      if(titleHelp){
+        $('dialogTitle').innerHTML = `<span>${escapeHtml(title || 'Aviso')}</span><span class="ctaHelpIcon dialogTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre ${escapeHtml(title || 'esta ação')}" data-tooltip="${escapeHtml(titleHelp)}">?</span>`;
+      } else {
+        $('dialogTitle').textContent = title || 'Aviso';
+      }
       $('dialogText').innerHTML = `${escapeHtml(text || '')}${required ? ' <span class="requiredMark">*</span>' : ''}`;
       $('dialogInput').classList.add('hide');
       $('dialogTextarea').classList.add('hide');
@@ -1774,7 +1775,7 @@
     }); }
     const infoDialog=(title,text)=>openDialog({title,text,mode:'info'});
     const confirmDialog=(title,text)=>openDialog({title,text,mode:'confirm'});
-    const promptDialog=(title,text,initialValue='',requiredMessage='Campo obrigatório.')=>openDialog({title,text,mode:'prompt',initialValue,required:true,requiredMessage});
+    const promptDialog=(title,text,initialValue='',requiredMessage='Campo obrigatório.',titleHelp='')=>openDialog({title,text,mode:'prompt',initialValue,required:true,requiredMessage,titleHelp});
 
     $('successCloseBtn')?.addEventListener('click', hideSuccess);
 
