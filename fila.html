@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=96" />
+  <link rel="stylesheet" href="./style.css?v=97" />
 </head>
 <body>
   <div id="frameSizer" aria-hidden="true"></div>
@@ -47,7 +47,7 @@
       </section>
 
       <section class="card">
-        <h2>Gerenciar fila</h2>
+        <h2 class="sectionTitleWithHelp">Gerenciar fila <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Gerenciar fila" data-tooltip="Use esta seção para adicionar pessoas à fila, vincular o usuário Trello, alterar posição e remover membros quando necessário.">?</span></h2>
         <div class="inputRow inputRowSuggest">
           <input id="novoNome" placeholder="Nome da pessoa" autocomplete="off" />
           <div class="suggestWrap">
@@ -87,7 +87,7 @@
       </section>
 
       <section class="card">
-        <h2>Extras ativas</h2>
+        <h2 class="sectionTitleWithHelp">Extras ativas <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Extras ativas" data-tooltip="Aqui aparecem somente as extras disponíveis para o usuário logado. Se a extra não foi direcionada para essa conta Trello, ela não aparece para o membro.">?</span></h2>
         <div id="membroExtraBox"></div>
       </section>
 
@@ -321,13 +321,13 @@
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
     function categoryLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=96' : './smiles-logo.png?v=96';
+      const src = normalized === 'gol' ? './gol-logo.png?v=97' : './smiles-logo.png?v=97';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryLogoWrap"><img class="selectCategoryLogo selectCategoryLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
     function categoryTitleLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=96' : './smiles-logo.png?v=96';
+      const src = normalized === 'gol' ? './gol-logo.png?v=97' : './smiles-logo.png?v=97';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryTitleLogoWrap"><img class="selectCategoryTitleLogo selectCategoryTitleLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
