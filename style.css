@@ -200,14 +200,8 @@ input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:v
   pointer-events:none;
 }
 .globalHelpTooltip:after{
-  content:'';
-  position:absolute;
-  left:50%;
-  bottom:-6px;
-  transform:translateX(-50%) rotate(45deg);
-  width:12px;
-  height:12px;
-  background:#111827;
+  display:none;
+  content:none;
 }
 @media(max-width:640px){
   .miniBtns{

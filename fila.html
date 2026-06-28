@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=97" />
+  <link rel="stylesheet" href="./style.css?v=98" />
 </head>
 <body>
   <div id="frameSizer" aria-hidden="true"></div>
@@ -321,13 +321,13 @@
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
     function categoryLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=97' : './smiles-logo.png?v=97';
+      const src = normalized === 'gol' ? './gol-logo.png?v=98' : './smiles-logo.png?v=98';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryLogoWrap"><img class="selectCategoryLogo selectCategoryLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
     function categoryTitleLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=97' : './smiles-logo.png?v=97';
+      const src = normalized === 'gol' ? './gol-logo.png?v=98' : './smiles-logo.png?v=98';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryTitleLogoWrap"><img class="selectCategoryTitleLogo selectCategoryTitleLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }

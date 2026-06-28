@@ -7,12 +7,12 @@
 const baseUrl = window.location.origin;
 const icon = baseUrl + '/icon.png?v=81';
 const openFila = function(t){
-  return t.modal({ title:'Fila de Extras', url:'./fila.html?v=97', height:740, fullscreen:false, accentColor:'#111827' });
+  return t.modal({ title:'Fila de Extras', url:'./fila.html?v=98', height:740, fullscreen:false, accentColor:'#111827' });
 };
 window.TrelloPowerUp.initialize({
   'board-buttons': function(t){ return [{ text:'Fila de Extras', icon, callback:openFila, condition:'always' }]; },
   'card-buttons': function(t){ return [{ text:'Fila de Extras', icon, callback:openFila, condition:'always' }]; },
-  'show-settings': function(t){ return t.modal({ title:'Configurações - Fila de Extras', url:'./fila.html?settings=1&v=97', height:740, fullscreen:false, accentColor:'#111827' }); },
+  'show-settings': function(t){ return t.modal({ title:'Configurações - Fila de Extras', url:'./fila.html?settings=1&v=98', height:740, fullscreen:false, accentColor:'#111827' }); },
   'card-badges': function(t){ return []; }
 }, { appKey:'fila-extras-powerup' });
 </script>
