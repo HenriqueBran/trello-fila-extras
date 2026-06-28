@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./style.css?v=94" />
 </head>
 <body>
   <div id="frameSizer" aria-hidden="true"></div>
@@ -277,13 +277,13 @@
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
     function categoryLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png' : './smiles-logo.png';
+      const src = normalized === 'gol' ? './gol-logo.png?v=94' : './smiles-logo.png?v=94';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryLogoWrap"><img class="selectCategoryLogo selectCategoryLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
     function categoryTitleLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png' : './smiles-logo.png';
+      const src = normalized === 'gol' ? './gol-logo.png?v=94' : './smiles-logo.png?v=94';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryTitleLogoWrap"><img class="selectCategoryTitleLogo selectCategoryTitleLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
@@ -1092,7 +1092,7 @@
         pop.innerHTML = `
           <div class="selectPickerList">
             <button type="button" class="selectBackButton" data-squad-back>← Voltar</button>
-            <strong class="selectCategoryTitle">Smiles</strong>
+            <strong class="selectCategoryTitle selectCategoryTitle--logo">${categoryTitleLogoMarkup('Smiles')}</strong>
             <div class="selectOptionGroup">
               <div class="selectOptionItems">
                 ${EXTRA_SQUAD_OPTIONS.map(option => `
