@@ -98,32 +98,58 @@ function applyMonthlyHistoryClose(data, date = new Date()) {
   return { data: base, changed: true, closedMonth: oldMonth };
 }
 
+function parseKvResult(value) {
+  if (value == null) return null;
+  let parsed = value;
+
+  // Suporta dados antigos salvos com JSON duplicado.
+  for (let i = 0; i < 3; i++) {
+    if (typeof parsed !== 'string') break;
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      break;
+    }
+  }
+
+  return parsed && typeof parsed === 'object' ? parsed : null;
+}
+
 async function kvGet(key) {
   const url = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
   if (!url || !token) return null;
-  const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
-    headers: { Authorization: `Bearer ${token}` }
+
+  const baseUrl = String(url).trim().replace(/\/+$/, '');
+  const res = await fetch(`${baseUrl}/get/${encodeURIComponent(key)}`, {
+    headers: { Authorization: `Bearer ${String(token).trim()}` }
   });
+
   if (!res.ok) throw new Error(`KV GET failed: ${res.status}`);
   const json = await res.json();
-  if (!json || json.result == null) return null;
-  if (typeof json.result === 'string') {
-    try { return JSON.parse(json.result); } catch { return json.result; }
-  }
-  return json.result;
+  return parseKvResult(json && json.result);
 }
 
 async function kvSet(key, value) {
   const url = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
   if (!url || !token) return false;
-  const res = await fetch(`${url}/set/${encodeURIComponent(key)}`, {
+
+  const baseUrl = String(url).trim().replace(/\/+$/, '');
+  const res = await fetch(`${baseUrl}/set/${encodeURIComponent(key)}`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(JSON.stringify(value))
+    headers: {
+      Authorization: `Bearer ${String(token).trim()}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(value)
   });
-  if (!res.ok) throw new Error(`KV SET failed: ${res.status}`);
+
+  if (!res.ok) {
+    const details = await res.text().catch(() => '');
+    throw new Error(`KV SET failed: ${res.status}${details ? ' - ' + details.slice(0, 120) : ''}`);
+  }
+
   return true;
 }
 
