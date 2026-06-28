@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=94" />
+  <link rel="stylesheet" href="./style.css?v=95" />
 </head>
 <body>
   <div id="frameSizer" aria-hidden="true"></div>
@@ -209,6 +209,50 @@
       return parts.length ? ` ${parts.join(' • ')}.` : '';
     }
 
+    let activeHelpTooltip = null;
+    function hideHelpTooltip(){
+      if(activeHelpTooltip){
+        activeHelpTooltip.remove();
+        activeHelpTooltip = null;
+      }
+    }
+    function showHelpTooltip(el){
+      if(!el) return;
+      hideHelpTooltip();
+      const text = el.getAttribute('data-tooltip') || '';
+      if(!text) return;
+      const tip = document.createElement('div');
+      tip.className = 'globalHelpTooltip';
+      tip.textContent = text;
+      document.body.appendChild(tip);
+
+      const rect = el.getBoundingClientRect();
+      const tipRect = tip.getBoundingClientRect();
+      const margin = 10;
+      let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
+      left = Math.max(margin, Math.min(left, window.innerWidth - tipRect.width - margin));
+      let top = rect.top - tipRect.height - 10;
+      if(top < margin) top = rect.bottom + 10;
+
+      tip.style.left = `${left}px`;
+      tip.style.top = `${top}px`;
+      activeHelpTooltip = tip;
+    }
+    document.addEventListener('mouseover', (ev) => {
+      const el = ev.target.closest?.('.ctaHelpIcon');
+      if(el) showHelpTooltip(el);
+    });
+    document.addEventListener('mouseout', (ev) => {
+      if(ev.target.closest?.('.ctaHelpIcon')) hideHelpTooltip();
+    });
+    document.addEventListener('focusin', (ev) => {
+      const el = ev.target.closest?.('.ctaHelpIcon');
+      if(el) showHelpTooltip(el);
+    });
+    document.addEventListener('focusout', (ev) => {
+      if(ev.target.closest?.('.ctaHelpIcon')) hideHelpTooltip();
+    });
+
     function normalizeBoardMember(m){
       return {
         id: m?.id || '',
@@ -277,13 +321,13 @@
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
     function categoryLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=94' : './smiles-logo.png?v=94';
+      const src = normalized === 'gol' ? './gol-logo.png?v=95' : './smiles-logo.png?v=95';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryLogoWrap"><img class="selectCategoryLogo selectCategoryLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
     function categoryTitleLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=94' : './smiles-logo.png?v=94';
+      const src = normalized === 'gol' ? './gol-logo.png?v=95' : './smiles-logo.png?v=95';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryTitleLogoWrap"><img class="selectCategoryTitleLogo selectCategoryTitleLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
@@ -516,7 +560,10 @@
           <span class="dragHandle" title="Arrastar">☰</span>
           <div style="flex:1"><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small><small>${p.trelloUsername ? '@' + escapeHtml(p.trelloUsername) : 'Usuário Trello não vinculado'}</small></div>
           <div class="miniBtns">
-            <button onclick="editarUsuario('${p.id}')">Editar usuário</button>
+            <span class="editUserHelpWrap">
+              <button onclick="editarUsuario('${p.id}')">Editar usuário</button>
+              <span class="ctaHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre editar usuário" data-tooltip="Permite corrigir ou alterar o @Trello vinculado a essa pessoa sem remover da fila. Esse vínculo é usado para notificações, aceite/recusa e identificação da extra no modo membro.">?</span>
+            </span>
             <button class="remove" onclick="removePessoa('${p.id}')">Remover</button>
           </div>
         </div>`;
