@@ -1382,41 +1382,41 @@ html,body{
   padding:7px 12px;
 }
 .selectCategoryLogoWrap{
-  width:104px;
-  height:28px;
+  width:78px;
+  height:22px;
   display:flex;
   align-items:center;
   justify-content:flex-start;
-  flex:0 0 104px;
+  flex:0 0 78px;
   overflow:hidden;
 }
 .selectCategoryLogo{
   display:block;
-  width:104px;
-  height:28px;
-  max-width:104px;
-  max-height:28px;
+  width:78px;
+  height:22px;
+  max-width:78px;
+  max-height:22px;
   object-fit:contain;
   object-position:left center;
 }
 .selectCategoryLogo--gol,
 .selectCategoryLogo--smiles{
-  width:104px;
-  height:28px;
+  width:78px;
+  height:22px;
 }
 @media(max-width:520px){
   .selectCategoryLogoWrap{
-    width:92px;
-    height:24px;
-    flex-basis:92px;
+    width:68px;
+    height:20px;
+    flex-basis:68px;
   }
   .selectCategoryLogo,
   .selectCategoryLogo--gol,
   .selectCategoryLogo--smiles{
-    width:92px;
-    height:24px;
-    max-width:92px;
-    max-height:24px;
+    width:68px;
+    height:20px;
+    max-width:68px;
+    max-height:20px;
   }
 }
 .selectBackButton{
