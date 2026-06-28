@@ -1444,6 +1444,49 @@ html,body{
   text-transform:uppercase;
 }
 
+.selectCategoryTitle--logo{
+  height:29px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+}
+.selectCategoryTitleLogoWrap{
+  width:62px;
+  height:16px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  overflow:hidden;
+}
+.selectCategoryTitleLogo{
+  display:block;
+  width:62px;
+  height:16px;
+  max-width:62px;
+  max-height:16px;
+  object-fit:contain;
+  object-position:left center;
+}
+.selectCategoryTitleLogo--gol,
+.selectCategoryTitleLogo--smiles{
+  width:62px;
+  height:16px;
+}
+@media(max-width:520px){
+  .selectCategoryTitleLogoWrap{
+    width:56px;
+    height:15px;
+  }
+  .selectCategoryTitleLogo,
+  .selectCategoryTitleLogo--gol,
+  .selectCategoryTitleLogo--smiles{
+    width:56px;
+    height:15px;
+    max-width:56px;
+    max-height:15px;
+  }
+}
+
 
 /* v80 - centralização e popovers do modal gerar extra */
 #configInicial{

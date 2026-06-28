@@ -281,6 +281,12 @@
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryLogoWrap"><img class="selectCategoryLogo selectCategoryLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
+    function categoryTitleLogoMarkup(name){
+      const normalized = String(name || '').toLowerCase();
+      const src = normalized === 'gol' ? './gol-logo.png' : './smiles-logo.png';
+      const cls = normalized === 'gol' ? 'gol' : 'smiles';
+      return `<span class="selectCategoryTitleLogoWrap"><img class="selectCategoryTitleLogo selectCategoryTitleLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
+    }
     function normalize(d){
       const b = Object.assign(structuredClone(DEFAULT_DATA), d || {});
       b.fila = Array.isArray(b.fila) ? b.fila.map(p => ({...p, trelloUsername: cleanUsername(p.trelloUsername || p.username || '')})) : [];
@@ -1133,7 +1139,7 @@
         pop.innerHTML = `
           <div class="selectPickerList">
             <button type="button" class="selectBackButton" data-atendimento-back>← Voltar</button>
-            <strong class="selectCategoryTitle">${escapeHtml(groupName)}</strong>
+            <strong class="selectCategoryTitle selectCategoryTitle--logo">${categoryTitleLogoMarkup(groupName)}</strong>
             ${groups.map(group => `
               <div class="selectOptionGroup">
                 ${group?.label && group.label !== groupName ? `<strong class="selectGroupTitle">${escapeHtml(group.label)}</strong>` : ''}
