@@ -1,0 +1,1250 @@
+
+    const t = window.TrelloPowerUp.iframe();
+    const DEFAULT_DATA = { fila: [], extrasAtivas: [], historico: [], historicoMes: '', historicoArquivado: {}, fechamentoMensal: {}, extrasAceitasCancelaveis: {}, userModes: {} };
+    let data = structuredClone(DEFAULT_DATA);
+    let board = null;
+    let member = null;
+    let boardMembers = [];
+    let mode = '';
+    let coordPage = 1, membroPage = 1, histCoordPage = 1, histMembroPage = 1;
+    const pageSize = 3, histPageSize = 4;
+    let dragId = null;
+
+    const $ = (id) => document.getElementById(id);
+    const now = () => new Date().toLocaleString('pt-BR');
+    const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const cleanUsername = (v) => String(v || '').trim().replace(/^@+/, '').toLowerCase();
+    const currentUsername = () => cleanUsername(member?.username || '');
+    const toTime = (v) => { const t = new Date(v || '').getTime(); return Number.isFinite(t) ? t : null; };
+    const isExtraStarted = (extra) => { const t = toTime(extra?.inicioAt); return t !== null && Date.now() >= t; };
+    const canCancelExtra = (extra) => !isExtraStarted(extra);
+    function formatDateTime(v){
+      const t = toTime(v);
+      if(t === null) return '';
+      return new Date(t).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' });
+    }
+    function extraPeriodoHtml(extra){
+      const ini = formatDateTime(extra?.inicioAt);
+      const fim = formatDateTime(extra?.fimAt);
+      if(!ini && !fim) return '';
+      return `<p><b>Início:</b> ${escapeHtml(ini || '-')}<br><b>Fim:</b> ${escapeHtml(fim || '-')}</p>`;
+    }
+    function extraPeriodoTexto(extra){
+      const ini = formatDateTime(extra?.inicioAt);
+      const fim = formatDateTime(extra?.fimAt);
+      return ini || fim ? ` Início: ${ini || '-'} • Fim: ${fim || '-'}.` : '';
+    }
+
+    function normalizeBoardMember(m){
+      return {
+        id: m?.id || '',
+        fullName: String(m?.fullName || m?.name || '').trim(),
+        username: cleanUsername(m?.username || '')
+      };
+    }
+
+    async function loadBoardMembers(){
+      try {
+        const info = await t.board('members');
+        const list = Array.isArray(info?.members) ? info.members : (Array.isArray(info) ? info : []);
+        boardMembers = list.map(normalizeBoardMember).filter(m => m.fullName || m.username);
+      } catch(e) {
+        boardMembers = [];
+      }
+    }
+
+    function buscarMembrosDoQuadro(query){
+      const q = cleanUsername(query).replace(/\s+/g, ' ');
+      if(!q) return [];
+      return boardMembers.filter(m => {
+        const nome = cleanUsername(m.fullName).replace(/\s+/g, ' ');
+        const user = cleanUsername(m.username);
+        return nome.includes(q) || user.includes(q);
+      }).slice(0, 8);
+    }
+
+    function selecionarMembroSugestao(username, fullName){
+      $('novoNome').value = fullName || '';
+      $('novoUsuario').value = cleanUsername(username);
+      esconderSugestoes();
+    }
+    window.selecionarMembroSugestao = selecionarMembroSugestao;
+
+    function esconderSugestoes(){
+      const box = $('membroSugestoes');
+      if(box) box.classList.add('hide');
+    }
+
+    function renderSugestoesMembros(){
+      const box = $('membroSugestoes');
+      if(!box) return;
+      const termo = $('novoNome')?.value || $('novoUsuario')?.value || '';
+      const matches = buscarMembrosDoQuadro(termo);
+      if(!matches.length){
+        box.innerHTML = boardMembers.length ? '<div class="suggestEmpty">Nenhum membro encontrado no quadro.</div>' : '<div class="suggestEmpty">Não foi possível carregar membros do quadro. Verifique se as pessoas estão adicionadas ao quadro e atualize o Trello.</div>';
+        box.classList.remove('hide');
+        return;
+      }
+      box.innerHTML = matches.map((m, idx) => `
+        <button type="button" class="suggestItem" data-suggest-idx="${idx}">
+          <b>${escapeHtml(m.fullName || m.username)}</b>
+          <small>@${escapeHtml(m.username || 'sem-usuario')}</small>
+        </button>`).join('');
+      box.__matches = matches;
+      box.querySelectorAll('.suggestItem').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const item = box.__matches[Number(btn.dataset.suggestIdx)];
+          if(item) selecionarMembroSugestao(item.username, item.fullName);
+        });
+      });
+      box.classList.remove('hide');
+    }
+
+    function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+    function normalize(d){
+      const b = Object.assign(structuredClone(DEFAULT_DATA), d || {});
+      b.fila = Array.isArray(b.fila) ? b.fila.map(p => ({...p, trelloUsername: cleanUsername(p.trelloUsername || p.username || '')})) : [];
+      b.extrasAtivas = Array.isArray(b.extrasAtivas) ? b.extrasAtivas : [];
+      b.historico = Array.isArray(b.historico) ? b.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
+      b.historicoMes = typeof b.historicoMes === 'string' ? b.historicoMes : '';
+      b.historicoArquivado = b.historicoArquivado && typeof b.historicoArquivado === 'object' ? b.historicoArquivado : {};
+      b.fechamentoMensal = b.fechamentoMensal && typeof b.fechamentoMensal === 'object' ? b.fechamentoMensal : {};
+      b.extrasAceitasCancelaveis = b.extrasAceitasCancelaveis && typeof b.extrasAceitasCancelaveis === 'object' ? b.extrasAceitasCancelaveis : {};
+      b.userModes = b.userModes && typeof b.userModes === 'object' ? b.userModes : {};
+      return b;
+    }
+    function memberKey(){ return member?.id || member?.username || 'usuario'; }
+
+    async function apiGet(){
+      const res = await fetch(`/api/store?boardId=${encodeURIComponent(board.id)}&ts=${Date.now()}`);
+      if(!res.ok) throw new Error(await res.text());
+      data = normalize(await res.json());
+    }
+    async function apiSave(){
+      data = normalize(data);
+      const res = await fetch(`/api/store?boardId=${encodeURIComponent(board.id)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ data }) });
+      if(!res.ok) throw new Error(await res.text());
+      const json = await res.json();
+      data = normalize(json.data || data);
+      // O modo de acesso não é salvo; toda abertura começa no menu inicial.
+      mode = mode || '';
+    }
+    function showLoading(title='Salvando alterações...', text='Aguarde um instante.'){
+      const overlay = $('loadingOverlay');
+      if(!overlay) return;
+      $('loadingTitle').textContent = title;
+      $('loadingText').textContent = text;
+      overlay.classList.remove('hide');
+      try { t.sizeTo('#frameSizer'); } catch(_) {}
+    }
+    function hideLoading(){
+      const overlay = $('loadingOverlay');
+      if(!overlay) return;
+      overlay.classList.add('hide');
+      try { t.sizeTo('#frameSizer'); } catch(_) {}
+    }
+    function showSuccess(text='Alteração salva no sistema.'){
+      hideLoading();
+      const overlay = $('successOverlay');
+      if(!overlay) return;
+      $('successText').textContent = text;
+      overlay.classList.remove('hide');
+      try { t.sizeTo('#frameSizer'); } catch(_) {}
+    }
+    function hideSuccess(){
+      const overlay = $('successOverlay');
+      if(!overlay) return;
+      overlay.classList.add('hide');
+      try { t.sizeTo('#frameSizer'); } catch(_) {}
+    }
+    async function persistAndRender(){
+      showLoading('Salvando alterações...', 'Estamos registrando a ação no sistema.');
+      try {
+        await apiSave();
+        render();
+        showSuccess('Alteração salva com sucesso.');
+      } catch(e) {
+        hideLoading();
+        await infoDialog('Erro', 'Não foi possível salvar a alteração. Tente novamente.');
+        throw e;
+      }
+    }
+    function isDialogOpen(){ return !$('appDialog').classList.contains('hide'); }
+    async function atualizarDadosManual(){
+      try {
+        $('syncStatus').textContent = 'Atualizando...';
+        await apiGet();
+        await sincronizarExpiradas();
+        render();
+        $('syncStatus').textContent = 'Atualizado agora';
+      } catch(e) {
+        $('syncStatus').textContent = 'Erro ao atualizar';
+      }
+    }
+    async function autoAtualizarDados(){
+      if(!board || isDialogOpen()) return;
+      try {
+        await apiGet();
+        await sincronizarExpiradas();
+        render();
+        $('syncStatus').textContent = 'Atualizado automaticamente';
+      } catch(e) {
+        $('syncStatus').textContent = 'Falha na atualização automática';
+      }
+    }
+    function log(acao, texto, meta = {}){ data.historico.unshift({ id: uid(), acao, texto, usuario: member?.fullName || member?.username || 'Usuário', data: now(), ...meta }); }
+    function pessoaDaVez(){ return data.fila[0] || null; }
+    function extrasAguardandoResposta(){ return data.extrasAtivas.filter(e => !isExtraStarted(e)); }
+    function finalizarExtrasSemResposta(){
+      const ativas = Array.isArray(data.extrasAtivas) ? data.extrasAtivas : [];
+      const expiradas = ativas.filter(e => isExtraStarted(e));
+      if(!expiradas.length) return false;
+      expiradas.forEach(extra => {
+        log('SEM RESPOSTA', `${extra.pessoaNome} não respondeu ao chamado até o horário de início do extra.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra, semRespostaEm: now()} });
+      });
+      data.extrasAtivas = ativas.filter(e => !isExtraStarted(e));
+      return true;
+    }
+    async function sincronizarExpiradas(){
+      if(finalizarExtrasSemResposta()){
+        await apiSave();
+        return true;
+      }
+      return false;
+    }
+
+    async function init(){
+      board = await t.board('id', 'name');
+      try { member = await t.member('id', 'fullName', 'username'); } catch(e){ member = { id: 'sem-id', fullName: 'Usuário Trello' }; }
+      await loadBoardMembers();
+      try { await apiGet(); await sincronizarExpiradas(); $('syncStatus').textContent = 'Dados compartilhados'; } catch(e){ $('syncStatus').textContent = 'Erro ao carregar dados'; await infoDialog('Erro', 'Não foi possível carregar os dados compartilhados.'); }
+      render();
+      setInterval(autoAtualizarDados, 10000);
+    }
+
+    function render(){
+      const isConfig = !mode;
+      $('configInicial').classList.toggle('hide', !!mode);
+      $('coordenador').classList.toggle('hide', mode !== 'coordenador');
+      $('membro').classList.toggle('hide', mode !== 'membro');
+      $('trocarModoBtn').classList.toggle('hide', !mode);
+      $('trocarModoHint').classList.add('hide');
+      $('heroBox').classList.toggle('heroCentered', isConfig);
+      $('heroSubtitle').classList.add('hide');
+      $('modoBadge').classList.toggle('hide', isConfig);
+      $('modoBadge').textContent = mode === 'coordenador' ? 'COORDENADOR' : mode === 'membro' ? 'MEMBRO' : '';
+      if(mode === 'coordenador') renderCoordenador();
+      if(mode === 'membro') renderMembro();
+      t.sizeTo('#frameSizer');
+    }
+    function ensurePage(total, current, size){ const pages = Math.max(1, Math.ceil(total / size)); return Math.min(Math.max(1, current), pages); }
+    function pageButtons(containerId, total, current, size, fn){
+      const pages = Math.ceil(total / size); const el = $(containerId); if(!el) return;
+      if(pages <= 1){ el.innerHTML = ''; return; }
+
+      const isHistoryPager = containerId === 'paginacaoHistCoordenador' || containerId === 'paginacaoHistMembro';
+
+      if(isHistoryPager){
+        const groupSize = 3;
+        const groupStart = Math.floor((current - 1) / groupSize) * groupSize + 1;
+        const groupEnd = Math.min(groupStart + groupSize - 1, pages);
+        let html = '';
+
+        if(groupStart > 1){
+          const prevStart = Math.max(1, groupStart - groupSize);
+          html += `<button class="pageBtn pageNav" title="Ver páginas anteriores" onclick="${fn}(${prevStart})">Anterior</button>`;
+        }
+
+        for(let p = groupStart; p <= groupEnd; p++){
+          html += `<button class="pageBtn ${p===current?'active':''}" onclick="${fn}(${p})">${p}</button>`;
+        }
+
+        if(groupEnd < pages){
+          const nextStart = groupEnd + 1;
+          html += `<button class="pageBtn pageNav" title="Ver próximas páginas" onclick="${fn}(${nextStart})">Mais</button>`;
+        }
+
+        el.innerHTML = html;
+        return;
+      }
+
+      el.innerHTML = Array.from({length: pages}, (_,i)=>`<button class="pageBtn ${i+1===current?'active':''}" onclick="${fn}(${i+1})">${i+1}</button>`).join('');
+    }
+    window.setCoordPage = p => { coordPage = p; render(); };
+    window.setMembroPage = p => { membroPage = p; render(); };
+    window.setHistCoordPage = p => { histCoordPage = p; render(); };
+    window.setHistMembroPage = p => { histMembroPage = p; render(); };
+
+    function renderCoordenador(){
+      const vez = pessoaDaVez();
+      $('pessoaDaVez').textContent = vez ? vez.nome : 'Nenhuma pessoa cadastrada';
+      const aguardando = extrasAguardandoResposta();
+      if(aguardando.length){
+        const label = aguardando.length === 1 ? 'extra aguardando resposta' : 'extras aguardando resposta';
+        $('extraStatus').innerHTML = `
+          <button type="button" class="pendingCard" onclick="mostrarExtrasAguardando()" aria-label="Ver extras aguardando resposta">
+            <span class="pendingIcon">!</span>
+            <span class="pendingContent">
+              <strong>${aguardando.length} ${label}</strong>
+              <small>Clique para ver quem foi chamado e o período do extra</small>
+            </span>
+            <span class="pendingArrow">›</span>
+          </button>`;
+      } else {
+        $('extraStatus').innerHTML = 'Nenhuma extra ativa.';
+      }
+      renderQuickTopSelect();
+      const total = data.fila.length; coordPage = ensurePage(total, coordPage, pageSize);
+      const start = (coordPage - 1) * pageSize;
+      const itens = data.fila.slice(start, start + pageSize);
+      $('listaCoordenador').innerHTML = itens.map((p, idx) => {
+        const real = start + idx;
+        return `<div class="item ${real===0?'first':''}" draggable="true" data-id="${p.id}">
+          <span class="dragHandle" title="Arrastar">☰</span>
+          <div style="flex:1"><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small><small>${p.trelloUsername ? '@' + escapeHtml(p.trelloUsername) : 'Usuário Trello não vinculado'}</small></div>
+          <div class="miniBtns">
+            <button onclick="editarUsuario('${p.id}')">Editar usuário</button>
+            <button class="remove" onclick="removePessoa('${p.id}')">Remover</button>
+          </div>
+        </div>`;
+      }).join('') || '<p class="muted">Nenhuma pessoa cadastrada.</p>';
+      pageButtons('paginacaoCoordenador', total, coordPage, pageSize, 'setCoordPage');
+      bindDrag(); renderHistory('historicoCoordenador', 'paginacaoHistCoordenador', true);
+    }
+    function renderQuickTopSelect(){
+      const select = $('puxarPessoaSelect');
+      const posSelect = $('posicaoDestinoSelect');
+      if(!select || !posSelect) return;
+      if(!data.fila.length){
+        select.innerHTML = '<option value="">Nenhuma pessoa cadastrada</option>';
+        posSelect.innerHTML = '<option value="">Sem posições</option>';
+        select.disabled = true;
+        posSelect.disabled = true;
+        $('puxarPessoaBtn').disabled = true;
+        return;
+      }
+      select.disabled = false;
+      posSelect.disabled = false;
+      $('puxarPessoaBtn').disabled = data.fila.length < 2;
+      select.innerHTML = data.fila.map((p, i) => {
+        const label = `${i+1}. ${p.nome}${i === 0 ? ' (atual)' : ''}`;
+        return `<option value="${p.id}">${escapeHtml(label)}</option>`;
+      }).join('');
+      posSelect.innerHTML = data.fila.map((p, i) => {
+        return `<option value="${i}">${i+1}º lugar</option>`;
+      }).join('');
+      if(data.fila.length > 1){
+        select.value = data.fila[1].id;
+        posSelect.value = '0';
+      }
+    }
+
+    function renderMembro(){
+      const total = data.fila.length; membroPage = ensurePage(total, membroPage, pageSize);
+      const start = (membroPage - 1) * pageSize;
+      $('listaMembro').innerHTML = data.fila.slice(start, start + pageSize).map((p, idx)=>{
+        const real = start + idx;
+        const myUser = currentUsername();
+        const vinculado = p.trelloUsername && p.trelloUsername === myUser;
+        const semVinculo = !p.trelloUsername;
+        return `<div class="item ${real===0?'first':''}"><div><b>${escapeHtml(p.nome)}</b><small>Posição ${real+1}${real===0?' • pessoa da vez':''}</small><small>${vinculado ? 'Vinculado a você: @' + escapeHtml(myUser) : (p.trelloUsername ? '@' + escapeHtml(p.trelloUsername) : 'Usuário Trello não vinculado')}</small></div>${semVinculo && myUser ? `<button class="btn ghost miniAction" onclick="vincularMinhaConta('${p.id}')">Sou eu</button>` : ''}</div>`;
+      }).join('') || '<p class="muted">Fila ainda não cadastrada.</p>';
+      pageButtons('paginacaoMembro', total, membroPage, pageSize, 'setMembroPage');
+      const extrasDisponiveis = extrasAguardandoResposta();
+      const minhasExtras = extrasDisponiveis.filter(e => cleanUsername(e.pessoaUsername) === currentUsername());
+      if(!minhasExtras.length){
+        const totalOutras = extrasDisponiveis.length;
+        $('membroExtraBox').innerHTML = `<p class="muted">Nenhuma extra disponível para você no momento.</p>${totalOutras ? '<p class="muted small">Existe solicitação ativa para outro membro da fila.</p>' : ''}`;
+      }
+      else {
+        $('membroExtraBox').innerHTML = `<div class="extrasList">${minhasExtras.map(e=>`<div class="extraCard"><div class="notice"><b>${escapeHtml(e.pessoaNome)}</b>, você foi chamado para uma extra.</div><p><b>Descrição:</b> ${escapeHtml(e.descricao || 'Extra gerada pelo coordenador.')}</p>${extraPeriodoHtml(e)}<div class="actions"><button class="btn green" onclick="aceitarExtra('${e.id}')">Aceitar extra</button><button class="btn red" onclick="recusarExtra('${e.id}')">Recusar extra</button></div></div>`).join('')}</div>`;
+      }
+      renderHistory('historicoMembro', 'paginacaoHistMembro', false);
+    }
+    function histClass(acao){ if(acao==='EXTRA ACEITA') return 'ok'; if(acao==='EXTRA RECUSADA'||acao==='EXTRA CANCELADA'||acao==='SEM RESPOSTA') return 'danger'; if(acao==='VEZ PULADA') return 'warn'; return 'neutral'; }
+    function renderHistory(target, pager, isCoord){
+      const items = data.historico || [];
+      let page = isCoord ? histCoordPage : histMembroPage;
+      page = ensurePage(items.length, page, histPageSize); if(isCoord) histCoordPage = page; else histMembroPage = page;
+      const start = (page - 1) * histPageSize;
+      $(target).innerHTML = items.slice(start, start + histPageSize).map(h => {
+        const extraSnapshot = h.extraSnapshot || h.extra || (h.inicioAt ? h : null);
+        const pendingExtra = isCoord && h.acao === 'EXTRA GERADA' ? (data.extrasAtivas.find(e => e.id === h.extraId) || extraSnapshot) : null;
+        const acceptedExtra = isCoord && h.acao === 'EXTRA ACEITA' ? (data.extrasAceitasCancelaveis[h.extraId] || extraSnapshot) : null;
+        const pending = pendingExtra && data.extrasAtivas.some(e => e.id === h.extraId) && canCancelExtra(pendingExtra);
+        const accepted = acceptedExtra && canCancelExtra(acceptedExtra);
+        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div>${pending ? `<button class="btn red miniAction" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}</div></div>`;
+      }).join('') || '<p class="muted">Nenhuma ação registrada.</p>';
+      pageButtons(pager, items.length, page, histPageSize, isCoord ? 'setHistCoordPage' : 'setHistMembroPage');
+    }
+
+    function bindDrag(){
+      document.querySelectorAll('#listaCoordenador .item').forEach(el => {
+        el.addEventListener('dragstart', () => { dragId = el.dataset.id; el.classList.add('dragging'); });
+        el.addEventListener('dragend', () => el.classList.remove('dragging'));
+        el.addEventListener('dragover', e => e.preventDefault());
+        el.addEventListener('drop', async e => { e.preventDefault(); const targetId = el.dataset.id; if(dragId && targetId && dragId !== targetId) await reorderByDrag(dragId, targetId); dragId = null; });
+      });
+    }
+    async function reorderByDrag(fromId, toId){
+      const from = data.fila.findIndex(p=>p.id===fromId), to = data.fila.findIndex(p=>p.id===toId);
+      if(from<0||to<0||from===to) return;
+      const moved = data.fila[from]; const motivo = await promptDialog('Justificar alteração da fila', `Motivo para mover ${moved.nome} para a posição ${to+1}:`, '', 'Justificativa obrigatória.');
+      if(motivo===null) return;
+      data.fila.splice(from,1); data.fila.splice(to,0,moved);
+      log('ORDEM ALTERADA', `${moved.nome} foi movido manualmente para a posição ${to+1}. Justificativa: ${motivo.trim()}`);
+      await persistAndRender();
+    }
+
+    function moveOneDownFirst(){ if(data.fila.length > 1){ const first = data.fila.shift(); data.fila.splice(1,0,first); } }
+    function advanceQueueAfterGenerate(){ if(data.fila.length > 1) data.fila.push(data.fila.shift()); }
+    function movePersonToTop(id){ const idx = data.fila.findIndex(p=>p.id===id); if(idx>0){ const item=data.fila.splice(idx,1)[0]; data.fila.unshift(item); } }
+    function proximaPessoaComUsuario(){
+      if(!data.fila.length) return null;
+      for(let i=0;i<data.fila.length;i++){
+        const p = data.fila[0];
+        if(p && p.trelloUsername) return p;
+        advanceQueueAfterGenerate();
+      }
+      return null;
+    }
+
+    async function gerarExtra(){
+      if(!data.fila.length) return infoDialog('Atenção','Cadastre pessoas na fila primeiro.');
+      const form = await extraDialog();
+      if(form === null) return;
+      const itens = Array.isArray(form.itens) ? form.itens : [];
+      const quantidade = itens.length;
+      const semUsuario = data.fila.filter(p => !p.trelloUsername);
+      if(semUsuario.length){
+        return infoDialog('Atenção', `Antes de gerar extras, vincule o usuário Trello de todos os membros da fila. Sem vínculo: ${semUsuario.map(p=>p.nome).join(', ')}.`);
+      }
+      if(quantidade > data.fila.length){
+        return infoDialog('Atenção', `Você solicitou ${quantidade} extras, mas há apenas ${data.fila.length} pessoa(s) na fila. Ajuste a quantidade ou cadastre mais membros.`);
+      }
+
+      const loteId = form.loteId || uid();
+      for(let i=0;i<quantidade;i++){
+        const item = itens[i];
+        const p = proximaPessoaComUsuario();
+        if(!p) break;
+        const extra = {
+          id: uid(),
+          pessoaId:p.id,
+          pessoaNome:p.nome,
+          pessoaUsername:p.trelloUsername,
+          descricao: item.descricao,
+          inicioAt: item.inicioAt,
+          fimAt: item.fimAt,
+          status:'AGUARDANDO',
+          criadaEm:now(),
+          loteId,
+          ordemNoLote: i + 1,
+          totalNoLote: quantidade
+        };
+        data.extrasAtivas.push(extra);
+        log('EXTRA GERADA', `Extra ${i+1}/${quantidade} gerada para ${p.nome}.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra} });
+        advanceQueueAfterGenerate();
+      }
+      await persistAndRender();
+    }
+    async function pularVez(){
+      const p = pessoaDaVez(); if(!p) return infoDialog('Atenção','Não há pessoa na fila.');
+      const motivo = await promptDialog('Pular vez', `Motivo para pular a vez de ${p.nome}:`, '', 'Motivo obrigatório.');
+      if(motivo===null) return;
+      log('VEZ PULADA', `${p.nome} teve a vez pulada. Motivo: ${motivo.trim()}`); moveOneDownFirst(); await persistAndRender();
+    }
+    window.aceitarExtra = async function(extraId){
+      const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
+      const aceita = {...extra, aceitaEm: now()};
+      log('EXTRA ACEITA', `${extra.pessoaNome} aceitou a extra.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: aceita });
+      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); data.extrasAceitasCancelaveis[extraId] = aceita; await persistAndRender();
+    }
+    window.recusarExtra = async function(extraId){
+      const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
+      const motivo = await promptDialog('Recusar extra','Motivo da recusa:', '', 'Motivo obrigatório.');
+      if(motivo===null) return;
+      log('EXTRA RECUSADA', `${extra.pessoaNome} recusou a extra. Motivo: ${motivo.trim()}`, { extraId, extraSnapshot: {...extra, recusadaEm: now(), motivoRecusa: motivo.trim()} });
+      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId);
+
+      const proximo = proximaPessoaComUsuario();
+      if(proximo){
+        const redistribuida = {
+          ...extra,
+          id: uid(),
+          pessoaId: proximo.id,
+          pessoaNome: proximo.nome,
+          pessoaUsername: proximo.trelloUsername,
+          criadaEm: now(),
+          status: 'AGUARDANDO',
+          redistribuidaDe: extra.pessoaNome,
+          extraOriginalId: extra.extraOriginalId || extra.id
+        };
+        data.extrasAtivas.push(redistribuida);
+        log('EXTRA REDIRECIONADA', `Após recusa de ${extra.pessoaNome}, a extra foi enviada para ${proximo.nome}.${extraPeriodoTexto(redistribuida)}`, { extraId: redistribuida.id, extraSnapshot: {...redistribuida} });
+        advanceQueueAfterGenerate();
+      } else {
+        log('EXTRA SEM DESTINO', `Após recusa de ${extra.pessoaNome}, não havia próximo membro com usuário Trello vinculado para receber a extra.`, { extraId });
+      }
+      await persistAndRender();
+    }
+    window.cancelarSolicitacao = async function(extraId){
+      const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
+      if(!canCancelExtra(extra)) return infoDialog('Atenção', 'Não é possível cancelar: o horário de início do extra já chegou.');
+      const motivo = await promptDialog('Cancelar solicitação','Motivo do cancelamento:', '', 'Motivo obrigatório.');
+      if(motivo===null) return;
+      log('EXTRA CANCELADA', `Solicitação de ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
+      data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); movePersonToTop(extra.pessoaId); await persistAndRender();
+    }
+    window.cancelarAceita = async function(extraId){
+      let extra = data.extrasAceitasCancelaveis[extraId];
+      if(!extra){
+        const hist = (data.historico || []).find(h => h.extraId === extraId && h.acao === 'EXTRA ACEITA');
+        extra = hist?.extraSnapshot || hist?.extra || (hist?.inicioAt ? hist : null);
+      }
+      if(!extra) return;
+      if(!canCancelExtra(extra)) return infoDialog('Atenção', 'Não é possível cancelar: o horário de início do extra já chegou.');
+      const motivo = await promptDialog('Cancelar extra aceita','Motivo do cancelamento:', '', 'Motivo obrigatório.');
+      if(motivo===null) return;
+      log('EXTRA CANCELADA', `Extra aceita por ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
+      movePersonToTop(extra.pessoaId); delete data.extrasAceitasCancelaveis[extraId]; await persistAndRender();
+    }
+
+    window.mostrarExtrasAguardando = async function(){
+      const aguardando = extrasAguardandoResposta();
+      if(!aguardando.length) return infoDialog('Extras aguardando resposta', 'Nenhuma extra aguardando resposta no momento.');
+      const cards = aguardando.map((e, i) => {
+        const ini = formatDateTime(e.inicioAt) || '-';
+        const fim = formatDateTime(e.fimAt) || '-';
+        return `<div class="pendingModalItem">
+          <div class="pendingModalIndex">${i + 1}</div>
+          <div class="pendingModalInfo">
+            <b>${escapeHtml(e.pessoaNome || 'Pessoa chamada')}</b>
+            <span>Aguardando aceite do chamado</span>
+            <div class="pendingModalPeriod">
+              <small><strong>Início:</strong> ${escapeHtml(ini)}</small>
+              <small><strong>Fim:</strong> ${escapeHtml(fim)}</small>
+            </div>
+            ${e.descricao ? `<p>${escapeHtml(e.descricao)}</p>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+      return htmlDialog('Extras aguardando resposta', `<div class="pendingModalList">${cards}</div>`);
+    }
+
+    async function validarAcessoCoordenador(){
+      const username = currentUsername();
+      if(!username){
+        await infoDialog('Acesso negado', 'Não foi possível identificar seu usuário Trello. Abra seu perfil do Trello e confira se a conta está correta.');
+        return false;
+      }
+      try {
+        const res = await fetch(`/api/auth-coordenador?username=${encodeURIComponent(username)}&ts=${Date.now()}`);
+        if(!res.ok) throw new Error(await res.text());
+        const json = await res.json();
+        if(!json.configurado){
+          await infoDialog('Lista não configurada', 'A lista de coordenadores autorizados ainda não foi configurada na Vercel. Configure a variável COORDENADORES_TRELLO e faça Redeploy.');
+          return false;
+        }
+        if(!json.autorizado){
+          await infoDialog('Acesso negado', `Seu usuário Trello @${username} não está autorizado como coordenador.`);
+          return false;
+        }
+        return true;
+      } catch(e){
+        await infoDialog('Erro de validação', 'Não foi possível validar a lista de coordenadores autorizados. Confira o deploy/API na Vercel.');
+        return false;
+      }
+    }
+
+    window.colocarNaPosicao = async function(id, targetIndex){
+      const idx = data.fila.findIndex(p=>p.id===id);
+      targetIndex = Number(targetIndex);
+      if(idx < 0 || Number.isNaN(targetIndex) || targetIndex < 0 || targetIndex >= data.fila.length) return;
+      if(idx === targetIndex) return infoDialog('Atenção', 'Essa pessoa já está nessa posição.');
+      const p = data.fila[idx];
+      const motivo = await promptDialog('Alterar posição', `Justificativa para mover ${p.nome} para a posição ${targetIndex + 1}:`, '', 'Justificativa obrigatória.');
+      if(motivo===null) return;
+      data.fila.splice(idx,1);
+      data.fila.splice(targetIndex,0,p);
+      coordPage = ensurePage(targetIndex + 1, 1, pageSize);
+      log('ORDEM ALTERADA', `${p.nome} foi movido para a posição ${targetIndex + 1}. Justificativa: ${motivo.trim()}`);
+      await persistAndRender();
+    }
+
+
+    window.editarUsuario = async function(id){
+      const p = data.fila.find(x=>x.id===id); if(!p) return;
+      const usuario = await promptDialog('Vincular usuário Trello', `Informe o usuário Trello de ${p.nome} sem @:`, p.trelloUsername || '', 'Usuário Trello obrigatório.');
+      if(usuario === null) return;
+      const limpo = cleanUsername(usuario);
+      const antigo = p.trelloUsername || 'sem vínculo';
+      p.trelloUsername = limpo;
+      log('USUÁRIO VINCULADO', `${p.nome} foi vinculado ao usuário @${limpo}. Anterior: ${antigo}.`);
+      await persistAndRender();
+    }
+
+    window.vincularMinhaConta = async function(id){
+      const p = data.fila.find(x=>x.id===id); if(!p) return;
+      const myUser = currentUsername();
+      if(!myUser) return infoDialog('Atenção', 'Não foi possível identificar seu usuário Trello.');
+      const ok = await confirmDialog('Vincular minha conta', `Deseja vincular sua conta @${myUser} ao nome ${p.nome}?`);
+      if(!ok) return;
+      if(p.trelloUsername && p.trelloUsername !== myUser) return infoDialog('Atenção', `${p.nome} já está vinculado a outro usuário.`);
+      p.trelloUsername = myUser;
+      log('USUÁRIO VINCULADO', `${p.nome} vinculou a própria conta Trello @${myUser}.`);
+      await persistAndRender();
+    }
+
+    window.removePessoa = async function(id){
+      const p = data.fila.find(x=>x.id===id); if(!p) return;
+      const motivo = await promptDialog('Remover pessoa', `Motivo para remover ${p.nome} da fila:`, '', 'Motivo obrigatório.');
+      if(motivo===null) return;
+      data.fila = data.fila.filter(x=>x.id!==id); log('MEMBRO REMOVIDO', `${p.nome} foi removido da fila. Motivo: ${motivo.trim()}`); await persistAndRender();
+    }
+
+    $('setCoordenador').addEventListener('click', async()=>{
+      const autorizado = await validarAcessoCoordenador();
+      if(!autorizado) return;
+      mode='coordenador';
+      render();
+    });
+    $('setMembro').addEventListener('click', async()=>{ mode='membro'; render(); });
+    $('trocarModoBtn').addEventListener('click', async()=>{ const ok=await confirmDialog('Trocar modo','Deseja trocar o modo de acesso desta conta?'); if(!ok) return; mode=''; render(); });
+    $('addPessoa').addEventListener('click', async()=>{ const nome=$('novoNome').value.trim(); const trelloUsername = cleanUsername($('novoUsuario').value); if(!nome) return infoDialog('Atenção','Informe o nome da pessoa.'); data.fila.push({id:uid(),nome,trelloUsername}); $('novoNome').value=''; $('novoUsuario').value=''; log('MEMBRO ADICIONADO', `${nome} foi adicionado à fila${trelloUsername ? ' e vinculado a @' + trelloUsername : ''}.`); coordPage = ensurePage(data.fila.length, 999, pageSize); await persistAndRender(); });
+    $('puxarPessoaBtn').addEventListener('click', async()=>{ const id = $('puxarPessoaSelect').value; const targetIndex = $('posicaoDestinoSelect').value; if(!id) return infoDialog('Atenção','Selecione uma pessoa.'); await colocarNaPosicao(id, targetIndex); });
+    $('gerarExtra').addEventListener('click', gerarExtra); $('pularVez').addEventListener('click', pularVez); $('refreshNowBtn').addEventListener('click', atualizarDadosManual);
+
+    function bindMemberSuggestions(){
+      const nome = $('novoNome');
+      const usuario = $('novoUsuario');
+      const box = $('membroSugestoes');
+      if(!nome || !usuario || !box) return;
+      const show = () => renderSugestoesMembros();
+      nome.addEventListener('input', show);
+      nome.addEventListener('focus', show);
+      usuario.addEventListener('input', show);
+      usuario.addEventListener('focus', show);
+      document.addEventListener('click', (ev) => {
+        if(!ev.target.closest('.inputRowSuggest')) esconderSugestoes();
+      });
+    }
+    bindMemberSuggestions();
+
+    function extraDialog(){ return new Promise(resolve=>{
+      $('appDialog').querySelector('.dialogBox').classList.add('extraDialogBox');
+      $('dialogTitle').textContent = 'Gerar extra';
+      $('dialogText').textContent = 'Preencha os dados do extra individualmente.';
+      $('dialogInput').classList.add('hide');
+      $('dialogTextarea').classList.add('hide');
+      $('extraQuantidade').value = '1';
+      $('extraForm').classList.remove('hide');
+      $('dialogCancel').classList.remove('hide');
+      $('dialogCancel').onclick = () => close(null);
+
+      const splitDateTime = (value='') => {
+        if(!value) return {date:'', time:''};
+        const [date, rawTime=''] = String(value).split('T');
+        return {date: date || '', time: rawTime.slice(0,5) || ''};
+      };
+      const formatPickerDate = (value='') => {
+        if(!value) return 'Selecionar data';
+        const [y,m,d] = String(value).split('-');
+        if(!y || !m || !d) return 'Selecionar data';
+        return `${d}/${m}/${y}`;
+      };
+      const monthLabel = (year, month) => {
+        return new Date(year, month, 1).toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
+      };
+      const closePickers = (scope) => {
+        (scope || document).querySelectorAll('.pickerPopover').forEach(p=>p.classList.add('hide'));
+      };
+      const todayDateOnly = () => {
+        const now = new Date();
+        now.setHours(0,0,0,0);
+        return now;
+      };
+      const dateValueToLocal = (value) => {
+        const [y,m,d] = String(value || '').split('-').map(Number);
+        if(!y || !m || !d) return null;
+        const dt = new Date(y, m - 1, d);
+        dt.setHours(0,0,0,0);
+        return dt;
+      };
+      const isPastDateValue = (value) => {
+        const dt = dateValueToLocal(value);
+        if(!dt) return true;
+        return dt.getTime() < todayDateOnly().getTime();
+      };
+      const renderCalendar = (pop, hidden, label, year, month) => {
+        const selected = hidden.value || '';
+        const today = todayDateOnly();
+        const first = new Date(year, month, 1);
+        const startDay = first.getDay();
+        const days = new Date(year, month + 1, 0).getDate();
+        let cells = '';
+        for(let i=0;i<startDay;i++) cells += '<span class="calendarBlank"></span>';
+        for(let d=1; d<=days; d++){
+          const val = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const dayDate = new Date(year, month, d);
+          dayDate.setHours(0,0,0,0);
+          const isPast = dayDate.getTime() < today.getTime();
+          const active = selected === val ? ' active' : '';
+          const disabled = isPast ? ' disabled' : '';
+          const disabledAttr = isPast ? ' disabled aria-disabled="true" title="Data indisponível"' : '';
+          cells += `<button type="button" class="calendarDay${active}${disabled}" data-date-value="${val}"${disabledAttr}>${d}</button>`;
+        }
+        pop.innerHTML = `
+          <div class="calendarHead">
+            <button type="button" class="calendarNav" data-cal-prev>‹</button>
+            <strong>${monthLabel(year, month)}</strong>
+            <button type="button" class="calendarNav" data-cal-next>›</button>
+          </div>
+          <div class="calendarWeek"><span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span></div>
+          <div class="calendarGrid">${cells}</div>`;
+        pop.dataset.year = String(year);
+        pop.dataset.month = String(month);
+        const prevBtn = pop.querySelector('[data-cal-prev]');
+        const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const showingMonthStart = new Date(year, month, 1);
+        if(showingMonthStart.getTime() <= currentMonthStart.getTime()){
+          prevBtn.disabled = true;
+          prevBtn.classList.add('disabled');
+          prevBtn.title = 'Não é possível voltar para meses anteriores';
+        }
+        prevBtn.onclick = (ev) => {
+          ev.stopPropagation();
+          if(prevBtn.disabled) return;
+          const next = new Date(Number(pop.dataset.year), Number(pop.dataset.month)-1, 1);
+          renderCalendar(pop, hidden, label, next.getFullYear(), next.getMonth());
+          positionPickerPopover(pop, pop.closest('.customPickerWrap')?.querySelector('[data-date-button]'));
+        };
+        pop.querySelector('[data-cal-next]').onclick = (ev) => {
+          ev.stopPropagation();
+          const next = new Date(Number(pop.dataset.year), Number(pop.dataset.month)+1, 1);
+          renderCalendar(pop, hidden, label, next.getFullYear(), next.getMonth());
+          positionPickerPopover(pop, pop.closest('.customPickerWrap')?.querySelector('[data-date-button]'));
+        };
+        pop.querySelectorAll('[data-date-value]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            if(btn.disabled || btn.classList.contains('disabled') || isPastDateValue(btn.dataset.dateValue)){
+              return;
+            }
+            hidden.value = btn.dataset.dateValue;
+            label.textContent = formatPickerDate(hidden.value);
+            try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ }
+            closePickers(pop.closest('.extraItems') || document);
+          };
+        });
+      };
+      const renderTimePicker = (pop, hidden, label) => {
+        const [currentHour='', currentMinute=''] = String(hidden.value || '').split(':');
+        let hours = '';
+        let minutes = '';
+        for(let h=0; h<24; h++){
+          const val = String(h).padStart(2,'0');
+          const active = currentHour === val ? ' active' : '';
+          hours += `<button type="button" class="timeOption${active}" data-time-hour="${val}">${val}</button>`;
+        }
+        for(let m=0; m<60; m+=1){
+          const val = String(m).padStart(2,'0');
+          const active = currentMinute === val ? ' active' : '';
+          minutes += `<button type="button" class="timeOption${active}" data-time-minute="${val}">${val}</button>`;
+        }
+        pop.dataset.hour = currentHour || '';
+        pop.dataset.minute = currentMinute || '';
+        pop.innerHTML = `
+          <div class="timePickerSplit">
+            <div class="timeColumn">
+              <strong>Hora</strong>
+              <div class="timeScroll">${hours}</div>
+            </div>
+            <div class="timeColumn">
+              <strong>Minutos</strong>
+              <div class="timeScroll">${minutes}</div>
+            </div>
+          </div>`;
+        const applyTime = () => {
+          if(pop.dataset.hour && pop.dataset.minute){
+            hidden.value = `${pop.dataset.hour}:${pop.dataset.minute}`;
+            label.textContent = hidden.value;
+            try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ }
+            closePickers(pop.closest('.extraItems') || document);
+          }
+        };
+        pop.querySelectorAll('[data-time-hour]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            pop.dataset.hour = btn.dataset.timeHour;
+            pop.querySelectorAll('[data-time-hour]').forEach(b=>b.classList.toggle('active', b === btn));
+            applyTime();
+          };
+        });
+        pop.querySelectorAll('[data-time-minute]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            pop.dataset.minute = btn.dataset.timeMinute;
+            pop.querySelectorAll('[data-time-minute]').forEach(b=>b.classList.toggle('active', b === btn));
+            applyTime();
+          };
+        });
+      };
+      const positionPickerPopover = (pop, btn) => {
+        if(!pop || !btn) return;
+        pop.classList.remove('open-up','align-left','align-right');
+        pop.style.top = '';
+        pop.style.bottom = '';
+        pop.style.left = '';
+        pop.style.right = '';
+        pop.style.maxHeight = '';
+        pop.style.overflowY = '';
+        requestAnimationFrame(() => {
+          const margin = 16;
+          const btnRect = btn.getBoundingClientRect();
+          const wrap = btn.closest('.customPickerWrap');
+          const wrapRect = wrap ? wrap.getBoundingClientRect() : btnRect;
+          const modal = btn.closest('.dialogBox.extraDialogBox') || btn.closest('.dialogBox') || document.body;
+          const modalRect = modal.getBoundingClientRect ? modal.getBoundingClientRect() : { left: 0, right: window.innerWidth, top: 0, bottom: window.innerHeight };
+          const limitLeft = Math.max(margin, modalRect.left + margin);
+          const limitRight = Math.min(window.innerWidth - margin, modalRect.right - margin);
+          const spaceBelow = Math.max(0, Math.min(window.innerHeight - margin, modalRect.bottom - margin) - btnRect.bottom);
+          const spaceAbove = Math.max(0, btnRect.top - Math.max(margin, modalRect.top + margin));
+          const initialRect = pop.getBoundingClientRect();
+          if(spaceBelow < initialRect.height && spaceAbove > spaceBelow){
+            pop.classList.add('open-up');
+          }
+
+          const popWidth = pop.offsetWidth || initialRect.width;
+          let desiredLeft = 0;
+          if((wrapRect.left + desiredLeft + popWidth) > limitRight){
+            desiredLeft = limitRight - wrapRect.left - popWidth;
+          }
+          if((wrapRect.left + desiredLeft) < limitLeft){
+            desiredLeft = limitLeft - wrapRect.left;
+          }
+          pop.style.left = `${Math.round(desiredLeft)}px`;
+          pop.style.right = 'auto';
+          if(desiredLeft < 0){
+            pop.classList.add('align-right');
+          } else {
+            pop.classList.add('align-left');
+          }
+
+          const cappedRect = pop.getBoundingClientRect();
+          const available = pop.classList.contains('open-up') ? spaceAbove : spaceBelow;
+          if(available > 160 && cappedRect.height > available){
+            pop.style.maxHeight = `${Math.max(160, available)}px`;
+            pop.style.overflowY = 'auto';
+          }
+        });
+      };
+      const ensurePickerVisible = (btn) => {
+        if(!btn) return;
+        try{ btn.scrollIntoView({ block:'center', inline:'nearest', behavior:'smooth' }); }
+        catch(_){ btn.scrollIntoView(); }
+      };
+      const setupCustomDateTimePickers = (scope) => {
+        scope.querySelectorAll('[data-date-button]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            ensurePickerVisible(btn);
+            const wrap = btn.closest('.customPickerWrap');
+            const hidden = wrap.querySelector('input[type="hidden"]');
+            const pop = wrap.querySelector('.datePopover');
+            const label = btn.querySelector('span');
+            const current = hidden.value ? new Date(`${hidden.value}T12:00:00`) : new Date();
+            const wasOpen = !pop.classList.contains('hide');
+            closePickers(scope);
+            if(wasOpen) return;
+            renderCalendar(pop, hidden, label, current.getFullYear(), current.getMonth());
+            pop.classList.remove('hide');
+            positionPickerPopover(pop, btn);
+          };
+        });
+        scope.querySelectorAll('[data-time-button]').forEach(btn => {
+          btn.onclick = (ev) => {
+            ev.stopPropagation();
+            ensurePickerVisible(btn);
+            const wrap = btn.closest('.customPickerWrap');
+            const hidden = wrap.querySelector('input[type="hidden"]');
+            const pop = wrap.querySelector('.timePopover');
+            const label = btn.querySelector('span');
+            const wasOpen = !pop.classList.contains('hide');
+            closePickers(scope);
+            if(wasOpen) return;
+            renderTimePicker(pop, hidden, label);
+            pop.classList.remove('hide');
+            positionPickerPopover(pop, btn);
+          };
+        });
+      };
+      document.addEventListener('click', (ev) => {
+        if(!ev.target.closest('.customPickerWrap')) closePickers(document);
+      });
+      let currentExtraStep = 0;
+      let extraDrafts = [{ descricao:'', inicioAt:'', fimAt:'' }];
+
+      const quantidadeAtual = () => Math.max(1, Math.min(50, Number($('extraQuantidade')?.value || 1)));
+
+      const readVisibleStep = () => {
+        const card = $('extraItems')?.querySelector('.extraStepCard');
+        if(!card) return;
+        const inicioDate = card.querySelector('[data-extra-inicio-date]')?.value || '';
+        const inicioTime = card.querySelector('[data-extra-inicio-time]')?.value || '';
+        const fimDate = card.querySelector('[data-extra-fim-date]')?.value || '';
+        const fimTime = card.querySelector('[data-extra-fim-time]')?.value || '';
+        extraDrafts[currentExtraStep] = {
+          descricao: card.querySelector('[data-extra-desc]')?.value || '',
+          inicioAt: (inicioDate && inicioTime) ? `${inicioDate}T${inicioTime}` : '',
+          fimAt: (fimDate && fimTime) ? `${fimDate}T${fimTime}` : ''
+        };
+      };
+
+      const normalizeDrafts = (qtd) => {
+        extraDrafts = Array.from({length:qtd}, (_, i) => extraDrafts[i] || { descricao:'', inicioAt:'', fimAt:'' });
+        currentExtraStep = Math.max(0, Math.min(currentExtraStep, qtd - 1));
+      };
+
+      const renderProgress = (qtd) => Array.from({length:qtd}, (_, i) => {
+        const cls = i < currentExtraStep ? ' done' : (i === currentExtraStep ? ' active' : '');
+        return `<span class="extraStepBar${cls}"></span>`;
+      }).join('');
+
+      const renderExtraWizard = () => {
+        const qtd = quantidadeAtual();
+        normalizeDrafts(qtd);
+        const old = extraDrafts[currentExtraStep] || { descricao:'', inicioAt:'', fimAt:'' };
+        const inicio = splitDateTime(old.inicioAt || '');
+        const fim = splitDateTime(old.fimAt || '');
+        const descLen = String(old.descricao || '').length;
+        const isLast = currentExtraStep === qtd - 1;
+
+        $('extraForm').innerHTML = `
+          <div class="extraWizardTop">
+            <div>
+              <label for="extraQuantidade">Quantidade de extras <span class="requiredMark">*</span></label>
+              <input id="extraQuantidade" class="dialogInput extraQuantityInput" type="number" min="1" step="1" max="50" value="${qtd}" />
+            </div>
+            <span class="extraStepCounter">Extra ${currentExtraStep + 1} de ${qtd}</span>
+          </div>
+          <div class="extraStepProgress">${renderProgress(qtd)}</div>
+          <div id="extraItems" class="extraItems">
+            <div class="extraStepCard" data-extra-index="${currentExtraStep}">
+              <div class="extraStepHeader">
+                <div>
+                  <strong>Extra ${currentExtraStep + 1}</strong>
+                  <span>Direcionada para a ${currentExtraStep + 1}ª pessoa da fila</span>
+                </div>
+              </div>
+
+              <label class="iconLabel" for="extraDescAtual"><span>☰</span>Descrição do extra ${currentExtraStep + 1} <span class="requiredMark">*</span></label>
+              <div class="textareaWrap">
+                <textarea id="extraDescAtual" class="dialogTextarea" data-extra-desc maxlength="200" placeholder="Descreva a extra ${currentExtraStep + 1}">${escapeHtml(old.descricao || '')}</textarea>
+                <small class="charCounter" data-char-counter>${descLen}/200</small>
+              </div>
+
+              <div class="extraDateSections">
+                <div class="dateSection">
+                  <label class="dateSectionTitle"><span>📅</span>Início <span class="requiredMark">*</span></label>
+                  <div class="dateHourGroup">
+                    <div class="customPickerWrap">
+                      <input type="hidden" data-extra-inicio-date value="${escapeHtml(inicio.date)}" />
+                      <button type="button" class="pickerField" data-date-button>
+                        <span>${formatPickerDate(inicio.date)}</span><em>📅</em>
+                      </button>
+                      <div class="pickerPopover datePopover hide"></div>
+                    </div>
+                    <div class="customPickerWrap compactPicker">
+                      <input type="hidden" data-extra-inicio-time value="${escapeHtml(inicio.time)}" />
+                      <button type="button" class="pickerField" data-time-button>
+                        <span>${inicio.time || 'Hora'}</span><em>⌄</em>
+                      </button>
+                      <div class="pickerPopover timePopover hide"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="dateSection">
+                  <label class="dateSectionTitle"><span>🕘</span>Fim <span class="requiredMark">*</span></label>
+                  <div class="dateHourGroup">
+                    <div class="customPickerWrap">
+                      <input type="hidden" data-extra-fim-date value="${escapeHtml(fim.date)}" />
+                      <button type="button" class="pickerField" data-date-button>
+                        <span>${formatPickerDate(fim.date)}</span><em>📅</em>
+                      </button>
+                      <div class="pickerPopover datePopover hide"></div>
+                    </div>
+                    <div class="customPickerWrap compactPicker">
+                      <input type="hidden" data-extra-fim-time value="${escapeHtml(fim.time)}" />
+                      <button type="button" class="pickerField" data-time-button>
+                        <span>${fim.time || 'Hora'}</span><em>⌄</em>
+                      </button>
+                      <div class="pickerPopover timePopover hide"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+
+        const qtyInput = $('extraQuantidade');
+        qtyInput.oninput = () => {
+          clearExtraFieldError('qtd');
+          readVisibleStep();
+          const nextQtd = quantidadeAtual();
+          qtyInput.value = String(nextQtd);
+          normalizeDrafts(nextQtd);
+          renderExtraWizard();
+        };
+        qtyInput.onchange = qtyInput.oninput;
+
+        const desc = $('extraForm').querySelector('[data-extra-desc]');
+        const counter = $('extraForm').querySelector('[data-char-counter]');
+        desc.oninput = () => {
+          if(counter) counter.textContent = `${desc.value.length}/200`;
+          if(String(desc.value || '').trim()) clearExtraFieldError('desc');
+          readVisibleStep();
+        };
+
+        $('extraForm').querySelector('[data-extra-inicio-date]')?.addEventListener('change', () => {
+          if($('extraForm').querySelector('[data-extra-inicio-date]')?.value) clearExtraFieldError('inicioDate');
+          readVisibleStep();
+        });
+        $('extraForm').querySelector('[data-extra-inicio-time]')?.addEventListener('change', () => {
+          if($('extraForm').querySelector('[data-extra-inicio-time]')?.value) clearExtraFieldError('inicioTime');
+          readVisibleStep();
+        });
+        $('extraForm').querySelector('[data-extra-fim-date]')?.addEventListener('change', () => {
+          if($('extraForm').querySelector('[data-extra-fim-date]')?.value) clearExtraFieldError('fimDate');
+          readVisibleStep();
+        });
+        $('extraForm').querySelector('[data-extra-fim-time]')?.addEventListener('change', () => {
+          if($('extraForm').querySelector('[data-extra-fim-time]')?.value) clearExtraFieldError('fimTime');
+          readVisibleStep();
+        });
+
+        setupCustomDateTimePickers($('extraForm'));
+
+        $('dialogCancel').textContent = currentExtraStep > 0 ? '← Voltar' : 'Cancelar';
+        $('dialogCancel').className = currentExtraStep > 0 ? 'btn ghostBack' : 'btn ghostBack';
+        $('dialogOk').textContent = isLast ? 'OK' : 'Próximo →';
+        $('dialogOk').className = 'btn primary';
+
+        // Ao avançar ou voltar, leva o usuário direto para a descrição do extra atual.
+        const currentDesc = $('extraForm').querySelector('[data-extra-desc]');
+        setTimeout(() => {
+          const formBox = $('extraForm');
+          if(formBox && typeof formBox.scrollTo === 'function') formBox.scrollTo({ top: 0, behavior: 'smooth' });
+          if(currentDesc){
+            currentDesc.focus();
+            currentDesc.selectionStart = currentDesc.value.length;
+            currentDesc.selectionEnd = currentDesc.value.length;
+          }
+        }, 40);
+
+        t.sizeTo('#frameSizer');
+      };
+
+      const getExtraFieldTarget = (field) => {
+        if(field === 'qtd') return $('extraQuantidade');
+        if(field === 'desc') return $('extraForm')?.querySelector('[data-extra-desc]');
+        if(field === 'inicioDate') return $('extraForm')?.querySelector('[data-extra-inicio-date]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        if(field === 'inicioTime') return $('extraForm')?.querySelector('[data-extra-inicio-time]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        if(field === 'fimDate') return $('extraForm')?.querySelector('[data-extra-fim-date]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        if(field === 'fimTime') return $('extraForm')?.querySelector('[data-extra-fim-time]')?.closest('.customPickerWrap')?.querySelector('.pickerField');
+        return null;
+      };
+
+      const clearExtraErrors = () => {
+        $('extraForm')?.querySelectorAll('.inputError').forEach(el=>el.classList.remove('inputError'));
+        $('extraForm')?.querySelectorAll('.extraFieldError').forEach(el=>el.remove());
+      };
+
+      const clearExtraFieldError = (field) => {
+        const target = getExtraFieldTarget(field);
+        if(target) target.classList.remove('inputError');
+        $('extraForm')?.querySelectorAll(`.extraFieldError[data-error-for="${field}"]`).forEach(el=>el.remove());
+        if(!$('extraForm')?.querySelector('.extraFieldError')){
+          $('dialogText').textContent = 'Preencha os dados do extra individualmente.';
+        }
+      };
+
+      const showExtraFieldError = (field, message) => {
+        clearExtraErrors();
+        const target = getExtraFieldTarget(field);
+        if(target){
+          target.classList.add('inputError');
+          const error = document.createElement('div');
+          error.className = 'fieldError extraFieldError';
+          error.dataset.errorFor = field;
+          error.textContent = message || 'Campo obrigatório.';
+          let host = null;
+          if(field === 'qtd') host = target.closest('.extraWizardTop > div') || target.parentElement;
+          else if(field === 'desc') host = target.closest('.textareaWrap') || target.parentElement;
+          else if(field === 'inicioDate' || field === 'inicioTime' || field === 'fimDate' || field === 'fimTime') host = target.closest('.dateSection');
+          else host = target.parentElement;
+          if(host) host.insertAdjacentElement('beforeend', error);
+          try{ target.focus(); }catch(_){ }
+        }
+        $('dialogText').textContent = 'Preencha os campos obrigatórios destacados.';
+      };
+
+      const validateStep = (index) => {
+        const item = extraDrafts[index] || {};
+        const inicio = splitDateTime(item.inicioAt || '');
+        const fim = splitDateTime(item.fimAt || '');
+        if(!String(item.descricao || '').trim()) return { field:'desc', message:`Descrição do extra ${index + 1} é obrigatória.` };
+        if(!inicio.date) return { field:'inicioDate', message:`Data de início do extra ${index + 1} é obrigatória.` };
+        if(!inicio.time) return { field:'inicioTime', message:`Hora de início do extra ${index + 1} é obrigatória.` };
+        if(isPastDateValue(inicio.date)) return { field:'inicioDate', message:`O dia de início do extra ${index + 1} não pode ser uma data passada.` };
+        if(!fim.date) return { field:'fimDate', message:`Data de fim do extra ${index + 1} é obrigatória.` };
+        if(!fim.time) return { field:'fimTime', message:`Hora de fim do extra ${index + 1} é obrigatória.` };
+        if(isPastDateValue(fim.date)) return { field:'fimDate', message:`O dia de fim do extra ${index + 1} não pode ser uma data passada.` };
+        if(new Date(item.fimAt).getTime() <= new Date(item.inicioAt).getTime()) return { field:'fimTime', message:`O fim do extra ${index + 1} precisa ser depois do início.` };
+        return null;
+      };
+
+      $('dialogCancel').onclick = () => {
+        if(currentExtraStep > 0){
+          readVisibleStep();
+          currentExtraStep--;
+          $('dialogText').textContent = 'Preencha os dados do extra individualmente.';
+          renderExtraWizard();
+          return;
+        }
+        close(null);
+      };
+
+      $('dialogOk').onclick = () => {
+        readVisibleStep();
+        const qtd = quantidadeAtual();
+        if(!Number.isInteger(qtd) || qtd < 1){ showExtraFieldError('qtd', 'Quantidade obrigatória.'); return; }
+        if(qtd > data.fila.length){ showExtraFieldError('qtd', `Você solicitou ${qtd} extras, mas há apenas ${data.fila.length} pessoa(s) na fila.`); return; }
+
+        const currentError = validateStep(currentExtraStep);
+        if(currentError){
+          showExtraFieldError(currentError.field, currentError.message);
+          return;
+        }
+
+        if(currentExtraStep < qtd - 1){
+          currentExtraStep++;
+          $('dialogText').textContent = 'Preencha os dados do extra individualmente.';
+          renderExtraWizard();
+          return;
+        }
+
+        const itens = [];
+        for(let i=0;i<qtd;i++){
+          const err = validateStep(i);
+          if(err){
+            currentExtraStep = i;
+            renderExtraWizard();
+            setTimeout(() => showExtraFieldError(err.field, err.message), 60);
+            return;
+          }
+          itens.push({
+            descricao: String(extraDrafts[i].descricao || '').trim(),
+            inicioAt: extraDrafts[i].inicioAt,
+            fimAt: extraDrafts[i].fimAt
+          });
+        }
+        close({ quantidade: qtd, itens, loteId: uid() });
+      };
+
+      renderExtraWizard();
+
+      $('appDialog').classList.remove('hide');
+      setTimeout(()=>$('extraForm')?.querySelector('[data-extra-desc]')?.focus(),60);
+      t.sizeTo('#frameSizer');
+      function close(value){ $('appDialog').classList.add('hide'); $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('#frameSizer'),30); }
+    }); }
+
+    function openDialog({title,text='',mode='info',initialValue='',required=false,requiredMessage='Campo obrigatório.'}){ return new Promise(resolve=>{
+      const box = $('appDialog').querySelector('.dialogBox');
+      box.classList.remove('extraDialogBox');
+      $('dialogTitle').textContent = title || 'Aviso';
+      $('dialogText').innerHTML = `${escapeHtml(text || '')}${required ? ' <span class="requiredMark">*</span>' : ''}`;
+      $('dialogInput').classList.add('hide');
+      $('dialogTextarea').classList.add('hide');
+      $('dialogInput').classList.remove('inputError');
+      $('dialogTextarea').classList.remove('inputError');
+      $('dialogInput').oninput = null;
+      $('dialogTextarea').oninput = null;
+      $('dialogError').classList.add('hide');
+      $('dialogError').textContent = '';
+      $('extraForm').classList.add('hide');
+      $('dialogCancel').classList.toggle('hide', mode==='info');
+
+      const currentField = () => mode === 'textarea' ? $('dialogTextarea') : $('dialogInput');
+      const clearDialogError = () => {
+        $('dialogInput').classList.remove('inputError');
+        $('dialogTextarea').classList.remove('inputError');
+        $('dialogError').classList.add('hide');
+        $('dialogError').textContent = '';
+      };
+      const showDialogError = (message) => {
+        const field = currentField();
+        field.classList.add('inputError');
+        $('dialogError').textContent = message || requiredMessage;
+        $('dialogError').classList.remove('hide');
+        field.focus();
+      };
+
+      $('dialogCancel').onclick = () => close(null);
+      $('dialogOk').onclick = () => {
+        if(mode === 'prompt' || mode === 'textarea'){
+          const field = currentField();
+          if(required && !String(field.value || '').trim()){
+            showDialogError(requiredMessage);
+            return;
+          }
+          return close(field.value);
+        }
+        close(true);
+      };
+
+      if(mode === 'prompt'){
+        $('dialogInput').classList.remove('hide');
+        $('dialogInput').value = initialValue || '';
+        $('dialogInput').oninput = clearDialogError;
+        setTimeout(()=>$('dialogInput').focus(),30);
+      }
+      if(mode === 'textarea'){
+        $('dialogTextarea').classList.remove('hide');
+        $('dialogTextarea').value = initialValue || '';
+        $('dialogTextarea').oninput = clearDialogError;
+        setTimeout(()=>$('dialogTextarea').focus(),30);
+      }
+
+      $('appDialog').classList.remove('hide');
+      t.sizeTo('#frameSizer');
+      function close(value){
+        $('appDialog').classList.add('hide');
+        clearDialogError();
+        resolve(value);
+        setTimeout(()=>t.sizeTo('#frameSizer'),30);
+      }
+    }); }
+    function htmlDialog(title, html){ return new Promise(resolve=>{
+      $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox');
+      $('dialogTitle').textContent = title || 'Aviso';
+      $('dialogText').innerHTML = html || '';
+      $('dialogInput').classList.add('hide');
+      $('dialogTextarea').classList.add('hide');
+      $('extraForm').classList.add('hide');
+      $('dialogCancel').classList.add('hide');
+      $('dialogOk').onclick = () => close(true);
+      $('appDialog').classList.remove('hide');
+      t.sizeTo('#frameSizer');
+      function close(value){ $('appDialog').classList.add('hide'); $('dialogText').textContent = ''; resolve(value); setTimeout(()=>t.sizeTo('#frameSizer'),30); }
+    }); }
+    const infoDialog=(title,text)=>openDialog({title,text,mode:'info'});
+    const confirmDialog=(title,text)=>openDialog({title,text,mode:'confirm'});
+    const promptDialog=(title,text,initialValue='',requiredMessage='Campo obrigatório.')=>openDialog({title,text,mode:'prompt',initialValue,required:true,requiredMessage});
+
+    $('successCloseBtn')?.addEventListener('click', hideSuccess);
+
+    init();
+  
