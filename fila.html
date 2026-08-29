@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=104" />
+  <link rel="stylesheet" href="./style.css?v=106" />
 </head>
 <body>
   <div id="frameSizer" aria-hidden="true"></div>
@@ -86,14 +86,15 @@
       </section>
 
       <section class="card">
+        <h2 class="sectionTitleWithHelp">Extras ativas <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Extras ativas" data-tooltip="Aqui aparecem somente as extras disponíveis para o usuário logado. Se a extra não foi direcionada para essa conta Trello, ela não aparece para o membro.">?</span></h2>
+        <div id="membroExtraBox"></div>
+      </section>
+
+
+      <section class="card">
         <h2>Fila pública</h2>
         <div id="listaMembro" class="list public"></div>
         <div id="paginacaoMembro" class="pagination"></div>
-      </section>
-
-      <section class="card">
-        <h2 class="sectionTitleWithHelp">Extras ativas <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Extras ativas" data-tooltip="Aqui aparecem somente as extras disponíveis para o usuário logado. Se a extra não foi direcionada para essa conta Trello, ela não aparece para o membro.">?</span></h2>
-        <div id="membroExtraBox"></div>
       </section>
 
       <section class="card full">
@@ -329,13 +330,13 @@
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
     function categoryLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=104' : './smiles-logo.png?v=104';
+      const src = normalized === 'gol' ? './gol-logo.png?v=106' : './smiles-logo.png?v=106';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryLogoWrap"><img class="selectCategoryLogo selectCategoryLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
     function categoryTitleLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=104' : './smiles-logo.png?v=104';
+      const src = normalized === 'gol' ? './gol-logo.png?v=106' : './smiles-logo.png?v=106';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryTitleLogoWrap"><img class="selectCategoryTitleLogo selectCategoryTitleLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
@@ -629,6 +630,7 @@
         const faltam = Math.max(0, meuIndex);
         const statusVez = meuIndex === 0 ? 'Você é a pessoa da vez.' : `Faltam ${faltam} ${faltam === 1 ? 'pessoa' : 'pessoas'} para chegar sua vez.`;
         const extraStatus = minhasExtras.length ? `${minhasExtras.length} ${minhasExtras.length === 1 ? 'extra disponível' : 'extras disponíveis'} para responder.` : 'Nenhuma extra disponível para você no momento.';
+        const extraStatusClass = minhasExtras.length > 0 ? 'memberIndividualExtraAvailable' : 'memberIndividualExtraUnavailable';
         $('filaIndividualMembro').innerHTML = `
           <div class="memberIndividualCard ${meuIndex === 0 ? 'isCurrent' : ''}">
             <div class="memberIndividualHeader">
@@ -644,7 +646,7 @@
             </div>
             <div class="memberIndividualFooter">
               <p>${escapeHtml(statusVez)}</p>
-              <p>${escapeHtml(extraStatus)}</p>
+              <p class="${extraStatusClass}">${escapeHtml(extraStatus)}</p>
             </div>
           </div>`;
       } else if(myUser){
