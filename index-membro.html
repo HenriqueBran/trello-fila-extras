@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Fila de Extras - Membro</title>
+  <meta name="theme-color" content="#000000" />
+</head>
+<body>
+<script src="https://p.trellocdn.com/power-up.min.js"></script>
+<script>
+const baseUrl = window.location.origin;
+const icon = baseUrl + '/icon.png?v=81';
+const abrirPainel = function(t){
+  return t.modal({
+    title:'Fila de Extras - Membro',
+    url:'./fila.html?modo=membro&v=104',
+    height:740,
+    fullscreen:false,
+    accentColor:'#111827'
+  });
+};
+window.TrelloPowerUp.initialize({
+  'board-buttons': function(t){
+    return [{ text:'Fila de Extras - Membro', icon, callback:abrirPainel, condition:'always' }];
+  },
+  'card-buttons': function(t){
+    return [{ text:'Fila de Extras - Membro', icon, callback:abrirPainel, condition:'always' }];
+  },
+  'show-settings': function(t){
+    return t.modal({
+      title:'Configurações - Fila de Extras - Membro',
+      url:'./fila.html?modo=membro&settings=1&v=104',
+      height:740,
+      fullscreen:false,
+      accentColor:'#111827'
+    });
+  },
+  'card-badges': function(t){ return []; }
+}, { appKey:'fila-extras-membro' });
+</script>
+</body>
+</html>

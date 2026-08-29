@@ -1,0 +1,19 @@
+{
+  "name": "Fila de Extras - Coordenador",
+  "details": "Power-Up para coordenadores gerenciarem fila, extras, cancelamentos e histórico.",
+  "icon": {
+    "url": "https://trello-fila-extras.vercel.app/icon.png?v=81"
+  },
+  "author": "Henrique Brandão",
+  "capabilities": [
+    "board-buttons",
+    "card-buttons",
+    "show-settings",
+    "card-badges"
+  ],
+  "connectors": {
+    "iframe": {
+      "url": "./index-coordenador.html"
+    }
+  }
+}
