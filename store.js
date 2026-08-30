@@ -6,7 +6,12 @@ const DEFAULT_DATA = {
   historicoArquivado: {},
   fechamentoMensal: {},
   extrasAceitasCancelaveis: {},
-  userModes: {}
+  userModes: {},
+  extraConfig: {
+    responsaveisSolicitantes: [],
+    squads: [],
+    responsaveisAtendimento: []
+  }
 };
 
 const memory = globalThis.__filaExtrasMemory || (globalThis.__filaExtrasMemory = {});
@@ -54,6 +59,42 @@ function shouldClosePreviousMonth(date = new Date()) {
   return p.day >= firstBusinessDayOfMonth(p.year, p.month);
 }
 
+
+function uniqCleanList(list) {
+  const seen = new Set();
+  return (Array.isArray(list) ? list : [])
+    .map(v => String(v || '').trim())
+    .filter(Boolean)
+    .filter(v => {
+      const key = v.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function normalizeExtraConfig(config) {
+  const cfg = config && typeof config === 'object' ? config : {};
+  const responsaveisAtendimento = Array.isArray(cfg.responsaveisAtendimento) ? cfg.responsaveisAtendimento.map(item => {
+    if (typeof item === 'string') {
+      const parts = item.split(/\s[-–—|/]\s|[-–—|/]/).map(v => v.trim()).filter(Boolean);
+      return { squad: parts[0] || '', nome: parts.slice(1).join(' - ') || '' };
+    }
+    return { squad: String(item?.squad || '').trim(), nome: String(item?.nome || item?.atendimento || '').trim() };
+  }).filter(item => item.squad && item.nome) : [];
+  const seenAtendimento = new Set();
+  return {
+    responsaveisSolicitantes: uniqCleanList(cfg.responsaveisSolicitantes),
+    squads: uniqCleanList(cfg.squads),
+    responsaveisAtendimento: responsaveisAtendimento.filter(item => {
+      const key = `${item.squad.toLowerCase()}|${item.nome.toLowerCase()}`;
+      if (seenAtendimento.has(key)) return false;
+      seenAtendimento.add(key);
+      return true;
+    })
+  };
+}
+
 function normalize(data) {
   const currentMonth = ymFromParts(getSaoPauloParts());
   const base = { ...DEFAULT_DATA, ...(data || {}) };
@@ -65,6 +106,7 @@ function normalize(data) {
   base.fechamentoMensal = base.fechamentoMensal && typeof base.fechamentoMensal === 'object' ? base.fechamentoMensal : {};
   base.extrasAceitasCancelaveis = base.extrasAceitasCancelaveis && typeof base.extrasAceitasCancelaveis === 'object' ? base.extrasAceitasCancelaveis : {};
   base.userModes = base.userModes && typeof base.userModes === 'object' ? base.userModes : {};
+  base.extraConfig = normalizeExtraConfig(base.extraConfig);
   return base;
 }
 
