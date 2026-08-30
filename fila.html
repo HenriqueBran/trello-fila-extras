@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=106" />
+  <link rel="stylesheet" href="./style.css?v=108" />
 </head>
 <body>
   <div id="frameSizer" aria-hidden="true"></div>
@@ -127,7 +127,10 @@
 
   <div id="appDialog" class="dialogOverlay hide">
     <div class="dialogBox">
-      <div class="dialogTitle" id="dialogTitle">Aviso</div>
+      <div class="dialogHeader">
+        <div class="dialogTitle" id="dialogTitle">Aviso</div>
+        <button type="button" id="extraConfigTopBtn" class="btn extraConfigBtn dialogConfigBtn hide">Configurar</button>
+      </div>
       <div class="dialogText" id="dialogText"></div>
       <input id="dialogInput" class="dialogInput hide" />
       <textarea id="dialogTextarea" class="dialogTextarea hide"></textarea>
@@ -148,7 +151,7 @@
   <script src="https://p.trellocdn.com/power-up.min.js"></script>
   <script>
     const t = window.TrelloPowerUp.iframe();
-    const DEFAULT_DATA = { fila: [], extrasAtivas: [], historico: [], historicoMes: '', historicoArquivado: {}, fechamentoMensal: {}, extrasAceitasCancelaveis: {}, userModes: {} };
+    const DEFAULT_DATA = { fila: [], extrasAtivas: [], historico: [], historicoMes: '', historicoArquivado: {}, fechamentoMensal: {}, extrasAceitasCancelaveis: {}, userModes: {}, extraConfig: { responsaveisSolicitantes: [], squads: [], responsaveisAtendimento: [] } };
     let data = structuredClone(DEFAULT_DATA);
     let board = null;
     let member = null;
@@ -166,23 +169,67 @@
     const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
     const cleanUsername = (v) => String(v || '').trim().replace(/^@+/, '').toLowerCase();
     const currentUsername = () => cleanUsername(member?.username || '');
-    const EXTRA_RESPONSAVEL_OPTIONS = ['Danilo', 'Camille'];
-    const EXTRA_SQUAD_OPTIONS = ['AER', 'VIA', 'CLUBE', 'B2C', 'BANCOS', 'COB', 'MKT'];
-    const EXTRA_SQUAD_ROOT_OPTIONS = ['GOL', 'Smiles'];
-    const EXTRA_ATENDIMENTO_GRUPOS = {
-      GOL: [
-        { label: 'GOL', options: ['Juliana', 'Isabelle', 'Luana'] }
-      ],
-      Smiles: [
-        { label: 'AER', options: ['Fernanda Barzagui', 'Alex Mathias'] },
-        { label: 'VIA', options: ['Fernanda Queiroga', 'Ana Cestari'] },
-        { label: 'Clube | B2C', options: ['Victória Ieno'] },
-        { label: 'Bancos | Cob', options: ['Berg Rodrigues'] },
-        { label: 'MKT', options: ['Andreza Pereira'] },
-        { label: 'Noturno', options: ['Priscila Albuquerque'] },
-        { label: 'Rotativo', options: ['Micaely Mayara'] }
-      ]
+    const DEFAULT_EXTRA_CONFIG = {
+      responsaveisSolicitantes: [],
+      squads: [],
+      responsaveisAtendimento: []
     };
+    function uniqCleanList(list){
+      const seen = new Set();
+      return (Array.isArray(list) ? list : [])
+        .map(v => String(v || '').trim())
+        .filter(Boolean)
+        .filter(v => {
+          const key = v.toLowerCase();
+          if(seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    }
+    function normalizeExtraConfig(config){
+      const cfg = config && typeof config === 'object' ? config : {};
+      const responsaveisAtendimento = Array.isArray(cfg.responsaveisAtendimento) ? cfg.responsaveisAtendimento.map(item => {
+        if(typeof item === 'string'){
+          const parts = item.split(/\s[-–—|/]\s|[-–—|/]/).map(v => v.trim()).filter(Boolean);
+          return { squad: parts[0] || '', nome: parts.slice(1).join(' - ') || '' };
+        }
+        return { squad: String(item?.squad || '').trim(), nome: String(item?.nome || item?.atendimento || '').trim() };
+      }).filter(item => item.squad && item.nome) : [];
+      const seenAtendimento = new Set();
+      return {
+        responsaveisSolicitantes: uniqCleanList(cfg.responsaveisSolicitantes),
+        squads: uniqCleanList(cfg.squads),
+        responsaveisAtendimento: responsaveisAtendimento.filter(item => {
+          const key = `${item.squad.toLowerCase()}|${item.nome.toLowerCase()}`;
+          if(seenAtendimento.has(key)) return false;
+          seenAtendimento.add(key);
+          return true;
+        })
+      };
+    }
+    function getExtraConfig(){
+      return normalizeExtraConfig(data?.extraConfig);
+    }
+    function extraConfigIsComplete(){
+      const cfg = getExtraConfig();
+      return cfg.responsaveisSolicitantes.length && cfg.squads.length && cfg.responsaveisAtendimento.length;
+    }
+    function splitConfigLines(value){
+      return String(value || '').split(/\n|;/).map(v => v.trim()).filter(Boolean);
+    }
+    function atendimentoValue(item){
+      return `${item.squad} - ${item.nome}`;
+    }
+    function atendimentoGroupsFromConfig(){
+      const grouped = {};
+      getExtraConfig().responsaveisAtendimento.forEach(item => {
+        const label = item.squad || 'Atendimento';
+        if(!grouped[label]) grouped[label] = [];
+        grouped[label].push(atendimentoValue(item));
+      });
+      return Object.entries(grouped).map(([label, options]) => ({ label, options }));
+    }
+
     const toTime = (v) => { const t = new Date(v || '').getTime(); return Number.isFinite(t) ? t : null; };
     const isExtraStarted = (extra) => { const t = toTime(extra?.inicioAt); return t !== null && Date.now() >= t; };
     const canCancelExtra = (extra) => !isExtraStarted(extra);
@@ -330,13 +377,13 @@
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
     function categoryLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=106' : './smiles-logo.png?v=106';
+      const src = normalized === 'gol' ? './gol-logo.png?v=108' : './smiles-logo.png?v=108';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryLogoWrap"><img class="selectCategoryLogo selectCategoryLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
     function categoryTitleLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=106' : './smiles-logo.png?v=106';
+      const src = normalized === 'gol' ? './gol-logo.png?v=108' : './smiles-logo.png?v=108';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryTitleLogoWrap"><img class="selectCategoryTitleLogo selectCategoryTitleLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
@@ -350,6 +397,7 @@
       b.fechamentoMensal = b.fechamentoMensal && typeof b.fechamentoMensal === 'object' ? b.fechamentoMensal : {};
       b.extrasAceitasCancelaveis = b.extrasAceitasCancelaveis && typeof b.extrasAceitasCancelaveis === 'object' ? b.extrasAceitasCancelaveis : {};
       b.userModes = b.userModes && typeof b.userModes === 'object' ? b.userModes : {};
+      b.extraConfig = normalizeExtraConfig(b.extraConfig);
       return b;
     }
     function memberKey(){ return member?.id || member?.username || 'usuario'; }
@@ -962,16 +1010,104 @@
     }
     bindMemberSuggestions();
 
+
+    function openExtraConfigModal(){ return new Promise(resolve => {
+      const cfg = getExtraConfig();
+      const overlay = document.createElement('div');
+      overlay.className = 'extraConfigOverlay';
+      overlay.innerHTML = `
+        <div class="extraConfigBox" role="dialog" aria-modal="true" aria-labelledby="extraConfigTitle">
+          <div class="extraConfigHead">
+            <div>
+              <strong id="extraConfigTitle">Configurar Gerar extra</strong>
+              <span>As opções salvas serão usadas no modal de geração de extras.</span>
+            </div>
+            <button type="button" class="extraConfigClose" aria-label="Fechar">×</button>
+          </div>
+          <div class="extraConfigBody">
+            <label for="configSolicitantes">Responsável solicitante <span class="requiredMark">*</span></label>
+            <textarea id="configSolicitantes" class="dialogTextarea extraConfigTextarea" placeholder="Um nome por linha. Ex.:\nDanilo\nCamille">${escapeHtml(cfg.responsaveisSolicitantes.join('\n'))}</textarea>
+            <small class="muted">Adicione quantos nomes forem necessários, um por linha.</small>
+
+            <label for="configSquads">Squad <span class="requiredMark">*</span></label>
+            <textarea id="configSquads" class="dialogTextarea extraConfigTextarea" placeholder="Uma squad por linha. Ex.:\nAER\nVIA\nCLUBE">${escapeHtml(cfg.squads.join('\n'))}</textarea>
+            <small class="muted">Essas opções aparecem no campo Squad do modal Gerar extra.</small>
+
+            <label for="configAtendimentos">Responsável atendimento <span class="requiredMark">*</span></label>
+            <textarea id="configAtendimentos" class="dialogTextarea extraConfigTextarea extraConfigTextareaTall" placeholder="Use: Squad - Nome do atendimento. Ex.:\nAER - Fernanda Barzagui\nAER - Alex Mathias\nVIA - Fernanda Queiroga">${escapeHtml(cfg.responsaveisAtendimento.map(atendimentoValue).join('\n'))}</textarea>
+            <small class="muted">Informe a squad e o nome do atendimento na mesma linha.</small>
+            <div id="extraConfigError" class="fieldError hide"></div>
+          </div>
+          <div class="extraConfigActions">
+            <button type="button" class="btn ghostBack" data-config-cancel>Cancelar</button>
+            <button type="button" class="btn primary" data-config-save>Salvar configuração</button>
+          </div>
+        </div>`;
+
+      const close = (value=false) => {
+        overlay.remove();
+        setTimeout(() => t.sizeTo('#frameSizer'), 30);
+        resolve(value);
+      };
+      const showConfigError = (msg) => {
+        const el = overlay.querySelector('#extraConfigError');
+        el.textContent = msg;
+        el.classList.remove('hide');
+      };
+      overlay.querySelector('.extraConfigClose').onclick = () => close(false);
+      overlay.querySelector('[data-config-cancel]').onclick = () => close(false);
+      overlay.addEventListener('click', ev => { if(ev.target === overlay) close(false); });
+      overlay.querySelector('[data-config-save]').onclick = async () => {
+        const solicitantes = uniqCleanList(splitConfigLines(overlay.querySelector('#configSolicitantes').value));
+        const squads = uniqCleanList(splitConfigLines(overlay.querySelector('#configSquads').value));
+        const atendimentoLines = splitConfigLines(overlay.querySelector('#configAtendimentos').value);
+        const responsaveisAtendimento = [];
+        for(const line of atendimentoLines){
+          const parts = line.split(/\s[-–—|/]\s|[-–—|/]/).map(v => v.trim()).filter(Boolean);
+          if(parts.length < 2){
+            showConfigError('Em Responsável atendimento, use o formato: Squad - Nome do atendimento.');
+            return;
+          }
+          responsaveisAtendimento.push({ squad: parts[0], nome: parts.slice(1).join(' - ') });
+        }
+        if(!solicitantes.length){ showConfigError('Adicione pelo menos um responsável solicitante.'); return; }
+        if(!squads.length){ showConfigError('Adicione pelo menos uma squad.'); return; }
+        if(!responsaveisAtendimento.length){ showConfigError('Adicione pelo menos um responsável atendimento.'); return; }
+        data.extraConfig = normalizeExtraConfig({ responsaveisSolicitantes: solicitantes, squads, responsaveisAtendimento });
+        try{
+          await apiSave();
+          close(true);
+        }catch(e){
+          showConfigError('Não foi possível salvar a configuração. Confira a API/Vercel e tente novamente.');
+        }
+      };
+      document.body.appendChild(overlay);
+      setTimeout(() => overlay.querySelector('#configSolicitantes')?.focus(), 40);
+      t.sizeTo('#frameSizer');
+    }); }
+
     function extraDialog(){ return new Promise(resolve=>{
       $('appDialog').querySelector('.dialogBox').classList.add('extraDialogBox');
       $('dialogTitle').textContent = 'Gerar extra';
-      $('dialogText').textContent = 'Preencha os dados do extra individualmente.';
+      $('dialogText').textContent = 'Preencha os dados do extra e use Configurar para cadastrar responsáveis, squads e atendimentos.';
       $('dialogInput').classList.add('hide');
       $('dialogTextarea').classList.add('hide');
       $('extraQuantidade').value = '1';
       $('extraForm').classList.remove('hide');
       $('dialogCancel').classList.remove('hide');
       $('dialogCancel').onclick = () => close(null);
+      const topConfigBtn = $('extraConfigTopBtn');
+      if(topConfigBtn){
+        topConfigBtn.classList.remove('hide');
+        topConfigBtn.onclick = async () => {
+          readVisibleStep();
+          const changed = await openExtraConfigModal();
+          if(changed){
+            $('dialogText').textContent = 'Configuração salva. Continue preenchendo os dados do extra.';
+            renderExtraWizard();
+          }
+        };
+      }
 
       const splitDateTime = (value='') => {
         if(!value) return {date:'', time:''};
@@ -1122,19 +1258,17 @@
         });
       };
 
-      const getAtendimentoGroupsForSquad = (squad='') => {
-        return [...EXTRA_ATENDIMENTO_GRUPOS.GOL, ...EXTRA_ATENDIMENTO_GRUPOS.Smiles];
-      };
       const getSelectConfig = (wrap) => {
         const kind = wrap?.dataset?.selectKind || '';
+        const cfg = getExtraConfig();
         if(kind === 'responsavelSolicitante'){
-          return { placeholder: 'Responsável solicitante', groups: [{ label:'', options: EXTRA_RESPONSAVEL_OPTIONS }] };
+          return { placeholder: 'Responsável solicitante', groups: [{ label:'', options: cfg.responsaveisSolicitantes }] };
         }
         if(kind === 'squad'){
-          return { placeholder: 'Squad', mode: 'squad' };
+          return { placeholder: 'Squad', groups: [{ label:'', options: cfg.squads }] };
         }
         if(kind === 'responsavelAtendimento'){
-          return { placeholder: 'Responsável atendimento', mode: 'atendimento' };
+          return { placeholder: 'Responsável atendimento', groups: atendimentoGroupsFromConfig() };
         }
         return { placeholder: 'Selecionar', groups: [] };
       };
@@ -1143,6 +1277,11 @@
       const renderSimpleSelectList = (pop, hidden, label, groups, placeholder='Selecionar') => {
         const current = String(hidden?.value || '');
         const safeGroups = Array.isArray(groups) ? groups : [];
+        const totalOptions = safeGroups.reduce((acc, group) => acc + (Array.isArray(group?.options) ? group.options.length : 0), 0);
+        if(!totalOptions){
+          pop.innerHTML = '<div class="selectPickerList"><div class="selectEmptyState">Nenhuma opção configurada. Clique em Configurar no topo do modal.</div></div>';
+          return;
+        }
         pop.innerHTML = `
           <div class="selectPickerList">
             ${safeGroups.map(group => `
@@ -1446,8 +1585,11 @@
               <label for="extraQuantidade">Quantidade de extras <span class="requiredMark">*</span></label>
               <input id="extraQuantidade" class="dialogInput extraQuantityInput" type="number" min="1" step="1" max="50" value="${qtd}" />
             </div>
-            <span class="extraStepCounter">Extra ${currentExtraStep + 1} de ${qtd}</span>
+            <div class="extraWizardTopActions">
+              <span class="extraStepCounter">Extra ${currentExtraStep + 1} de ${qtd}</span>
+            </div>
           </div>
+          ${extraConfigIsComplete() ? '' : '<div class="extraConfigWarning">Configure os responsáveis, squads e atendimentos antes de gerar a extra.</div>'}
           <div class="extraStepProgress">${renderProgress(qtd)}</div>
           <div id="extraItems" class="extraItems">
             <div class="extraStepCard" data-extra-index="${currentExtraStep}">
@@ -1554,7 +1696,6 @@
           renderExtraWizard();
         };
         qtyInput.onchange = qtyInput.oninput;
-
         const desc = $('extraForm').querySelector('[data-extra-desc]');
         const counter = $('extraForm').querySelector('[data-char-counter]');
         desc.oninput = () => {
@@ -1670,6 +1811,10 @@
         const inicio = splitDateTime(item.inicioAt || '');
         const fim = splitDateTime(item.fimAt || '');
         const errors = [];
+        const cfg = getExtraConfig();
+        if(!cfg.responsaveisSolicitantes.length) errors.push({ field:'responsavelSolicitante', message:'Configure pelo menos um responsável solicitante.' });
+        if(!cfg.squads.length) errors.push({ field:'squad', message:'Configure pelo menos uma squad.' });
+        if(!cfg.responsaveisAtendimento.length) errors.push({ field:'responsavelAtendimento', message:'Configure pelo menos um responsável atendimento.' });
         if(!String(item.descricao || '').trim()) errors.push({ field:'desc', message:`Descrição do extra ${index + 1} é obrigatória.` });
         if(!inicio.date) errors.push({ field:'inicioDate', message:`Data de início do extra ${index + 1} é obrigatória.` });
         else if(isPastDateValue(inicio.date)) errors.push({ field:'inicioDate', message:`O dia de início do extra ${index + 1} não pode ser uma data passada.` });
@@ -1748,12 +1893,23 @@
       $('appDialog').classList.remove('hide');
       setTimeout(()=>$('extraForm')?.querySelector('[data-extra-desc]')?.focus(),60);
       t.sizeTo('#frameSizer');
-      function close(value){ $('appDialog').classList.add('hide'); $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox'); $('extraForm').classList.add('hide'); $('extraItems').innerHTML=''; resolve(value); setTimeout(()=>t.sizeTo('#frameSizer'),30); }
+      function close(value){
+        const topConfigBtn = $('extraConfigTopBtn');
+        if(topConfigBtn){ topConfigBtn.classList.add('hide'); topConfigBtn.onclick = null; }
+        $('appDialog').classList.add('hide');
+        $('appDialog').querySelector('.dialogBox').classList.remove('extraDialogBox');
+        $('extraForm').classList.add('hide');
+        $('extraItems').innerHTML='';
+        resolve(value);
+        setTimeout(()=>t.sizeTo('#frameSizer'),30);
+      }
     }); }
 
     function openDialog({title,text='',mode='info',initialValue='',required=false,requiredMessage='Campo obrigatório.',titleHelp=''}){ return new Promise(resolve=>{
       const box = $('appDialog').querySelector('.dialogBox');
       box.classList.remove('extraDialogBox');
+      const topConfigBtn = $('extraConfigTopBtn');
+      if(topConfigBtn){ topConfigBtn.classList.add('hide'); topConfigBtn.onclick = null; }
       if(titleHelp){
         $('dialogTitle').innerHTML = `<span>${escapeHtml(title || 'Aviso')}</span><span class="ctaHelpIcon dialogTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre ${escapeHtml(title || 'esta ação')}" data-tooltip="${escapeHtml(titleHelp)}">?</span>`;
       } else {

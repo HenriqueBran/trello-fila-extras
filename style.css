@@ -1880,3 +1880,35 @@ html,body{
   .extraConfigBox{width:calc(100vw - 20px);max-height:calc(100vh - 20px);padding:18px;}
   .extraConfigActions{bottom:-18px;}
 }
+
+
+.dialogHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:8px;
+}
+.dialogHeader .dialogTitle{
+  margin-bottom:0;
+  flex:1;
+  min-width:0;
+}
+.dialogConfigBtn{
+  flex:0 0 auto;
+  margin-top:0;
+  min-height:40px;
+  box-shadow:0 12px 24px rgba(255,50,100,.16);
+}
+.dialogBox.extraDialogBox .dialogHeader{
+  position:sticky;
+  top:-30px;
+  z-index:30;
+  background:var(--white);
+  padding-top:2px;
+  padding-bottom:8px;
+}
+@media(max-width:640px){
+  .dialogHeader{align-items:flex-start;}
+  .dialogConfigBtn{padding:10px 12px !important;font-size:12px;}
+}
