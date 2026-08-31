@@ -59,3 +59,10 @@ Se as APIs responderem JSON, o Power-Up está publicado corretamente.
 
 - CTA **Configurar** reposicionado no topo do modal **Gerar extra**, ao lado do título, para ficar sempre visível.
 - O botão abre o modal de configuração de responsáveis, squads e atendimentos.
+
+## Atualização v109
+
+- Modal Configurar Gerar extra reorganizado com campos dinâmicos.
+- Responsável solicitante usa campo individual com botão +.
+- Squad usa linha com Nome da Squad à esquerda e Nome do atendimento à direita.
+- Cada squad permite adicionar vários nomes de atendimento com botão +.

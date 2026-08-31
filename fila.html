@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=108" />
+  <link rel="stylesheet" href="./style.css?v=109" />
 </head>
 <body>
   <div id="frameSizer" aria-hidden="true"></div>
@@ -377,13 +377,13 @@
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
     function categoryLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=108' : './smiles-logo.png?v=108';
+      const src = normalized === 'gol' ? './gol-logo.png?v=109' : './smiles-logo.png?v=109';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryLogoWrap"><img class="selectCategoryLogo selectCategoryLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
     function categoryTitleLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=108' : './smiles-logo.png?v=108';
+      const src = normalized === 'gol' ? './gol-logo.png?v=109' : './smiles-logo.png?v=109';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryTitleLogoWrap"><img class="selectCategoryTitleLogo selectCategoryTitleLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
@@ -1015,34 +1015,68 @@
       const cfg = getExtraConfig();
       const overlay = document.createElement('div');
       overlay.className = 'extraConfigOverlay';
+
+      const groupedAtendimentos = (() => {
+        const map = new Map();
+        cfg.squads.forEach(squad => {
+          if(!map.has(squad.toLowerCase())) map.set(squad.toLowerCase(), { squad, atendimentos: [] });
+        });
+        cfg.responsaveisAtendimento.forEach(item => {
+          const squadName = String(item?.squad || '').trim();
+          const atendimento = String(item?.nome || '').trim();
+          if(!squadName) return;
+          const key = squadName.toLowerCase();
+          if(!map.has(key)) map.set(key, { squad: squadName, atendimentos: [] });
+          if(atendimento) map.get(key).atendimentos.push(atendimento);
+        });
+        const rows = Array.from(map.values()).map(row => ({
+          squad: row.squad,
+          atendimentos: row.atendimentos.length ? uniqCleanList(row.atendimentos) : ['']
+        }));
+        return rows.length ? rows : [{ squad: '', atendimentos: [''] }];
+      })();
+
       overlay.innerHTML = `
-        <div class="extraConfigBox" role="dialog" aria-modal="true" aria-labelledby="extraConfigTitle">
+        <div class="extraConfigBox extraConfigBoxStructured" role="dialog" aria-modal="true" aria-labelledby="extraConfigTitle">
           <div class="extraConfigHead">
             <div>
               <strong id="extraConfigTitle">Configurar Gerar extra</strong>
-              <span>As opções salvas serão usadas no modal de geração de extras.</span>
+              <span>Cadastre as opções que aparecerão no modal Gerar extra.</span>
             </div>
             <button type="button" class="extraConfigClose" aria-label="Fechar">×</button>
           </div>
-          <div class="extraConfigBody">
-            <label for="configSolicitantes">Responsável solicitante <span class="requiredMark">*</span></label>
-            <textarea id="configSolicitantes" class="dialogTextarea extraConfigTextarea" placeholder="Um nome por linha. Ex.:\nDanilo\nCamille">${escapeHtml(cfg.responsaveisSolicitantes.join('\n'))}</textarea>
-            <small class="muted">Adicione quantos nomes forem necessários, um por linha.</small>
 
-            <label for="configSquads">Squad <span class="requiredMark">*</span></label>
-            <textarea id="configSquads" class="dialogTextarea extraConfigTextarea" placeholder="Uma squad por linha. Ex.:\nAER\nVIA\nCLUBE">${escapeHtml(cfg.squads.join('\n'))}</textarea>
-            <small class="muted">Essas opções aparecem no campo Squad do modal Gerar extra.</small>
+          <div class="extraConfigBody extraConfigStructuredBody">
+            <div class="extraConfigSection">
+              <label>Responsável solicitante <span class="requiredMark">*</span></label>
+              <div id="configSolicitantesList" class="extraConfigDynamicList"></div>
+              <small class="muted">Use o botão + para adicionar mais responsáveis solicitantes.</small>
+            </div>
 
-            <label for="configAtendimentos">Responsável atendimento <span class="requiredMark">*</span></label>
-            <textarea id="configAtendimentos" class="dialogTextarea extraConfigTextarea extraConfigTextareaTall" placeholder="Use: Squad - Nome do atendimento. Ex.:\nAER - Fernanda Barzagui\nAER - Alex Mathias\nVIA - Fernanda Queiroga">${escapeHtml(cfg.responsaveisAtendimento.map(atendimentoValue).join('\n'))}</textarea>
-            <small class="muted">Informe a squad e o nome do atendimento na mesma linha.</small>
+            <div class="extraConfigSection">
+              <label>Squad <span class="requiredMark">*</span></label>
+              <div class="extraConfigSquadHeader">
+                <span>Nome da Squad</span>
+                <span>Nome do atendimento</span>
+              </div>
+              <div id="configSquadsList" class="extraConfigSquadsList"></div>
+              <button type="button" class="btn ghost extraConfigAddSquad" data-add-squad>+ Adicionar squad</button>
+              <small class="muted">Cada squad pode ter um ou mais nomes de atendimento.</small>
+            </div>
+
             <div id="extraConfigError" class="fieldError hide"></div>
           </div>
+
           <div class="extraConfigActions">
             <button type="button" class="btn ghostBack" data-config-cancel>Cancelar</button>
             <button type="button" class="btn primary" data-config-save>Salvar configuração</button>
           </div>
         </div>`;
+
+      const solicitantesList = overlay.querySelector('#configSolicitantesList');
+      const squadsList = overlay.querySelector('#configSquadsList');
+      let solicitantesState = cfg.responsaveisSolicitantes.length ? [...cfg.responsaveisSolicitantes] : [''];
+      let squadsState = groupedAtendimentos;
 
       const close = (value=false) => {
         overlay.remove();
@@ -1054,26 +1088,141 @@
         el.textContent = msg;
         el.classList.remove('hide');
       };
+      const clearConfigError = () => {
+        const el = overlay.querySelector('#extraConfigError');
+        el.textContent = '';
+        el.classList.add('hide');
+      };
+      const normalizeAtendimentosState = (rows) => rows.map(row => ({
+        squad: String(row?.squad || '').trim(),
+        atendimentos: (Array.isArray(row?.atendimentos) && row.atendimentos.length ? row.atendimentos : ['']).map(v => String(v || '').trim())
+      }));
+      const syncSolicitantesState = () => {
+        solicitantesState = Array.from(solicitantesList.querySelectorAll('[data-solicitante-input]')).map(input => input.value);
+      };
+      const syncSquadsState = () => {
+        squadsState = Array.from(squadsList.querySelectorAll('[data-squad-row]')).map(row => ({
+          squad: row.querySelector('[data-squad-name]')?.value || '',
+          atendimentos: Array.from(row.querySelectorAll('[data-atendimento-name]')).map(input => input.value)
+        }));
+      };
+      const renderSolicitantes = (focusLast=false) => {
+        solicitantesState = solicitantesState.length ? solicitantesState : [''];
+        solicitantesList.innerHTML = solicitantesState.map((nome, index) => `
+          <div class="extraConfigInputLine" data-solicitante-row>
+            <input class="dialogInput extraConfigTextInput" data-solicitante-input data-index="${index}" value="${escapeHtml(nome)}" placeholder="Nome do responsável solicitante" />
+            <button type="button" class="extraConfigMiniBtn" data-add-solicitante title="Adicionar responsável">+</button>
+            ${solicitantesState.length > 1 ? `<button type="button" class="extraConfigMiniBtn remove" data-remove-solicitante="${index}" title="Remover responsável">×</button>` : ''}
+          </div>`).join('');
+        if(focusLast) setTimeout(() => solicitantesList.querySelector('[data-solicitante-row]:last-child [data-solicitante-input]')?.focus(), 20);
+      };
+      const renderSquads = (focusTarget='') => {
+        squadsState = normalizeAtendimentosState(squadsState.length ? squadsState : [{ squad: '', atendimentos: [''] }]);
+        squadsList.innerHTML = squadsState.map((row, squadIndex) => {
+          const atendimentos = row.atendimentos.length ? row.atendimentos : [''];
+          return `
+            <div class="extraConfigSquadRow" data-squad-row data-squad-index="${squadIndex}">
+              <div class="extraConfigSquadNameCell">
+                <input class="dialogInput extraConfigTextInput" data-squad-name value="${escapeHtml(row.squad)}" placeholder="Nome da Squad" />
+              </div>
+              <div class="extraConfigAtendimentoCell">
+                ${atendimentos.map((nome, atendimentoIndex) => `
+                  <div class="extraConfigInputLine extraConfigAtendimentoLine">
+                    <input class="dialogInput extraConfigTextInput" data-atendimento-name data-atendimento-index="${atendimentoIndex}" value="${escapeHtml(nome)}" placeholder="Nome do atendimento" />
+                    <button type="button" class="extraConfigMiniBtn" data-add-atendimento="${squadIndex}" title="Adicionar atendimento">+</button>
+                    ${atendimentos.length > 1 ? `<button type="button" class="extraConfigMiniBtn remove" data-remove-atendimento="${squadIndex}:${atendimentoIndex}" title="Remover atendimento">×</button>` : ''}
+                  </div>`).join('')}
+              </div>
+              <button type="button" class="extraConfigMiniBtn remove extraConfigRemoveSquad" data-remove-squad="${squadIndex}" title="Remover squad">×</button>
+            </div>`;
+        }).join('');
+        if(focusTarget === 'squad'){
+          setTimeout(() => squadsList.querySelector('[data-squad-row]:last-child [data-squad-name]')?.focus(), 20);
+        }
+        if(focusTarget === 'atendimento'){
+          setTimeout(() => squadsList.querySelector('[data-squad-row]:last-child [data-atendimento-name]')?.focus(), 20);
+        }
+      };
+
+      solicitantesList.addEventListener('input', () => { syncSolicitantesState(); clearConfigError(); });
+      solicitantesList.addEventListener('click', ev => {
+        const addBtn = ev.target.closest('[data-add-solicitante]');
+        const removeBtn = ev.target.closest('[data-remove-solicitante]');
+        if(addBtn){
+          syncSolicitantesState();
+          solicitantesState.push('');
+          renderSolicitantes(true);
+          return;
+        }
+        if(removeBtn){
+          syncSolicitantesState();
+          const idx = Number(removeBtn.dataset.removeSolicitante);
+          solicitantesState.splice(idx, 1);
+          renderSolicitantes(false);
+        }
+      });
+      squadsList.addEventListener('input', () => { syncSquadsState(); clearConfigError(); });
+      squadsList.addEventListener('click', ev => {
+        const addAtendimento = ev.target.closest('[data-add-atendimento]');
+        const removeAtendimento = ev.target.closest('[data-remove-atendimento]');
+        const removeSquad = ev.target.closest('[data-remove-squad]');
+        if(addAtendimento){
+          syncSquadsState();
+          const squadIndex = Number(addAtendimento.dataset.addAtendimento);
+          if(squadsState[squadIndex]) squadsState[squadIndex].atendimentos.push('');
+          renderSquads('atendimento');
+          return;
+        }
+        if(removeAtendimento){
+          syncSquadsState();
+          const [squadIndex, atendimentoIndex] = String(removeAtendimento.dataset.removeAtendimento || '').split(':').map(Number);
+          if(squadsState[squadIndex]) squadsState[squadIndex].atendimentos.splice(atendimentoIndex, 1);
+          renderSquads(false);
+          return;
+        }
+        if(removeSquad){
+          syncSquadsState();
+          const idx = Number(removeSquad.dataset.removeSquad);
+          squadsState.splice(idx, 1);
+          renderSquads(false);
+        }
+      });
+      overlay.querySelector('[data-add-squad]').onclick = () => {
+        syncSquadsState();
+        squadsState.push({ squad: '', atendimentos: [''] });
+        renderSquads('squad');
+      };
+
       overlay.querySelector('.extraConfigClose').onclick = () => close(false);
       overlay.querySelector('[data-config-cancel]').onclick = () => close(false);
       overlay.addEventListener('click', ev => { if(ev.target === overlay) close(false); });
       overlay.querySelector('[data-config-save]').onclick = async () => {
-        const solicitantes = uniqCleanList(splitConfigLines(overlay.querySelector('#configSolicitantes').value));
-        const squads = uniqCleanList(splitConfigLines(overlay.querySelector('#configSquads').value));
-        const atendimentoLines = splitConfigLines(overlay.querySelector('#configAtendimentos').value);
+        syncSolicitantesState();
+        syncSquadsState();
+        const solicitantes = uniqCleanList(solicitantesState);
+        const normalizedSquads = normalizeAtendimentosState(squadsState);
         const responsaveisAtendimento = [];
-        for(const line of atendimentoLines){
-          const parts = line.split(/\s[-–—|/]\s|[-–—|/]/).map(v => v.trim()).filter(Boolean);
-          if(parts.length < 2){
-            showConfigError('Em Responsável atendimento, use o formato: Squad - Nome do atendimento.');
+        const squads = [];
+        for(const row of normalizedSquads){
+          const squadName = String(row.squad || '').trim();
+          const atendimentos = uniqCleanList(row.atendimentos);
+          if(!squadName && atendimentos.length){
+            showConfigError('Informe o nome da squad para todos os atendimentos cadastrados.');
             return;
           }
-          responsaveisAtendimento.push({ squad: parts[0], nome: parts.slice(1).join(' - ') });
+          if(squadName){
+            squads.push(squadName);
+            atendimentos.forEach(nome => responsaveisAtendimento.push({ squad: squadName, nome }));
+          }
         }
         if(!solicitantes.length){ showConfigError('Adicione pelo menos um responsável solicitante.'); return; }
-        if(!squads.length){ showConfigError('Adicione pelo menos uma squad.'); return; }
-        if(!responsaveisAtendimento.length){ showConfigError('Adicione pelo menos um responsável atendimento.'); return; }
-        data.extraConfig = normalizeExtraConfig({ responsaveisSolicitantes: solicitantes, squads, responsaveisAtendimento });
+        if(!uniqCleanList(squads).length){ showConfigError('Adicione pelo menos uma squad.'); return; }
+        if(!responsaveisAtendimento.length){ showConfigError('Adicione pelo menos um nome de atendimento.'); return; }
+        data.extraConfig = normalizeExtraConfig({
+          responsaveisSolicitantes: solicitantes,
+          squads: uniqCleanList(squads),
+          responsaveisAtendimento
+        });
         try{
           await apiSave();
           close(true);
@@ -1081,8 +1230,11 @@
           showConfigError('Não foi possível salvar a configuração. Confira a API/Vercel e tente novamente.');
         }
       };
+
       document.body.appendChild(overlay);
-      setTimeout(() => overlay.querySelector('#configSolicitantes')?.focus(), 40);
+      renderSolicitantes(false);
+      renderSquads(false);
+      setTimeout(() => overlay.querySelector('[data-solicitante-input]')?.focus(), 40);
       t.sizeTo('#frameSizer');
     }); }
 
