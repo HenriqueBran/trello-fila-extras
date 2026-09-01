@@ -792,9 +792,9 @@
       $(target).innerHTML = items.slice(start, start + histPageSize).map(h => {
         const extraSnapshot = h.extraSnapshot || h.extra || (h.inicioAt ? h : null);
         const pendingExtra = isCoord && (h.acao === 'EXTRA GERADA' || h.acao === 'EXTRA REDIRECIONADA') ? (data.extrasAtivas.find(e => e.id === h.extraId) || extraSnapshot) : null;
-        const acceptedExtra = isCoord && h.acao === 'EXTRA ACEITA' ? (data.extrasAceitasCancelaveis[h.extraId] || extraSnapshot) : null;
+        const acceptedExtraCurrent = isCoord && h.acao === 'EXTRA ACEITA' ? data.extrasAceitasCancelaveis[h.extraId] : null;
         const pending = pendingExtra && data.extrasAtivas.some(e => e.id === h.extraId) && canCancelExtra(pendingExtra);
-        const accepted = acceptedExtra && canCancelExtra(acceptedExtra);
+        const accepted = acceptedExtraCurrent && canCancelExtra(acceptedExtraCurrent);
         const hasDetails = !!(h.extraId && (extraSnapshot || data.extrasAtivas.some(e => e.id === h.extraId) || data.extrasAceitasCancelaveis[h.extraId]));
         const showPublicDetails = !isCoord && (h.acao === 'EXTRA ACEITA' || h.acao === 'EXTRA RECUSADA') && hasDetails;
         const showCoordDetails = isCoord && hasDetails;
