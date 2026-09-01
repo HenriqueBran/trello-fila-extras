@@ -1073,8 +1073,8 @@
         <div class="extraConfigBox" role="dialog" aria-modal="true" aria-labelledby="extraConfigTitle">
           <div class="extraConfigHead">
             <div>
-              <strong id="extraConfigTitle">Configurar Gerar extra</strong>
-              <span>As opções salvas serão usadas no modal de geração de extras.</span>
+              <strong id="extraConfigTitle">Configurações do fluxo de extras</strong>
+              <span>Defina responsáveis, squads e atendimentos usados na geração de extras.</span>
             </div>
             <button type="button" class="extraConfigClose" aria-label="Fechar">×</button>
           </div>
@@ -1095,7 +1095,10 @@
               <div class="extraConfigSquadList" data-config-squads-list>
                 ${initialSquads.map((item, index) => squadRowHtml(item, index > 0)).join('')}
               </div>
-              <button type="button" class="extraConfigAddSquad" data-add-squad>+ Adicionar Squad</button>
+              <div class="extraConfigManagementRow">
+                <button type="button" class="extraConfigAddSquad" data-add-squad>+ Adicionar Squad</button>
+                <button type="button" class="extraConfigClearBtn" data-clear-config>Limpar configurações</button>
+              </div>
             </div>
 
             <div id="extraConfigError" class="fieldError hide"></div>
@@ -1122,7 +1125,6 @@
         el.textContent = msg;
         el.classList.remove('hide');
         targets.filter(Boolean).forEach(target => target.classList.add('inputError'));
-        targets.find(Boolean)?.focus();
       };
       const refreshSolicitanteButtons = () => {
         const rows = [...overlay.querySelectorAll('[data-config-solicitante-row]')];
@@ -1188,14 +1190,51 @@
       };
       overlay.querySelector('.extraConfigClose').onclick = cancelConfig;
       overlay.querySelector('[data-config-cancel]').onclick = cancelConfig;
-      overlay.addEventListener('click', ev => {
+
+      overlay.addEventListener('pointerdown', ev => {
+        if(!ev.target.closest('.extraConfigInput') && document.activeElement?.classList?.contains('extraConfigInput')){
+          document.activeElement.blur();
+        }
+      });
+
+      overlay.addEventListener('click', async ev => {
         if(ev.target === overlay){ cancelConfig(); return; }
+        if(ev.target.closest('[data-clear-config]')){
+          clearConfigErrors();
+          overlay.classList.add('hide');
+          $('dialogCancel').textContent = 'Cancelar';
+          $('dialogOk').textContent = 'Sim, limpar tudo';
+          const confirmed = await confirmDialog(
+            'Limpar todas as configurações?',
+            'Todos os responsáveis solicitantes, Squads e nomes de atendimento serão apagados deste quadro. Deseja realmente continuar?'
+          );
+          $('dialogOk').textContent = 'OK';
+          $('dialogCancel').textContent = 'Cancelar';
+          if(!confirmed){
+            overlay.classList.remove('hide');
+            showCancelled('Limpeza cancelada. Nenhuma configuração foi apagada.');
+            return;
+          }
+          const previousExtraConfig = getExtraConfig();
+          try{
+            showLoading('Limpando configurações...', 'Estamos removendo as informações salvas deste quadro.');
+            data.extraConfig = normalizeExtraConfig(DEFAULT_EXTRA_CONFIG);
+            await apiSave();
+            close(true);
+            showSuccess('Todas as configurações foram apagadas com sucesso.');
+          }catch(e){
+            data.extraConfig = previousExtraConfig;
+            hideLoading();
+            overlay.classList.remove('hide');
+            showConfigError('Não foi possível limpar as configurações. Confira a API/Vercel e tente novamente.');
+          }
+          return;
+        }
         if(ev.target.closest('[data-add-solicitante]')){
           clearConfigErrors();
           const list = overlay.querySelector('[data-config-solicitantes-list]');
           list.insertAdjacentHTML('beforeend', solicitanteRowHtml('', true));
           refreshSolicitanteButtons();
-          list.lastElementChild?.querySelector('input')?.focus();
           return;
         }
         const removeSolicitante = ev.target.closest('[data-remove-solicitante]');
@@ -1212,7 +1251,6 @@
           const list = squadRow.querySelector('[data-config-atendimento-list]');
           list.insertAdjacentHTML('beforeend', atendimentoRowHtml('', true));
           refreshAttendanceButtons(squadRow);
-          list.lastElementChild?.querySelector('input')?.focus();
           return;
         }
         const removeAtendimento = ev.target.closest('[data-remove-atendimento]');
@@ -1228,7 +1266,6 @@
           const list = overlay.querySelector('[data-config-squads-list]');
           list.insertAdjacentHTML('beforeend', squadRowHtml({squad:'', atendimentos:['']}, true));
           refreshSquadRemoveButtons();
-          list.lastElementChild?.querySelector('[data-config-squad]')?.focus();
           return;
         }
         const removeSquad = ev.target.closest('[data-remove-squad]');
@@ -1279,7 +1316,6 @@
         }
       };
       document.body.appendChild(overlay);
-      setTimeout(() => overlay.querySelector('[data-config-solicitante]')?.focus(), 40);
       t.sizeTo('#frameSizer');
     }); }
 

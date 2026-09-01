@@ -2038,3 +2038,79 @@ html,body{
   .extraConfigSquadCell::before{content:'Nome da Squad';}
   .extraConfigAttendanceCell::before{content:'Nome do atendimento';}
 }
+
+/* v111 - refinamentos do modal de configurações */
+.extraConfigBox{
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden !important;
+}
+.extraConfigHead{
+  flex:0 0 auto;
+}
+.extraConfigBody{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-right:8px;
+  scrollbar-gutter:stable;
+}
+.extraConfigActions{
+  position:static !important;
+  flex:0 0 auto;
+  bottom:auto !important;
+  margin-top:14px;
+  padding-top:16px;
+  padding-bottom:0;
+  background:var(--white) !important;
+  border-top:1px solid var(--line);
+}
+.extraConfigManagementRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.extraConfigClearBtn{
+  margin-left:auto;
+  border:1px solid var(--magenta);
+  background:var(--magenta);
+  color:var(--white);
+  border-radius:14px;
+  padding:10px 14px;
+  font-size:13px;
+  line-height:1.2;
+  font-weight:900;
+  cursor:pointer;
+  box-shadow:0 9px 20px rgba(255,50,100,.18);
+  transition:transform .14s ease, filter .14s ease, box-shadow .14s ease;
+}
+.extraConfigClearBtn:hover{
+  transform:translateY(-1px);
+  filter:brightness(.98);
+}
+.extraConfigInput{
+  caret-color:auto;
+}
+.extraConfigInput:not(:focus){
+  caret-color:transparent;
+}
+@media (max-width:720px){
+  .extraConfigBox{
+    max-height:calc(100vh - 20px) !important;
+  }
+  .extraConfigBody{
+    padding-right:5px;
+  }
+  .extraConfigManagementRow{
+    align-items:stretch;
+  }
+  .extraConfigAddSquad,
+  .extraConfigClearBtn{
+    flex:1 1 180px;
+    text-align:center;
+  }
+}
