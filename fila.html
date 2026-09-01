@@ -229,6 +229,49 @@
       });
       return Object.entries(grouped).map(([label, options]) => ({ label, options }));
     }
+    function normalizeExtraMatchValue(value){
+      return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+    }
+    function isRotativoAtendimento(nome){
+      return normalizeExtraMatchValue(nome) === 'rotativo';
+    }
+    function atendimentoPertenceASquad(nome, squad){
+      const atendimento = normalizeExtraMatchValue(nome);
+      const squadNormalizada = normalizeExtraMatchValue(squad);
+      if(!atendimento || !squadNormalizada || isRotativoAtendimento(nome)) return true;
+      return getExtraConfig().responsaveisAtendimento.some(item =>
+        normalizeExtraMatchValue(item?.nome) === atendimento &&
+        normalizeExtraMatchValue(item?.squad) === squadNormalizada
+      );
+    }
+    function showAtendimentoSquadMismatchModal(squad, atendimento){
+      return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'atendimentoMismatchOverlay';
+        overlay.innerHTML = `
+          <div class="atendimentoMismatchBox" role="dialog" aria-modal="true" aria-labelledby="atendimentoMismatchTitle">
+            <div class="atendimentoMismatchIcon" aria-hidden="true">!</div>
+            <strong id="atendimentoMismatchTitle">Atendimento não disponível para esta Squad</strong>
+            <p>Não é possível selecionar <b>${escapeHtml(atendimento || 'este atendimento')}</b>, pois ele não está vinculado à Squad <b>${escapeHtml(squad || 'selecionada')}</b>.</p>
+            <p class="atendimentoMismatchHint">Selecione um atendimento vinculado à Squad escolhida. <b>Rotativo</b> é a exceção e pode atender todas as Squads.</p>
+            <div class="atendimentoMismatchActions">
+              <button type="button" class="btn primary" data-mismatch-close>Entendi</button>
+            </div>
+          </div>`;
+        const close = () => {
+          overlay.remove();
+          resolve(true);
+        };
+        overlay.querySelector('[data-mismatch-close]').onclick = close;
+        overlay.addEventListener('click', ev => { if(ev.target === overlay) close(); });
+        document.body.appendChild(overlay);
+        overlay.querySelector('[data-mismatch-close]')?.focus();
+      });
+    }
 
     const toTime = (v) => { const t = new Date(v || '').getTime(); return Number.isFinite(t) ? t : null; };
     const isExtraStarted = (extra) => { const t = toTime(extra?.inicioAt); return t !== null && Date.now() >= t; };
@@ -1097,7 +1140,7 @@
               </div>
               <div class="extraConfigManagementRow">
                 <button type="button" class="extraConfigAddSquad" data-add-squad>+ Adicionar Squad</button>
-                <button type="button" class="extraConfigClearBtn" data-clear-config>Limpar configurações</button>
+                <button type="button" class="btn extraConfigBtn dialogConfigBtn extraConfigClearBtn" data-clear-config>Limpar configurações</button>
               </div>
             </div>
 
@@ -1952,11 +1995,31 @@
         $('extraForm').querySelector('[data-extra-responsavel-solicitante]')?.addEventListener('change', () => {
           if($('extraForm').querySelector('[data-extra-responsavel-solicitante]')?.value) clearExtraFieldError('responsavelSolicitante');
         });
-        $('extraForm').querySelector('[data-extra-squad]')?.addEventListener('change', () => {
-          if($('extraForm').querySelector('[data-extra-squad]')?.value) clearExtraFieldError('squad');
+        const squadField = $('extraForm').querySelector('[data-extra-squad]');
+        const atendimentoField = $('extraForm').querySelector('[data-extra-responsavel-atendimento]');
+        const resetAtendimentoSelecionado = () => {
+          if(!atendimentoField) return;
+          atendimentoField.value = '';
+          const atendimentoLabel = atendimentoField.closest('.customPickerWrap')?.querySelector('[data-select-button] span');
+          if(atendimentoLabel) atendimentoLabel.textContent = 'Selecionar atendimento';
+          readVisibleStep();
+        };
+        const validarVinculoAtendimento = async () => {
+          const squadSelecionada = String(squadField?.value || '').trim();
+          const atendimentoSelecionado = String(atendimentoField?.value || '').trim();
+          if(!squadSelecionada || !atendimentoSelecionado || atendimentoPertenceASquad(atendimentoSelecionado, squadSelecionada)) return true;
+          resetAtendimentoSelecionado();
+          closePickers($('extraForm'));
+          await showAtendimentoSquadMismatchModal(squadSelecionada, atendimentoSelecionado);
+          return false;
+        };
+        squadField?.addEventListener('change', async () => {
+          if(squadField.value) clearExtraFieldError('squad');
+          await validarVinculoAtendimento();
         });
-        $('extraForm').querySelector('[data-extra-responsavel-atendimento]')?.addEventListener('change', () => {
-          if($('extraForm').querySelector('[data-extra-responsavel-atendimento]')?.value) clearExtraFieldError('responsavelAtendimento');
+        atendimentoField?.addEventListener('change', async () => {
+          if(!(await validarVinculoAtendimento())) return;
+          if(atendimentoField.value) clearExtraFieldError('responsavelAtendimento');
         });
 
         setupCustomDateTimePickers($('extraForm'));
@@ -2064,6 +2127,9 @@
         if(!String(item.responsavelSolicitante || '').trim()) errors.push({ field:'responsavelSolicitante', message:`Responsável solicitante do extra ${index + 1} é obrigatório.` });
         if(!String(item.squad || '').trim()) errors.push({ field:'squad', message:`Squad do extra ${index + 1} é obrigatória.` });
         if(!String(item.responsavelAtendimento || '').trim()) errors.push({ field:'responsavelAtendimento', message:`Responsável atendimento do extra ${index + 1} é obrigatório.` });
+        if(String(item.squad || '').trim() && String(item.responsavelAtendimento || '').trim() && !atendimentoPertenceASquad(item.responsavelAtendimento, item.squad)) {
+          errors.push({ field:'responsavelAtendimento', message:`O atendimento selecionado não pertence à Squad do extra ${index + 1}.` });
+        }
         if(!errors.length && new Date(item.fimAt).getTime() <= new Date(item.inicioAt).getTime()) {
           errors.push({ field:'fimTime', message:`O fim do extra ${index + 1} precisa ser depois do início.` });
         }
@@ -2081,11 +2147,21 @@
         close(null);
       };
 
-      $('dialogOk').onclick = () => {
+      $('dialogOk').onclick = async () => {
         readVisibleStep();
         const qtd = quantidadeAtual();
         if(!Number.isInteger(qtd) || qtd < 1){ showExtraFieldErrors([{ field:'qtd', message:'Quantidade obrigatória.' }]); return; }
         if(qtd > data.fila.length){ showExtraFieldErrors([{ field:'qtd', message:`Você solicitou ${qtd} extras, mas há apenas ${data.fila.length} pessoa(s) na fila.` }]); return; }
+
+        const currentItem = extraDrafts[currentExtraStep] || {};
+        if(String(currentItem.squad || '').trim() && String(currentItem.responsavelAtendimento || '').trim() && !atendimentoPertenceASquad(currentItem.responsavelAtendimento, currentItem.squad)){
+          const atendimentoInvalido = currentItem.responsavelAtendimento;
+          const squadSelecionada = currentItem.squad;
+          currentItem.responsavelAtendimento = '';
+          renderExtraWizard();
+          await showAtendimentoSquadMismatchModal(squadSelecionada, atendimentoInvalido);
+          return;
+        }
 
         const currentErrors = validateStepAll(currentExtraStep);
         if(currentErrors.length){
@@ -2102,6 +2178,16 @@
 
         const itens = [];
         for(let i=0;i<qtd;i++){
+          const itemValidar = extraDrafts[i] || {};
+          if(String(itemValidar.squad || '').trim() && String(itemValidar.responsavelAtendimento || '').trim() && !atendimentoPertenceASquad(itemValidar.responsavelAtendimento, itemValidar.squad)){
+            const atendimentoInvalido = itemValidar.responsavelAtendimento;
+            const squadSelecionada = itemValidar.squad;
+            itemValidar.responsavelAtendimento = '';
+            currentExtraStep = i;
+            renderExtraWizard();
+            await showAtendimentoSquadMismatchModal(squadSelecionada, atendimentoInvalido);
+            return;
+          }
           const errs = validateStepAll(i);
           if(errs.length){
             currentExtraStep = i;

@@ -2131,3 +2131,79 @@ html,body{
     text-align:center;
   }
 }
+
+/* v115 - vínculo Squad x atendimento e CTA limpar padronizado */
+.extraConfigClearBtn{
+  margin-left:auto !important;
+  min-height:40px;
+  cursor:pointer;
+  box-shadow:0 12px 24px rgba(255,50,100,.16) !important;
+  transition:none !important;
+}
+.extraConfigClearBtn:hover{
+  transform:none !important;
+  filter:none !important;
+}
+.atendimentoMismatchOverlay{
+  position:fixed;
+  inset:0;
+  z-index:14000;
+  background:rgba(0,0,0,.64);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+.atendimentoMismatchBox{
+  width:min(500px, calc(100vw - 28px));
+  box-sizing:border-box;
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:24px;
+  box-shadow:0 28px 90px rgba(0,0,0,.36);
+  padding:26px;
+}
+.atendimentoMismatchIcon{
+  width:42px;
+  height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  margin-bottom:14px;
+  background:var(--magenta-soft);
+  color:var(--magenta);
+  font-size:24px;
+  line-height:1;
+  font-weight:900;
+}
+.atendimentoMismatchBox > strong{
+  display:block;
+  color:var(--black);
+  font-size:22px;
+  line-height:1.2;
+  font-weight:900;
+  margin-bottom:12px;
+}
+.atendimentoMismatchBox p{
+  margin:0;
+  color:#2c3440;
+  font-size:14px;
+  line-height:1.55;
+}
+.atendimentoMismatchBox p + p{
+  margin-top:10px;
+}
+.atendimentoMismatchHint{
+  color:var(--muted) !important;
+}
+.atendimentoMismatchActions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:20px;
+}
+@media(max-width:640px){
+  .atendimentoMismatchOverlay{padding:10px;}
+  .atendimentoMismatchBox{padding:20px;}
+  .atendimentoMismatchActions .btn{width:100%;}
+}
