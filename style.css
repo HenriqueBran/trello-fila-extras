@@ -231,6 +231,7 @@ input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:v
 .hist.ok{border-left-color:var(--blue)}.hist.danger{border-left-color:var(--magenta)}.hist.warn{border-left-color:var(--gray)}.hist.neutral{border-left-color:#cbd5e1}
 .hist b{display:block;margin-bottom:5px;font-weight:900;color:var(--black);letter-spacing:.02em}.hist span{display:block;color:#2c3440}.hist small{display:block;color:var(--muted);margin-top:5px}.miniAction{padding:10px 14px;white-space:nowrap}
 .histActions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.histActionsCoord{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px}
 .historyDetailsBtn{appearance:none;border:0;background:#6b7280;padding:8px 14px;border-radius:999px;color:#fff;font:inherit;font-size:12px;font-weight:700;line-height:1;white-space:nowrap;cursor:pointer;box-shadow:none;display:inline-flex;align-items:center;justify-content:center;min-height:30px;margin:0;vertical-align:middle;transition:transform .18s ease,opacity .18s ease,box-shadow .18s ease}
 .historyDetailsBtn:hover{background:#6b7280;color:#fff;transform:translateY(-1px);opacity:.9;box-shadow:0 4px 10px rgba(31,41,55,.14)}
 .historyDetailsBtn:focus-visible{outline:2px solid #6b7280;outline-offset:3px}
@@ -2204,4 +2205,4 @@ html,body{
   .atendimentoMismatchActions .btn{width:100%;}
 }
 
-@media(max-width:800px){.histActions{justify-content:flex-start;margin-top:10px}.historyDetailsBtn{margin-top:0}}
+@media(max-width:800px){.histActions{justify-content:flex-start;margin-top:10px}.histActionsCoord{align-items:flex-start}.historyDetailsBtn{margin-top:0}}
