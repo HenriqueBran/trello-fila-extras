@@ -1115,6 +1115,9 @@ body{
   font-size:24px;
   font-weight:900;
 }
+.successIcon.cancelled{
+  background:var(--magenta, #FF3264);
+}
 .successBox strong{
   color:var(--black);
   font-size:17px;

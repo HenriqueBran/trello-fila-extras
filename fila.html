@@ -118,8 +118,8 @@
 
   <div id="successOverlay" class="successOverlay hide">
     <div class="successBox">
-      <div class="successIcon">✓</div>
-      <strong>Ação feita com sucesso</strong>
+      <div id="successIcon" class="successIcon">✓</div>
+      <strong id="successTitle">Ação feita com sucesso</strong>
       <span id="successText">Alteração salva no sistema.</span>
       <button type="button" id="successCloseBtn" class="btn primary">Fechar</button>
     </div>
@@ -218,7 +218,7 @@
       return String(value || '').split(/\n|;/).map(v => v.trim()).filter(Boolean);
     }
     function atendimentoValue(item){
-      return `${item.squad} - ${item.nome}`;
+      return String(item?.nome || '').trim();
     }
     function atendimentoGroupsFromConfig(){
       const grouped = {};
@@ -457,13 +457,26 @@
       overlay.classList.add('hide');
       try { t.sizeTo('#frameSizer'); } catch(_) {}
     }
-    function showSuccess(text='Alteração salva no sistema.'){
+    function showActionFeedback({title='Ação feita com sucesso', text='Alteração salva no sistema.', type='success'}={}){
       hideLoading();
       const overlay = $('successOverlay');
       if(!overlay) return;
+      const icon = $('successIcon');
+      const titleEl = $('successTitle');
+      if(icon){
+        icon.textContent = type === 'cancelled' ? '×' : '✓';
+        icon.classList.toggle('cancelled', type === 'cancelled');
+      }
+      if(titleEl) titleEl.textContent = title;
       $('successText').textContent = text;
       overlay.classList.remove('hide');
       try { t.sizeTo('#frameSizer'); } catch(_) {}
+    }
+    function showSuccess(text='Alteração salva no sistema.'){
+      showActionFeedback({title:'Ação feita com sucesso', text, type:'success'});
+    }
+    function showCancelled(text='A ação foi cancelada.'){
+      showActionFeedback({title:'Ação cancelada', text, type:'cancelled'});
     }
     function hideSuccess(){
       const overlay = $('successOverlay');
@@ -1169,10 +1182,14 @@
         });
       };
 
-      overlay.querySelector('.extraConfigClose').onclick = () => close(false);
-      overlay.querySelector('[data-config-cancel]').onclick = () => close(false);
+      const cancelConfig = () => {
+        close(false);
+        showCancelled('Configuração cancelada. Nenhuma alteração foi salva.');
+      };
+      overlay.querySelector('.extraConfigClose').onclick = cancelConfig;
+      overlay.querySelector('[data-config-cancel]').onclick = cancelConfig;
       overlay.addEventListener('click', ev => {
-        if(ev.target === overlay){ close(false); return; }
+        if(ev.target === overlay){ cancelConfig(); return; }
         if(ev.target.closest('[data-add-solicitante]')){
           clearConfigErrors();
           const list = overlay.querySelector('[data-config-solicitantes-list]');
@@ -1256,6 +1273,7 @@
         try{
           await apiSave();
           close(true);
+          showSuccess('Configuração salva com sucesso.');
         }catch(e){
           showConfigError('Não foi possível salvar a configuração. Confira a API/Vercel e tente novamente.');
         }
