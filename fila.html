@@ -705,8 +705,8 @@
               </div>
               <span class="memberIndividualBadge">${badgeStatus}</span>
             </div>
-            <div class="memberIndividualFooter">
-              <p>${escapeHtml(statusVez)}</p>
+            <div class="memberIndividualFooter ${minhasExtras.length > 0 ? 'hasPendingExtra' : ''}">
+              ${minhasExtras.length > 0 ? '' : `<p>${escapeHtml(statusVez)}</p>`}
               <p class="${extraStatusClass}">${escapeHtml(extraStatus)}</p>
             </div>
           </div>`;

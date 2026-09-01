@@ -1746,20 +1746,27 @@ html,body{
 }
 
 
+.memberIndividualFooter.hasPendingExtra{
+  grid-template-columns:1fr;
+}
 .memberIndividualFooter p.memberIndividualExtraAvailable{
+  grid-column:1 / -1;
+  width:100%;
+  min-height:44px;
   display:flex;
   align-items:center;
   justify-content:center;
   text-align:center;
   background:var(--magenta);
   color:var(--white);
-  font-weight:800;
-  box-shadow:0 12px 28px rgba(255,50,100,.22);
-  animation:memberExtraPulse 1.8s ease-in-out infinite;
+  font-weight:900;
+  box-shadow:0 12px 30px rgba(255,50,100,.34);
+  animation:memberExtraPulse 1.05s ease-in-out infinite;
+  transform-origin:center;
 }
 @keyframes memberExtraPulse{
-  0%,100%{opacity:1;transform:scale(1);box-shadow:0 12px 28px rgba(255,50,100,.22)}
-  50%{opacity:.86;transform:scale(.992);box-shadow:0 8px 20px rgba(255,50,100,.16)}
+  0%,100%{opacity:1;transform:scale(1);box-shadow:0 12px 30px rgba(255,50,100,.34);filter:brightness(1)}
+  50%{opacity:.76;transform:scale(1.012);box-shadow:0 16px 38px rgba(255,50,100,.52);filter:brightness(1.08)}
 }
 @media (prefers-reduced-motion:reduce){
   .memberIndividualFooter p.memberIndividualExtraAvailable{animation:none}
