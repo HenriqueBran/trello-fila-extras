@@ -290,6 +290,7 @@
     function extraResponsaveisHtml(extra){
       const rows = [];
       if(extra?.responsavelSolicitante) rows.push(`<p><b>Responsável solicitante:</b> ${escapeHtml(extra.responsavelSolicitante)}</p>`);
+      rows.push(`<p><b>Código OS:</b> ${escapeHtml(extra?.codigoOs || '')}</p>`);
       if(extra?.squad) rows.push(`<p><b>Squad:</b> ${escapeHtml(extra.squad)}</p>`);
       if(extra?.responsavelAtendimento) rows.push(`<p><b>Responsável atendimento:</b> ${escapeHtml(extra.responsavelAtendimento)}</p>`);
       return rows.join('');
@@ -297,6 +298,7 @@
     function extraResponsaveisTexto(extra){
       const parts = [];
       if(extra?.responsavelSolicitante) parts.push(`Responsável solicitante: ${extra.responsavelSolicitante}`);
+      parts.push(`Código OS: ${extra?.codigoOs || ''}`);
       if(extra?.squad) parts.push(`Squad: ${extra.squad}`);
       if(extra?.responsavelAtendimento) parts.push(`Responsável atendimento: ${extra.responsavelAtendimento}`);
       return parts.length ? ` ${parts.join(' • ')}.` : '';
@@ -468,6 +470,7 @@
               inicioAt: extra.inicioAt,
               fimAt: extra.fimAt,
               responsavelSolicitante: extra.responsavelSolicitante,
+              codigoOs: extra.codigoOs || '',
               squad: extra.squad,
               responsavelAtendimento: extra.responsavelAtendimento
             }
@@ -863,6 +866,7 @@
           inicioAt: item.inicioAt,
           fimAt: item.fimAt,
           responsavelSolicitante: item.responsavelSolicitante,
+          codigoOs: '',
           squad: item.squad,
           responsavelAtendimento: item.responsavelAtendimento,
           status:'AGUARDANDO',
