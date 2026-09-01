@@ -816,8 +816,10 @@
         const acceptedExtra = isCoord && h.acao === 'EXTRA ACEITA' ? (data.extrasAceitasCancelaveis[h.extraId] || extraSnapshot) : null;
         const pending = pendingExtra && data.extrasAtivas.some(e => e.id === h.extraId) && canCancelExtra(pendingExtra);
         const accepted = acceptedExtra && canCancelExtra(acceptedExtra);
-        const showPublicDetails = !isCoord && (h.acao === 'EXTRA ACEITA' || h.acao === 'EXTRA RECUSADA');
-        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div><div class="histActions">${showPublicDetails ? `<button class="historyDetailsBtn" onclick="mostrarDetalhesHistoricoExtra('${h.id}')">Mais detalhes</button>` : ''}${pending ? `<button class="btn red miniAction" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}</div></div></div>`;
+        const hasDetails = !!(h.extraId && (extraSnapshot || data.extrasAtivas.some(e => e.id === h.extraId) || data.extrasAceitasCancelaveis[h.extraId]));
+        const showPublicDetails = !isCoord && (h.acao === 'EXTRA ACEITA' || h.acao === 'EXTRA RECUSADA') && hasDetails;
+        const showCoordDetails = isCoord && hasDetails;
+        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div><div class="histActions">${showPublicDetails || showCoordDetails ? `<button class="historyDetailsBtn" onclick="mostrarDetalhesHistoricoExtra('${h.id}')">Mais detalhes</button>` : ''}${pending ? `<button class="btn red miniAction" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}</div></div></div>`;
       }).join('') || '<p class="muted">Nenhuma ação registrada.</p>';
       pageButtons(pager, items.length, page, histPageSize, isCoord ? 'setHistCoordPage' : 'setHistMembroPage');
     }
