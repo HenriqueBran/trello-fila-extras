@@ -10,16 +10,14 @@
 <script src="https://p.trellocdn.com/power-up.min.js"></script>
 <script>
 const baseUrl = window.location.origin;
-const icon = baseUrl + '/icon.png?v=126';
+const icon = baseUrl + '/icon.png?v=127';
 
 async function coordenadorAutorizado(t){
   try{
-    const [board, member] = await Promise.all([t.board('id'), t.member('id')]);
-    if(!board?.id || !member?.id) return false;
-    const response = await fetch(`${baseUrl}/api/auth-coordenador?boardId=${encodeURIComponent(board.id)}&memberId=${encodeURIComponent(member.id)}&ts=${Date.now()}`);
-    if(!response.ok) return false;
-    const result = await response.json();
-    return result.autorizado === true;
+    const member = await t.member('id');
+    if(!member?.id) return false;
+    const autorizados = await t.get('board', 'shared', 'coordenadoresAutorizados', []);
+    return Array.isArray(autorizados) && autorizados.map(id => String(id || '').trim()).includes(String(member.id));
   }catch(e){
     return false;
   }
@@ -28,7 +26,7 @@ async function coordenadorAutorizado(t){
 const abrirPainel = function(t){
   return t.modal({
     title:'Fila de Extras - Coordenador',
-    url:'./fila.html?modo=coordenador&v=126',
+    url:'./fila.html?modo=coordenador&v=127',
     height:740,
     fullscreen:false,
     accentColor:'#111827'
@@ -47,7 +45,7 @@ window.TrelloPowerUp.initialize({
   'show-settings': function(t){
     return t.modal({
       title:'Gerenciar coordenadores',
-      url:'./gerenciar-coordenadores.html?v=126',
+      url:'./gerenciar-coordenadores.html?v=127',
       height:640,
       fullscreen:false,
       accentColor:'#111827'

@@ -105,16 +105,14 @@
         $('boardLabel').classList.remove('hide');
 
         if(isAdmin){
-          const response = await fetch(`/api/coordenadores?boardId=${encodeURIComponent(boardInfo.id)}&ts=${Date.now()}`);
-          if(!response.ok) throw new Error(await response.text());
-          const config = await response.json();
-          selected = new Set(Array.isArray(config.coordenadoresAutorizados) ? config.coordenadoresAutorizados : []);
+          const saved = await t.get('board', 'shared', 'coordenadoresAutorizados', []);
+          selected = new Set(Array.isArray(saved) ? saved.map(id => String(id || '').trim()).filter(Boolean) : []);
         }
         render();
         t.sizeTo('body');
       }catch(err){
         $('saveBtn').disabled = true;
-        $('errorBox').textContent = 'Não foi possível carregar os membros ou as permissões deste quadro.';
+        $('errorBox').textContent = 'Não foi possível carregar os membros deste quadro. Atualize o Trello e tente novamente.';
         $('errorBox').classList.remove('hide');
         t.sizeTo('body');
       }
@@ -125,16 +123,8 @@
       $('saveBtn').disabled = true;
       $('saveBtn').textContent = 'Salvando...';
       try{
-        const response = await fetch(`/api/coordenadores?boardId=${encodeURIComponent(board.id)}`, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({
-            adminId: currentMember.id,
-            adminConfirmado: true,
-            coordenadoresAutorizados: Array.from(selected)
-          })
-        });
-        if(!response.ok) throw new Error(await response.text());
+        if(!t.memberCanWriteToModel('board')) throw new Error('Sem permissão de escrita no quadro.');
+        await t.set('board', 'shared', 'coordenadoresAutorizados', Array.from(selected));
         $('feedbackTitle').textContent = 'Ação feita com sucesso';
         $('feedbackText').textContent = 'A lista de coordenadores deste quadro foi atualizada.';
         $('feedback').classList.remove('hide');
