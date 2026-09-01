@@ -10,33 +10,50 @@
 <script src="https://p.trellocdn.com/power-up.min.js"></script>
 <script>
 const baseUrl = window.location.origin;
-const icon = baseUrl + '/icon.png?v=121';
+const icon = baseUrl + '/icon.png?v=126';
+
+async function coordenadorAutorizado(t){
+  try{
+    const [board, member] = await Promise.all([t.board('id'), t.member('id')]);
+    if(!board?.id || !member?.id) return false;
+    const response = await fetch(`${baseUrl}/api/auth-coordenador?boardId=${encodeURIComponent(board.id)}&memberId=${encodeURIComponent(member.id)}&ts=${Date.now()}`);
+    if(!response.ok) return false;
+    const result = await response.json();
+    return result.autorizado === true;
+  }catch(e){
+    return false;
+  }
+}
+
 const abrirPainel = function(t){
   return t.modal({
     title:'Fila de Extras - Coordenador',
-    url:'./fila.html?modo=coordenador&v=121',
+    url:'./fila.html?modo=coordenador&v=126',
     height:740,
     fullscreen:false,
     accentColor:'#111827'
   });
 };
+
 window.TrelloPowerUp.initialize({
-  'board-buttons': function(t){
-    return [{ text:'Fila de Extras - Coordenador', icon, callback:abrirPainel, condition:'always' }];
+  'board-buttons': async function(t){
+    if(!(await coordenadorAutorizado(t))) return [];
+    return [{ text:'Fila de Extras - Coordenador', icon, callback:abrirPainel, condition:'signedIn' }];
   },
-  'card-buttons': function(t){
-    return [{ text:'Fila de Extras - Coordenador', icon, callback:abrirPainel, condition:'always' }];
+  'card-buttons': async function(t){
+    if(!(await coordenadorAutorizado(t))) return [];
+    return [{ text:'Fila de Extras - Coordenador', icon, callback:abrirPainel, condition:'signedIn' }];
   },
   'show-settings': function(t){
     return t.modal({
-      title:'Configurações - Fila de Extras - Coordenador',
-      url:'./fila.html?modo=coordenador&settings=1&v=121',
-      height:740,
+      title:'Gerenciar coordenadores',
+      url:'./gerenciar-coordenadores.html?v=126',
+      height:640,
       fullscreen:false,
       accentColor:'#111827'
     });
   },
-  'card-badges': function(t){ return []; }
+  'card-badges': function(){ return []; }
 }, { appKey:'fila-extras-coordenador' });
 </script>
 </body>

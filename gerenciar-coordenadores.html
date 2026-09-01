@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Gerenciar coordenadores</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+    :root{--black:#000;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--bg:#f6f7f9;--blue:#0050f2;--magenta:#ff3264;--white:#fff}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Montserrat,sans-serif;color:var(--ink)}button{font-family:inherit}
+    .wrap{padding:22px;max-width:760px;margin:0 auto}.card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 14px 42px rgba(0,0,0,.08)}
+    h1{margin:0 0 8px;font-size:24px;font-weight:900;color:#000}.subtitle{margin:0 0 20px;color:var(--muted);font-size:13px;line-height:1.55}.boardName{font-weight:800;color:#000}
+    .list{display:flex;flex-direction:column;gap:10px}.member{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:16px;padding:13px 14px;cursor:pointer;background:#fff;transition:.15s ease}.member:hover{border-color:#cbd5e1;background:#fafafa}.member.checked{border-color:#9db9ff;background:#f5f8ff}.member input{width:18px;height:18px;accent-color:var(--blue);flex:0 0 auto}.memberInfo{min-width:0}.memberInfo b{display:block;font-size:14px}.memberInfo small{display:block;margin-top:3px;color:var(--muted);font-size:12px}.adminBadge{margin-left:auto;background:#111827;color:#fff;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:800;white-space:nowrap}
+    .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.btn{border:0;border-radius:14px;padding:12px 16px;font-size:13px;font-weight:800;cursor:pointer}.btn.primary{background:var(--blue);color:#fff}.btn.dark{background:#000;color:#fff}.btn:disabled{opacity:.5;cursor:not-allowed}.empty,.error{border-radius:16px;padding:16px;font-size:13px;line-height:1.5}.empty{background:#f3f4f6;color:var(--muted)}.error{background:#fff0f4;color:#a41339;border:1px solid #ffc4d2}.hide{display:none!important}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}.modal{width:min(420px,100%);background:#fff;border-radius:22px;padding:24px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.24)}.modalIcon{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;margin:0 auto 12px;background:#eaf0ff;color:var(--blue);font-size:24px;font-weight:900}.modal h2{margin:0 0 8px;font-size:20px}.modal p{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.5}
+    @media(max-width:600px){.wrap{padding:14px}.actions{flex-direction:column-reverse}.actions .btn{width:100%}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Gerenciar coordenadores</h1>
+      <p class="subtitle">Selecione quais membros poderão visualizar e utilizar o <b>Fila de Extras - Coordenador</b> neste quadro. Essa autorização é exclusiva deste quadro.</p>
+      <p id="boardLabel" class="subtitle hide">Quadro: <span id="boardName" class="boardName"></span></p>
+      <div id="errorBox" class="error hide"></div>
+      <div id="membersList" class="list"></div>
+      <div class="actions">
+        <button id="cancelBtn" class="btn dark" type="button">Cancelar</button>
+        <button id="saveBtn" class="btn primary" type="button">Salvar coordenadores</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="feedback" class="overlay hide">
+    <div class="modal">
+      <div class="modalIcon">✓</div>
+      <h2 id="feedbackTitle">Ação feita com sucesso</h2>
+      <p id="feedbackText">Coordenadores atualizados para este quadro.</p>
+      <button id="feedbackClose" class="btn primary" type="button">Fechar</button>
+    </div>
+  </div>
+
+  <script src="https://p.trellocdn.com/power-up.min.js"></script>
+  <script>
+    const t = window.TrelloPowerUp.iframe();
+    let board = null;
+    let currentMember = null;
+    let members = [];
+    let memberships = [];
+    let isAdmin = false;
+    let selected = new Set();
+
+    const $ = id => document.getElementById(id);
+    const escapeHtml = value => String(value || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+
+    function membershipOf(memberId){
+      return memberships.find(m => String(m.idMember || '') === String(memberId || '')) || null;
+    }
+
+    function render(){
+      if(!isAdmin){
+        $('membersList').innerHTML = '';
+        $('saveBtn').disabled = true;
+        $('errorBox').textContent = 'Somente administradores deste quadro podem definir quem terá acesso ao modo Coordenador.';
+        $('errorBox').classList.remove('hide');
+        return;
+      }
+      $('errorBox').classList.add('hide');
+      $('saveBtn').disabled = false;
+      if(!members.length){
+        $('membersList').innerHTML = '<div class="empty">Nenhum membro foi encontrado neste quadro.</div>';
+        return;
+      }
+      $('membersList').innerHTML = members.map(member => {
+        const checked = selected.has(member.id);
+        const membership = membershipOf(member.id);
+        const admin = membership && membership.memberType === 'admin';
+        return `<label class="member ${checked ? 'checked' : ''}">
+          <input type="checkbox" data-id="${escapeHtml(member.id)}" ${checked ? 'checked' : ''}>
+          <span class="memberInfo"><b>${escapeHtml(member.fullName || member.username || 'Membro')}</b><small>@${escapeHtml(member.username || 'sem-usuario')}</small></span>
+          ${admin ? '<span class="adminBadge">ADMIN DO QUADRO</span>' : ''}
+        </label>`;
+      }).join('');
+      document.querySelectorAll('.member input').forEach(input => {
+        input.addEventListener('change', () => {
+          if(input.checked) selected.add(input.dataset.id); else selected.delete(input.dataset.id);
+          input.closest('.member')?.classList.toggle('checked', input.checked);
+        });
+      });
+    }
+
+    async function load(){
+      try{
+        const [boardInfo, me] = await Promise.all([
+          t.board('id','name','members','memberships'),
+          t.member('id','fullName','username')
+        ]);
+        board = boardInfo;
+        currentMember = me;
+        members = Array.isArray(boardInfo.members) ? boardInfo.members : [];
+        memberships = Array.isArray(boardInfo.memberships) ? boardInfo.memberships : [];
+        const myMembership = membershipOf(me.id);
+        isAdmin = !!myMembership && myMembership.memberType === 'admin' && !myMembership.deactivated;
+        $('boardName').textContent = boardInfo.name || boardInfo.id;
+        $('boardLabel').classList.remove('hide');
+
+        if(isAdmin){
+          const response = await fetch(`/api/coordenadores?boardId=${encodeURIComponent(boardInfo.id)}&ts=${Date.now()}`);
+          if(!response.ok) throw new Error(await response.text());
+          const config = await response.json();
+          selected = new Set(Array.isArray(config.coordenadoresAutorizados) ? config.coordenadoresAutorizados : []);
+        }
+        render();
+        t.sizeTo('body');
+      }catch(err){
+        $('saveBtn').disabled = true;
+        $('errorBox').textContent = 'Não foi possível carregar os membros ou as permissões deste quadro.';
+        $('errorBox').classList.remove('hide');
+        t.sizeTo('body');
+      }
+    }
+
+    async function save(){
+      if(!isAdmin || !board || !currentMember) return;
+      $('saveBtn').disabled = true;
+      $('saveBtn').textContent = 'Salvando...';
+      try{
+        const response = await fetch(`/api/coordenadores?boardId=${encodeURIComponent(board.id)}`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            adminId: currentMember.id,
+            adminConfirmado: true,
+            coordenadoresAutorizados: Array.from(selected)
+          })
+        });
+        if(!response.ok) throw new Error(await response.text());
+        $('feedbackTitle').textContent = 'Ação feita com sucesso';
+        $('feedbackText').textContent = 'A lista de coordenadores deste quadro foi atualizada.';
+        $('feedback').classList.remove('hide');
+      }catch(err){
+        $('feedbackTitle').textContent = 'Não foi possível salvar';
+        $('feedbackText').textContent = 'Ocorreu um erro ao atualizar os coordenadores. Tente novamente.';
+        $('feedback').classList.remove('hide');
+      }finally{
+        $('saveBtn').disabled = false;
+        $('saveBtn').textContent = 'Salvar coordenadores';
+      }
+    }
+
+    $('saveBtn').addEventListener('click', save);
+    $('cancelBtn').addEventListener('click', () => t.closeModal());
+    $('feedbackClose').addEventListener('click', async () => {
+      $('feedback').classList.add('hide');
+      try { await t.closeModal(); } catch(e) {}
+    });
+    load();
+  </script>
+</body>
+</html>

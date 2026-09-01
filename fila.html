@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=121" />
+  <link rel="stylesheet" href="./style.css?v=126" />
 </head>
 <body>
   <div id="frameSizer" aria-hidden="true"></div>
@@ -416,13 +416,13 @@
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
     function categoryLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=121' : './smiles-logo.png?v=121';
+      const src = normalized === 'gol' ? './gol-logo.png?v=126' : './smiles-logo.png?v=126';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryLogoWrap"><img class="selectCategoryLogo selectCategoryLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
     function categoryTitleLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=121' : './smiles-logo.png?v=121';
+      const src = normalized === 'gol' ? './gol-logo.png?v=126' : './smiles-logo.png?v=126';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryTitleLogoWrap"><img class="selectCategoryTitleLogo selectCategoryTitleLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
@@ -972,26 +972,27 @@
     }
 
     async function validarAcessoCoordenador(){
-      const username = currentUsername();
-      if(!username){
-        await infoDialog('Acesso negado', 'Não foi possível identificar seu usuário Trello. Abra seu perfil do Trello e confira se a conta está correta.');
+      const memberId = String(member?.id || '').trim();
+      const boardId = String(board?.id || '').trim();
+      if(!memberId || !boardId){
+        await infoDialog('Acesso negado', 'Não foi possível identificar seu usuário ou o quadro atual no Trello.');
         return false;
       }
       try {
-        const res = await fetch(`/api/auth-coordenador?username=${encodeURIComponent(username)}&ts=${Date.now()}`);
+        const res = await fetch(`/api/auth-coordenador?boardId=${encodeURIComponent(boardId)}&memberId=${encodeURIComponent(memberId)}&ts=${Date.now()}`);
         if(!res.ok) throw new Error(await res.text());
         const json = await res.json();
         if(!json.configurado){
-          await infoDialog('Lista não configurada', 'A lista de coordenadores autorizados ainda não foi configurada na Vercel. Configure a variável COORDENADORES_TRELLO e faça Redeploy.');
+          await infoDialog('Coordenadores não configurados', 'Um administrador do quadro precisa abrir as configurações do Power-Up Coordenador e selecionar quem terá acesso.');
           return false;
         }
         if(!json.autorizado){
-          await infoDialog('Acesso negado', `Seu usuário Trello @${username} não está autorizado como coordenador.`);
+          await infoDialog('Acesso negado', 'Seu usuário Trello não está autorizado como coordenador neste quadro.');
           return false;
         }
         return true;
       } catch(e){
-        await infoDialog('Erro de validação', 'Não foi possível validar a lista de coordenadores autorizados. Confira o deploy/API na Vercel.');
+        await infoDialog('Erro de validação', 'Não foi possível validar sua autorização de coordenador neste quadro.');
         return false;
       }
     }
