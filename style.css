@@ -1661,8 +1661,8 @@ html,body{
 .memberQueuePositionNumber{
   font-size:inherit;
   line-height:inherit;
-  font-weight:800;
-  color:var(--blue);
+  font-weight:inherit;
+  color:inherit;
 }
 .memberIndividualBody{
   display:flex;
@@ -1747,10 +1747,22 @@ html,body{
 
 
 .memberIndividualFooter p.memberIndividualExtraAvailable{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
   background:var(--magenta);
   color:var(--white);
   font-weight:800;
   box-shadow:0 12px 28px rgba(255,50,100,.22);
+  animation:memberExtraPulse 1.8s ease-in-out infinite;
+}
+@keyframes memberExtraPulse{
+  0%,100%{opacity:1;transform:scale(1);box-shadow:0 12px 28px rgba(255,50,100,.22)}
+  50%{opacity:.86;transform:scale(.992);box-shadow:0 8px 20px rgba(255,50,100,.16)}
+}
+@media (prefers-reduced-motion:reduce){
+  .memberIndividualFooter p.memberIndividualExtraAvailable{animation:none}
 }
 
 .memberIndividualFooter p.memberIndividualExtraUnavailable{

@@ -690,8 +690,9 @@
       if(minhaPessoa){
         const faltam = Math.max(0, meuIndex);
         const statusVez = meuIndex === 0 ? 'Você é a pessoa da vez.' : `Faltam ${faltam} ${faltam === 1 ? 'pessoa' : 'pessoas'} para chegar sua vez.`;
-        const extraStatus = minhasExtras.length ? `${minhasExtras.length} ${minhasExtras.length === 1 ? 'extra disponível' : 'extras disponíveis'} para responder.` : 'Nenhuma extra disponível para você no momento.';
+        const extraStatus = minhasExtras.length ? `${minhasExtras.length} ${minhasExtras.length === 1 ? 'extra disponível' : 'extras disponíveis'} para responder` : 'Nenhuma extra disponível para você no momento.';
         const extraStatusClass = minhasExtras.length > 0 ? 'memberIndividualExtraAvailable' : 'memberIndividualExtraUnavailable';
+        const badgeStatus = minhasExtras.length > 0 ? 'Aguardando aceite/recusa' : (meuIndex === 0 ? 'Pessoa da vez' : 'Aguardando vez');
         $('filaIndividualMembro').innerHTML = `
           <div class="memberIndividualCard ${meuIndex === 0 ? 'isCurrent' : ''}">
             <div class="memberIndividualHeader">
@@ -702,7 +703,7 @@
                 <b>${escapeHtml(minhaPessoa.nome)}</b>
                 <small>@${escapeHtml(myUser)}</small>
               </div>
-              <span class="memberIndividualBadge">${meuIndex === 0 ? 'Pessoa da vez' : 'Aguardando vez'}</span>
+              <span class="memberIndividualBadge">${badgeStatus}</span>
             </div>
             <div class="memberIndividualFooter">
               <p>${escapeHtml(statusVez)}</p>
