@@ -237,7 +237,13 @@
         .toLowerCase();
     }
     function isRotativoAtendimento(nome){
-      return normalizeExtraMatchValue(nome) === 'rotativo';
+      const atendimento = normalizeExtraMatchValue(nome);
+      if(!atendimento) return false;
+      if(atendimento === 'rotativo') return true;
+      return getExtraConfig().responsaveisAtendimento.some(item =>
+        normalizeExtraMatchValue(item?.nome) === atendimento &&
+        normalizeExtraMatchValue(item?.squad) === 'rotativo'
+      );
     }
     function atendimentoPertenceASquad(nome, squad){
       const atendimento = normalizeExtraMatchValue(nome);
