@@ -1015,6 +1015,47 @@
       const cfg = getExtraConfig();
       const overlay = document.createElement('div');
       overlay.className = 'extraConfigOverlay';
+
+      const initialSolicitantes = cfg.responsaveisSolicitantes.length ? cfg.responsaveisSolicitantes : [''];
+      const squadsMap = new Map();
+      cfg.squads.forEach(squad => squadsMap.set(squad, []));
+      cfg.responsaveisAtendimento.forEach(item => {
+        if(!squadsMap.has(item.squad)) squadsMap.set(item.squad, []);
+        squadsMap.get(item.squad).push(item.nome);
+      });
+      const initialSquads = squadsMap.size
+        ? Array.from(squadsMap.entries()).map(([squad, atendimentos]) => ({ squad, atendimentos: atendimentos.length ? atendimentos : [''] }))
+        : [{ squad:'', atendimentos:[''] }];
+
+      const solicitanteRowHtml = (nome='', removable=false) => `
+        <div class="extraConfigPersonRow" data-config-solicitante-row>
+          <input type="text" class="dialogInput extraConfigInput" data-config-solicitante value="${escapeHtml(nome)}" placeholder="Nome do responsável" />
+          ${removable
+            ? '<button type="button" class="extraConfigIconBtn extraConfigRemoveBtn" data-remove-solicitante aria-label="Remover responsável">−</button>'
+            : '<button type="button" class="extraConfigIconBtn extraConfigAddBtn" data-add-solicitante aria-label="Adicionar responsável">+</button>'}
+        </div>`;
+
+      const atendimentoRowHtml = (nome='', removable=false) => `
+        <div class="extraConfigAttendanceRow" data-config-atendimento-row>
+          <input type="text" class="dialogInput extraConfigInput" data-config-atendimento value="${escapeHtml(nome)}" placeholder="Nome do atendimento" />
+          ${removable
+            ? '<button type="button" class="extraConfigIconBtn extraConfigRemoveBtn" data-remove-atendimento aria-label="Remover atendimento">−</button>'
+            : '<button type="button" class="extraConfigIconBtn extraConfigAddBtn" data-add-atendimento aria-label="Adicionar atendimento">+</button>'}
+        </div>`;
+
+      const squadRowHtml = (item={squad:'', atendimentos:['']}, removable=false) => `
+        <div class="extraConfigSquadRow" data-config-squad-row>
+          <div class="extraConfigSquadCell">
+            <input type="text" class="dialogInput extraConfigInput" data-config-squad value="${escapeHtml(item.squad || '')}" placeholder="Nome da Squad" />
+          </div>
+          <div class="extraConfigAttendanceCell">
+            <div class="extraConfigAttendanceList" data-config-atendimento-list>
+              ${(item.atendimentos && item.atendimentos.length ? item.atendimentos : ['']).map((nome, index) => atendimentoRowHtml(nome, index > 0)).join('')}
+            </div>
+          </div>
+          ${removable ? '<button type="button" class="extraConfigSquadRemove" data-remove-squad aria-label="Remover squad">Remover</button>' : ''}
+        </div>`;
+
       overlay.innerHTML = `
         <div class="extraConfigBox" role="dialog" aria-modal="true" aria-labelledby="extraConfigTitle">
           <div class="extraConfigHead">
@@ -1025,17 +1066,25 @@
             <button type="button" class="extraConfigClose" aria-label="Fechar">×</button>
           </div>
           <div class="extraConfigBody">
-            <label for="configSolicitantes">Responsável solicitante <span class="requiredMark">*</span></label>
-            <textarea id="configSolicitantes" class="dialogTextarea extraConfigTextarea" placeholder="Um nome por linha. Ex.:\nDanilo\nCamille">${escapeHtml(cfg.responsaveisSolicitantes.join('\n'))}</textarea>
-            <small class="muted">Adicione quantos nomes forem necessários, um por linha.</small>
+            <div class="extraConfigSection">
+              <label>Responsável solicitante <span class="requiredMark">*</span></label>
+              <div class="extraConfigPeopleList" data-config-solicitantes-list>
+                ${initialSolicitantes.map((nome, index) => solicitanteRowHtml(nome, index > 0)).join('')}
+              </div>
+            </div>
 
-            <label for="configSquads">Squad <span class="requiredMark">*</span></label>
-            <textarea id="configSquads" class="dialogTextarea extraConfigTextarea" placeholder="Uma squad por linha. Ex.:\nAER\nVIA\nCLUBE">${escapeHtml(cfg.squads.join('\n'))}</textarea>
-            <small class="muted">Essas opções aparecem no campo Squad do modal Gerar extra.</small>
+            <div class="extraConfigSection extraConfigSquadSection">
+              <label>Squad <span class="requiredMark">*</span></label>
+              <div class="extraConfigColumnHead" aria-hidden="true">
+                <span>Nome da Squad</span>
+                <span>Nome do atendimento</span>
+              </div>
+              <div class="extraConfigSquadList" data-config-squads-list>
+                ${initialSquads.map((item, index) => squadRowHtml(item, index > 0)).join('')}
+              </div>
+              <button type="button" class="extraConfigAddSquad" data-add-squad>+ Adicionar Squad</button>
+            </div>
 
-            <label for="configAtendimentos">Responsável atendimento <span class="requiredMark">*</span></label>
-            <textarea id="configAtendimentos" class="dialogTextarea extraConfigTextarea extraConfigTextareaTall" placeholder="Use: Squad - Nome do atendimento. Ex.:\nAER - Fernanda Barzagui\nAER - Alex Mathias\nVIA - Fernanda Queiroga">${escapeHtml(cfg.responsaveisAtendimento.map(atendimentoValue).join('\n'))}</textarea>
-            <small class="muted">Informe a squad e o nome do atendimento na mesma linha.</small>
             <div id="extraConfigError" class="fieldError hide"></div>
           </div>
           <div class="extraConfigActions">
@@ -1049,30 +1098,160 @@
         setTimeout(() => t.sizeTo('#frameSizer'), 30);
         resolve(value);
       };
-      const showConfigError = (msg) => {
+      const clearConfigErrors = () => {
+        overlay.querySelectorAll('.inputError').forEach(el => el.classList.remove('inputError'));
+        const error = overlay.querySelector('#extraConfigError');
+        error.textContent = '';
+        error.classList.add('hide');
+      };
+      const showConfigError = (msg, targets=[]) => {
         const el = overlay.querySelector('#extraConfigError');
         el.textContent = msg;
         el.classList.remove('hide');
+        targets.filter(Boolean).forEach(target => target.classList.add('inputError'));
+        targets.find(Boolean)?.focus();
       };
+      const refreshSolicitanteButtons = () => {
+        const rows = [...overlay.querySelectorAll('[data-config-solicitante-row]')];
+        rows.forEach((row, index) => {
+          const oldButton = row.querySelector('.extraConfigIconBtn');
+          if(!oldButton) return;
+          const newButton = document.createElement('button');
+          newButton.type = 'button';
+          newButton.className = `extraConfigIconBtn ${index === 0 ? 'extraConfigAddBtn' : 'extraConfigRemoveBtn'}`;
+          if(index === 0){
+            newButton.setAttribute('data-add-solicitante','');
+            newButton.setAttribute('aria-label','Adicionar responsável');
+            newButton.textContent = '+';
+          }else{
+            newButton.setAttribute('data-remove-solicitante','');
+            newButton.setAttribute('aria-label','Remover responsável');
+            newButton.textContent = '−';
+          }
+          oldButton.replaceWith(newButton);
+        });
+      };
+      const refreshAttendanceButtons = (squadRow) => {
+        const rows = [...squadRow.querySelectorAll('[data-config-atendimento-row]')];
+        rows.forEach((row, index) => {
+          const oldButton = row.querySelector('.extraConfigIconBtn');
+          if(!oldButton) return;
+          const newButton = document.createElement('button');
+          newButton.type = 'button';
+          newButton.className = `extraConfigIconBtn ${index === 0 ? 'extraConfigAddBtn' : 'extraConfigRemoveBtn'}`;
+          if(index === 0){
+            newButton.setAttribute('data-add-atendimento','');
+            newButton.setAttribute('aria-label','Adicionar atendimento');
+            newButton.textContent = '+';
+          }else{
+            newButton.setAttribute('data-remove-atendimento','');
+            newButton.setAttribute('aria-label','Remover atendimento');
+            newButton.textContent = '−';
+          }
+          oldButton.replaceWith(newButton);
+        });
+      };
+      const refreshSquadRemoveButtons = () => {
+        const rows = [...overlay.querySelectorAll('[data-config-squad-row]')];
+        rows.forEach((row, index) => {
+          const current = row.querySelector('[data-remove-squad]');
+          if(index === 0){
+            current?.remove();
+          }else if(!current){
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'extraConfigSquadRemove';
+            btn.setAttribute('data-remove-squad','');
+            btn.setAttribute('aria-label','Remover squad');
+            btn.textContent = 'Remover';
+            row.appendChild(btn);
+          }
+        });
+      };
+
       overlay.querySelector('.extraConfigClose').onclick = () => close(false);
       overlay.querySelector('[data-config-cancel]').onclick = () => close(false);
-      overlay.addEventListener('click', ev => { if(ev.target === overlay) close(false); });
-      overlay.querySelector('[data-config-save]').onclick = async () => {
-        const solicitantes = uniqCleanList(splitConfigLines(overlay.querySelector('#configSolicitantes').value));
-        const squads = uniqCleanList(splitConfigLines(overlay.querySelector('#configSquads').value));
-        const atendimentoLines = splitConfigLines(overlay.querySelector('#configAtendimentos').value);
-        const responsaveisAtendimento = [];
-        for(const line of atendimentoLines){
-          const parts = line.split(/\s[-–—|/]\s|[-–—|/]/).map(v => v.trim()).filter(Boolean);
-          if(parts.length < 2){
-            showConfigError('Em Responsável atendimento, use o formato: Squad - Nome do atendimento.');
-            return;
-          }
-          responsaveisAtendimento.push({ squad: parts[0], nome: parts.slice(1).join(' - ') });
+      overlay.addEventListener('click', ev => {
+        if(ev.target === overlay){ close(false); return; }
+        if(ev.target.closest('[data-add-solicitante]')){
+          clearConfigErrors();
+          const list = overlay.querySelector('[data-config-solicitantes-list]');
+          list.insertAdjacentHTML('beforeend', solicitanteRowHtml('', true));
+          refreshSolicitanteButtons();
+          list.lastElementChild?.querySelector('input')?.focus();
+          return;
         }
-        if(!solicitantes.length){ showConfigError('Adicione pelo menos um responsável solicitante.'); return; }
-        if(!squads.length){ showConfigError('Adicione pelo menos uma squad.'); return; }
-        if(!responsaveisAtendimento.length){ showConfigError('Adicione pelo menos um responsável atendimento.'); return; }
+        const removeSolicitante = ev.target.closest('[data-remove-solicitante]');
+        if(removeSolicitante){
+          clearConfigErrors();
+          removeSolicitante.closest('[data-config-solicitante-row]')?.remove();
+          refreshSolicitanteButtons();
+          return;
+        }
+        const addAtendimento = ev.target.closest('[data-add-atendimento]');
+        if(addAtendimento){
+          clearConfigErrors();
+          const squadRow = addAtendimento.closest('[data-config-squad-row]');
+          const list = squadRow.querySelector('[data-config-atendimento-list]');
+          list.insertAdjacentHTML('beforeend', atendimentoRowHtml('', true));
+          refreshAttendanceButtons(squadRow);
+          list.lastElementChild?.querySelector('input')?.focus();
+          return;
+        }
+        const removeAtendimento = ev.target.closest('[data-remove-atendimento]');
+        if(removeAtendimento){
+          clearConfigErrors();
+          const squadRow = removeAtendimento.closest('[data-config-squad-row]');
+          removeAtendimento.closest('[data-config-atendimento-row]')?.remove();
+          refreshAttendanceButtons(squadRow);
+          return;
+        }
+        if(ev.target.closest('[data-add-squad]')){
+          clearConfigErrors();
+          const list = overlay.querySelector('[data-config-squads-list]');
+          list.insertAdjacentHTML('beforeend', squadRowHtml({squad:'', atendimentos:['']}, true));
+          refreshSquadRemoveButtons();
+          list.lastElementChild?.querySelector('[data-config-squad]')?.focus();
+          return;
+        }
+        const removeSquad = ev.target.closest('[data-remove-squad]');
+        if(removeSquad){
+          clearConfigErrors();
+          removeSquad.closest('[data-config-squad-row]')?.remove();
+          refreshSquadRemoveButtons();
+        }
+      });
+      overlay.addEventListener('input', clearConfigErrors);
+
+      overlay.querySelector('[data-config-save]').onclick = async () => {
+        clearConfigErrors();
+        const solicitanteInputs = [...overlay.querySelectorAll('[data-config-solicitante]')];
+        const solicitantes = uniqCleanList(solicitanteInputs.map(input => input.value));
+        const squadRows = [...overlay.querySelectorAll('[data-config-squad-row]')];
+        const squads = [];
+        const responsaveisAtendimento = [];
+        const invalidSquadInputs = [];
+        const invalidAtendimentoInputs = [];
+
+        squadRows.forEach(row => {
+          const squadInput = row.querySelector('[data-config-squad]');
+          const squad = String(squadInput?.value || '').trim();
+          const atendimentoInputs = [...row.querySelectorAll('[data-config-atendimento]')];
+          const atendimentos = uniqCleanList(atendimentoInputs.map(input => input.value));
+          if(!squad) invalidSquadInputs.push(squadInput);
+          if(!atendimentos.length) invalidAtendimentoInputs.push(...atendimentoInputs);
+          if(squad){
+            squads.push(squad);
+            atendimentos.forEach(nome => responsaveisAtendimento.push({ squad, nome }));
+          }
+        });
+
+        if(!solicitantes.length){ showConfigError('Adicione pelo menos um responsável solicitante.', solicitanteInputs); return; }
+        if(invalidSquadInputs.length){ showConfigError('Preencha o nome de todas as Squads.', invalidSquadInputs); return; }
+        if(invalidAtendimentoInputs.length){ showConfigError('Adicione pelo menos um nome de atendimento para cada Squad.', invalidAtendimentoInputs); return; }
+        if(!squads.length){ showConfigError('Adicione pelo menos uma Squad.'); return; }
+        if(!responsaveisAtendimento.length){ showConfigError('Adicione pelo menos um nome de atendimento.'); return; }
+
         data.extraConfig = normalizeExtraConfig({ responsaveisSolicitantes: solicitantes, squads, responsaveisAtendimento });
         try{
           await apiSave();
@@ -1082,7 +1261,7 @@
         }
       };
       document.body.appendChild(overlay);
-      setTimeout(() => overlay.querySelector('#configSolicitantes')?.focus(), 40);
+      setTimeout(() => overlay.querySelector('[data-config-solicitante]')?.focus(), 40);
       t.sizeTo('#frameSizer');
     }); }
 
