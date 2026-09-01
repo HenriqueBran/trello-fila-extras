@@ -230,6 +230,12 @@ input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:v
 .hist{border-bottom:1px solid #eef0f3;padding:15px 18px;border-left:6px solid var(--gray)}.hist:last-child{border-bottom:0}.histHead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
 .hist.ok{border-left-color:var(--blue)}.hist.danger{border-left-color:var(--magenta)}.hist.warn{border-left-color:var(--gray)}.hist.neutral{border-left-color:#cbd5e1}
 .hist b{display:block;margin-bottom:5px;font-weight:900;color:var(--black);letter-spacing:.02em}.hist span{display:block;color:#2c3440}.hist small{display:block;color:var(--muted);margin-top:5px}.miniAction{padding:10px 14px;white-space:nowrap}
+.histActions{display:flex;align-items:flex-start;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.historyDetailsBtn{appearance:none;border:0;background:transparent;padding:4px 0;color:var(--magenta);font:inherit;font-size:13px;font-weight:700;text-transform:uppercase;white-space:nowrap;cursor:pointer;transition:color .18s ease,transform .18s ease}
+.historyDetailsBtn:hover{color:var(--magenta-2);transform:translateY(-1px);text-decoration:underline}
+.historyDetailsBtn:focus-visible{outline:2px solid var(--magenta);outline-offset:3px;border-radius:4px}
+.historyExtraDetails{margin-top:2px}
+.historyExtraDetails .notice{margin-bottom:14px}
 .notice{background:var(--blue-soft);border:1px solid rgba(0,80,242,.22);border-radius:18px;padding:15px;margin-bottom:14px;color:#0b1c3a}.extrasList{display:flex;flex-direction:column;gap:12px}.extraCard{border:1px solid rgba(0,80,242,.24);background:var(--blue-soft);border-radius:18px;padding:15px}
 
 .dialogOverlay{position:fixed;inset:0;background:rgba(0,0,0,.58);display:flex;align-items:center;justify-content:center;padding:18px;z-index:9999}.dialogBox{width:min(540px,100%);background:var(--white);border-radius:24px;box-shadow:0 28px 90px rgba(0,0,0,.32);padding:24px;border:1px solid var(--line)}.dialogTitle{font-size:25px;font-weight:900;margin-bottom:10px;color:var(--black)}.dialogText{font-size:15px;line-height:1.55;color:#2c3440;margin-bottom:16px}.dialogInput,.dialogTextarea{width:100%;padding:13px 15px;font-size:15px;margin-bottom:16px}.dialogTextarea{min-height:110px;resize:vertical}.dialogActions{display:flex;justify-content:flex-end;gap:10px}
@@ -2207,3 +2213,5 @@ html,body{
   .atendimentoMismatchBox{padding:20px;}
   .atendimentoMismatchActions .btn{width:100%;}
 }
+
+@media(max-width:800px){.histActions{justify-content:flex-start;margin-top:10px}.historyDetailsBtn{margin-top:0}}

@@ -198,7 +198,7 @@
       const seenAtendimento = new Set();
       return {
         responsaveisSolicitantes: uniqCleanList(cfg.responsaveisSolicitantes),
-        squads: uniqCleanList(cfg.squads),
+        squads: uniqCleanList(cfg.squads).filter(squad => normalizeExtraMatchValue(squad) !== 'rotativo'),
         responsaveisAtendimento: responsaveisAtendimento.filter(item => {
           const key = `${item.squad.toLowerCase()}|${item.nome.toLowerCase()}`;
           if(seenAtendimento.has(key)) return false;
@@ -257,7 +257,7 @@
             <div class="atendimentoMismatchIcon" aria-hidden="true">!</div>
             <strong id="atendimentoMismatchTitle">Atendimento não disponível para esta Squad</strong>
             <p>Não é possível selecionar <b>${escapeHtml(atendimento || 'este atendimento')}</b>, pois ele não está vinculado à Squad <b>${escapeHtml(squad || 'selecionada')}</b>.</p>
-            <p class="atendimentoMismatchHint">Selecione um atendimento vinculado à Squad escolhida. <b>Rotativo</b> é a exceção e pode atender todas as Squads.</p>
+            <p class="atendimentoMismatchHint">Selecione um atendimento vinculado à Squad escolhida. Somente o atendimento <b>Rotativo</b> pode ser utilizado em qualquer Squad.</p>
             <div class="atendimentoMismatchActions">
               <button type="button" class="btn primary" data-mismatch-close>Entendi</button>
             </div>
@@ -784,6 +784,21 @@
       renderHistory('historicoMembro', 'paginacaoHistMembro', false);
     }
     function histClass(acao){ if(acao==='EXTRA ACEITA') return 'ok'; if(acao==='EXTRA RECUSADA'||acao==='EXTRA CANCELADA'||acao==='SEM RESPOSTA') return 'danger'; if(acao==='VEZ PULADA') return 'warn'; return 'neutral'; }
+    window.mostrarDetalhesHistoricoExtra = function(histId){
+      const historico = Array.isArray(data.historico) ? data.historico : [];
+      const h = historico.find(item => item.id === histId);
+      if(!h) return infoDialog('Detalhes do extra', 'Não foi possível localizar este registro no histórico.');
+      const extra = h.extraSnapshot || h.extra || (h.extraId ? data.extrasAceitasCancelaveis?.[h.extraId] : null) || null;
+      if(!extra) return infoDialog('Detalhes do extra', 'Os detalhes completos deste extra não estão disponíveis neste registro.');
+      const pessoaNome = escapeHtml(extra.pessoaNome || 'Pessoa chamada');
+      const detalhes = `<div class="extraCard historyExtraDetails">
+        <div class="notice"><b>${pessoaNome}</b> foi chamado para uma extra.</div>
+        <p><b>Descrição:</b> ${escapeHtml(extra.descricao || 'Extra gerada pelo coordenador.')}</p>
+        ${extraResponsaveisHtml(extra)}
+        ${extraPeriodoHtml(extra)}
+      </div>`;
+      return htmlDialog('Detalhes do extra', detalhes);
+    };
     function renderHistory(target, pager, isCoord){
       const items = data.historico || [];
       let page = isCoord ? histCoordPage : histMembroPage;
@@ -795,7 +810,8 @@
         const acceptedExtra = isCoord && h.acao === 'EXTRA ACEITA' ? (data.extrasAceitasCancelaveis[h.extraId] || extraSnapshot) : null;
         const pending = pendingExtra && data.extrasAtivas.some(e => e.id === h.extraId) && canCancelExtra(pendingExtra);
         const accepted = acceptedExtra && canCancelExtra(acceptedExtra);
-        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div>${pending ? `<button class="btn red miniAction" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}</div></div>`;
+        const showPublicDetails = !isCoord && (h.acao === 'EXTRA ACEITA' || h.acao === 'EXTRA RECUSADA');
+        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div><div class="histActions">${showPublicDetails ? `<button class="historyDetailsBtn" onclick="mostrarDetalhesHistoricoExtra('${h.id}')">Mais detalhes</button>` : ''}${pending ? `<button class="btn red miniAction" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}</div></div></div>`;
       }).join('') || '<p class="muted">Nenhuma ação registrada.</p>';
       pageButtons(pager, items.length, page, histPageSize, isCoord ? 'setHistCoordPage' : 'setHistMembroPage');
     }
@@ -1541,7 +1557,7 @@
           return { placeholder: 'Responsável solicitante', groups: [{ label:'', options: cfg.responsaveisSolicitantes }] };
         }
         if(kind === 'squad'){
-          return { placeholder: 'Squad', groups: [{ label:'', options: cfg.squads }] };
+          return { placeholder: 'Squad', groups: [{ label:'', options: cfg.squads.filter(squad => normalizeExtraMatchValue(squad) !== 'rotativo') }] };
         }
         if(kind === 'responsavelAtendimento'){
           return { placeholder: 'Responsável atendimento', groups: atendimentoGroupsFromConfig() };
