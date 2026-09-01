@@ -1648,23 +1648,21 @@ html,body{
 }
 .memberIndividualHeader{
   display:flex;
-  justify-content:space-between;
   align-items:center;
-  gap:12px;
   margin-bottom:14px;
 }
-.memberIndividualHeader strong{
-  font-size:42px;
-  line-height:1;
-  font-weight:900;
-  color:var(--blue);
-}
-.memberIndividualLabel{
-  font-size:12px;
-  font-weight:900;
-  text-transform:uppercase;
-  letter-spacing:.06em;
+.memberQueuePositionText{
+  margin:0;
+  font-size:14px;
+  line-height:1.4;
+  font-weight:700;
   color:var(--muted);
+}
+.memberQueuePositionNumber{
+  font-size:inherit;
+  line-height:inherit;
+  font-weight:800;
+  color:var(--blue);
 }
 .memberIndividualBody{
   display:flex;

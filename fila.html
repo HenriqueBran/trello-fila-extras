@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=108" />
+  <link rel="stylesheet" href="./style.css?v=112" />
 </head>
 <body>
   <div id="frameSizer" aria-hidden="true"></div>
@@ -695,8 +695,7 @@
         $('filaIndividualMembro').innerHTML = `
           <div class="memberIndividualCard ${meuIndex === 0 ? 'isCurrent' : ''}">
             <div class="memberIndividualHeader">
-              <span class="memberIndividualLabel">Sua posição na fila</span>
-              <strong>${meuIndex + 1}º</strong>
+              <p class="memberQueuePositionText">Você está em <span class="memberQueuePositionNumber">${meuIndex + 1}º</span> lugar na fila.</p>
             </div>
             <div class="memberIndividualBody">
               <div>
