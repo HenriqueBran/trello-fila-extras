@@ -5,8 +5,7 @@ const DEFAULT_DATA = {
   historicoMes: '',
   historicoArquivado: {},
   fechamentoMensal: {},
-  extrasAceitasCancelaveis: {},
-  userModes: {}
+  extrasAceitasCancelaveis: {}
 };
 
 function getSaoPauloParts(date = new Date()) {
@@ -38,15 +37,15 @@ function shouldClose(date = new Date()){
 }
 function normalize(data, date = new Date()){
   const currentMonth = ym(getSaoPauloParts(date));
-  const base = { ...DEFAULT_DATA, ...(data || {}) };
-  base.fila = Array.isArray(base.fila) ? base.fila : [];
-  base.extrasAtivas = Array.isArray(base.extrasAtivas) ? base.extrasAtivas : [];
-  base.historico = Array.isArray(base.historico) ? base.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
-  base.historicoMes = typeof base.historicoMes === 'string' && base.historicoMes ? base.historicoMes : currentMonth;
-  base.historicoArquivado = base.historicoArquivado && typeof base.historicoArquivado === 'object' ? base.historicoArquivado : {};
-  base.fechamentoMensal = base.fechamentoMensal && typeof base.fechamentoMensal === 'object' ? base.fechamentoMensal : {};
-  base.extrasAceitasCancelaveis = base.extrasAceitasCancelaveis && typeof base.extrasAceitasCancelaveis === 'object' ? base.extrasAceitasCancelaveis : {};
-  base.userModes = base.userModes && typeof base.userModes === 'object' ? base.userModes : {};
+  const src = data && typeof data === 'object' ? data : {};
+  const base = { ...DEFAULT_DATA };
+  base.fila = Array.isArray(src.fila) ? src.fila : [];
+  base.extrasAtivas = Array.isArray(src.extrasAtivas) ? src.extrasAtivas : [];
+  base.historico = Array.isArray(src.historico) ? src.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
+  base.historicoMes = typeof src.historicoMes === 'string' && src.historicoMes ? src.historicoMes : currentMonth;
+  base.historicoArquivado = src.historicoArquivado && typeof src.historicoArquivado === 'object' ? src.historicoArquivado : {};
+  base.fechamentoMensal = src.fechamentoMensal && typeof src.fechamentoMensal === 'object' ? src.fechamentoMensal : {};
+  base.extrasAceitasCancelaveis = src.extrasAceitasCancelaveis && typeof src.extrasAceitasCancelaveis === 'object' ? src.extrasAceitasCancelaveis : {};
   return base;
 }
 function applyMonthlyHistoryClose(data, date = new Date()){
@@ -81,8 +80,7 @@ function runTests(){
     historicoMes: '2026-06',
     historicoArquivado: {},
     fechamentoMensal: {},
-    extrasAceitasCancelaveis: { abc:true },
-    userModes: { card123:'coordenador' }
+    extrasAceitasCancelaveis: { abc:true }
   };
 
   const sameMonth = applyMonthlyHistoryClose(JSON.parse(JSON.stringify(base)), new Date('2026-06-15T15:00:00-03:00'));
@@ -102,7 +100,6 @@ function runTests(){
   assert(closeOnFirstBusinessDay.data.historicoArquivado['2026-07'].length === 2, 'Histórico antigo deve ser arquivado.');
   assert(closeOnFirstBusinessDay.data.fila.length === 2, 'Fila não pode ser apagada.');
   assert(closeOnFirstBusinessDay.data.extrasAtivas.length === 1, 'Extras ativas não podem ser apagadas.');
-  assert(closeOnFirstBusinessDay.data.userModes.card123 === 'coordenador', 'Modo de usuário não pode ser apagado.');
 
   const repeat = applyMonthlyHistoryClose(closeOnFirstBusinessDay.data, new Date('2026-08-03T16:00:00-03:00'));
   assert(repeat.changed === false, 'Fechamento não pode rodar duas vezes no mesmo mês.');
@@ -113,7 +110,7 @@ function runTests(){
     { nome:'Antes do 1º dia útil', ok:true, resultado:'Não reinicia se o mês virou, mas ainda não chegou o 1º dia útil.' },
     { nome:'No 1º dia útil', ok:true, resultado:'Arquiva o histórico do mês anterior e limpa apenas o histórico atual.' },
     { nome:'Proteção contra duplicidade', ok:true, resultado:'Não fecha duas vezes no mesmo mês.' },
-    { nome:'Dados preservados', ok:true, resultado:'Fila, extras ativas, usuários e modos continuam salvos.' }
+    { nome:'Dados preservados', ok:true, resultado:'Fila, extras ativas e demais dados operacionais continuam salvos.' }
   ];
 }
 

@@ -234,6 +234,9 @@ input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:v
 .historyDetailsBtn{appearance:none;border:0;background:#6b7280;padding:8px 14px;border-radius:999px;color:#fff;font:inherit;font-size:12px;font-weight:700;line-height:1;white-space:nowrap;cursor:pointer;box-shadow:none;transition:transform .18s ease,opacity .18s ease,box-shadow .18s ease}
 .historyDetailsBtn:hover{background:#6b7280;color:#fff;transform:translateY(-1px);opacity:.9;box-shadow:0 4px 10px rgba(31,41,55,.14)}
 .historyDetailsBtn:focus-visible{outline:2px solid #6b7280;outline-offset:3px}
+.historyCancelBtn{border-radius:999px;padding:8px 14px;font-size:12px;line-height:1;box-shadow:none;white-space:nowrap;transition:transform .18s ease,opacity .18s ease,box-shadow .18s ease,background .18s ease}
+.historyCancelBtn:hover{transform:translateY(-1px);opacity:.96;box-shadow:0 4px 10px rgba(255,50,100,.18)}
+.historyCancelBtn:focus-visible{outline:2px solid var(--magenta);outline-offset:3px}
 .historyExtraDetails{margin-top:2px}
 .historyExtraDetails .notice{margin-bottom:14px}
 .notice{background:var(--blue-soft);border:1px solid rgba(0,80,242,.22);border-radius:18px;padding:15px;margin-bottom:14px;color:#0b1c3a}.extrasList{display:flex;flex-direction:column;gap:12px}.extraCard{border:1px solid rgba(0,80,242,.24);background:var(--blue-soft);border-radius:18px;padding:15px}
@@ -1589,19 +1592,6 @@ html,body{
 
 
 /* v80 - centralização e popovers do modal gerar extra */
-#configInicial{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-}
-#configInicial h2,
-#configInicial .muted{
-  text-align:center;
-}
-#configInicial .row{
-  justify-content:center;
-  flex-wrap:wrap;
-}
 .dialogBox.extraDialogBox .extraWizardTop,
 .dialogBox.extraDialogBox .extraStepProgress,
 .dialogBox.extraDialogBox .extraStepHeader,

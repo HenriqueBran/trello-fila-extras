@@ -5,8 +5,7 @@ const DEFAULT_DATA = {
   historicoMes: '',
   historicoArquivado: {},
   fechamentoMensal: {},
-  extrasAceitasCancelaveis: {},
-  userModes: {}
+  extrasAceitasCancelaveis: {}
 };
 
 const memory = globalThis.__filaExtrasMemory || (globalThis.__filaExtrasMemory = {});
@@ -40,15 +39,15 @@ function shouldClose(date = new Date()){
 }
 function normalize(data){
   const currentMonth = ym(getSaoPauloParts());
-  const base = { ...DEFAULT_DATA, ...(data || {}) };
-  base.fila = Array.isArray(base.fila) ? base.fila : [];
-  base.extrasAtivas = Array.isArray(base.extrasAtivas) ? base.extrasAtivas : [];
-  base.historico = Array.isArray(base.historico) ? base.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
-  base.historicoMes = typeof base.historicoMes === 'string' && base.historicoMes ? base.historicoMes : currentMonth;
-  base.historicoArquivado = base.historicoArquivado && typeof base.historicoArquivado === 'object' ? base.historicoArquivado : {};
-  base.fechamentoMensal = base.fechamentoMensal && typeof base.fechamentoMensal === 'object' ? base.fechamentoMensal : {};
-  base.extrasAceitasCancelaveis = base.extrasAceitasCancelaveis && typeof base.extrasAceitasCancelaveis === 'object' ? base.extrasAceitasCancelaveis : {};
-  base.userModes = base.userModes && typeof base.userModes === 'object' ? base.userModes : {};
+  const src = data && typeof data === 'object' ? data : {};
+  const base = { ...DEFAULT_DATA };
+  base.fila = Array.isArray(src.fila) ? src.fila : [];
+  base.extrasAtivas = Array.isArray(src.extrasAtivas) ? src.extrasAtivas : [];
+  base.historico = Array.isArray(src.historico) ? src.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
+  base.historicoMes = typeof src.historicoMes === 'string' && src.historicoMes ? src.historicoMes : currentMonth;
+  base.historicoArquivado = src.historicoArquivado && typeof src.historicoArquivado === 'object' ? src.historicoArquivado : {};
+  base.fechamentoMensal = src.fechamentoMensal && typeof src.fechamentoMensal === 'object' ? src.fechamentoMensal : {};
+  base.extrasAceitasCancelaveis = src.extrasAceitasCancelaveis && typeof src.extrasAceitasCancelaveis === 'object' ? src.extrasAceitasCancelaveis : {};
   return base;
 }
 function applyMonthlyHistoryClose(data, date = new Date()){

@@ -5,14 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=112" />
+  <link rel="stylesheet" href="./style.css?v=121" />
 </head>
 <body>
   <div id="frameSizer" aria-hidden="true"></div>
   <div id="document" class="wrap">
     <div class="topbarInternal">
-      <button id="trocarModoBtn" class="btn linklike hide">← Voltar</button>
-      <span id="trocarModoHint" class="muted small hide"></span>
       <span id="syncStatus" class="syncStatus hide"></span>
       <button id="refreshNowBtn" class="btn ghost refreshBtn hide" type="button"></button>
     </div>
@@ -25,14 +23,6 @@
       <span id="modoBadge" class="badge hide">CONFIGURAR</span>
     </header>
 
-    <section id="configInicial" class="card hide">
-      <h2>Configuração de acesso</h2>
-      <p class="muted">Escolha como esta conta vai usar o painel neste quadro.</p>
-      <div class="row gap">
-        <button class="btn primary" id="setCoordenador">Usar como Modo Coordenador</button>
-        <button class="btn dark" id="setMembro">Usar como Modo Membro</button>
-      </div>
-    </section>
 
     <main id="coordenador" class="grid hide">
       <section class="card">
@@ -151,15 +141,13 @@
   <script src="https://p.trellocdn.com/power-up.min.js"></script>
   <script>
     const t = window.TrelloPowerUp.iframe();
-    const DEFAULT_DATA = { fila: [], extrasAtivas: [], historico: [], historicoMes: '', historicoArquivado: {}, fechamentoMensal: {}, extrasAceitasCancelaveis: {}, userModes: {}, extraConfig: { responsaveisSolicitantes: [], squads: [], responsaveisAtendimento: [] } };
+    const DEFAULT_DATA = { fila: [], extrasAtivas: [], historico: [], historicoMes: '', historicoArquivado: {}, fechamentoMensal: {}, extrasAceitasCancelaveis: {}, extraConfig: { responsaveisSolicitantes: [], squads: [], responsaveisAtendimento: [] } };
     let data = structuredClone(DEFAULT_DATA);
     let board = null;
     let member = null;
     let boardMembers = [];
-    let mode = '';
     const urlParams = new URLSearchParams(window.location.search);
-    const modoSolicitado = urlParams.get('modo') || '';
-    const modoFixo = ['coordenador', 'membro'].includes(modoSolicitado) ? modoSolicitado : '';
+    let mode = urlParams.get('modo') === 'membro' ? 'membro' : 'coordenador';
     let coordPage = 1, membroPage = 1, histCoordPage = 1, histMembroPage = 1;
     const pageSize = 3, histPageSize = 4;
     let dragId = null;
@@ -426,30 +414,29 @@
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
     function categoryLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=108' : './smiles-logo.png?v=108';
+      const src = normalized === 'gol' ? './gol-logo.png?v=121' : './smiles-logo.png?v=121';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryLogoWrap"><img class="selectCategoryLogo selectCategoryLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
     function categoryTitleLogoMarkup(name){
       const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=108' : './smiles-logo.png?v=108';
+      const src = normalized === 'gol' ? './gol-logo.png?v=121' : './smiles-logo.png?v=121';
       const cls = normalized === 'gol' ? 'gol' : 'smiles';
       return `<span class="selectCategoryTitleLogoWrap"><img class="selectCategoryTitleLogo selectCategoryTitleLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
     }
     function normalize(d){
-      const b = Object.assign(structuredClone(DEFAULT_DATA), d || {});
-      b.fila = Array.isArray(b.fila) ? b.fila.map(p => ({...p, trelloUsername: cleanUsername(p.trelloUsername || p.username || '')})) : [];
-      b.extrasAtivas = Array.isArray(b.extrasAtivas) ? b.extrasAtivas : [];
-      b.historico = Array.isArray(b.historico) ? b.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
-      b.historicoMes = typeof b.historicoMes === 'string' ? b.historicoMes : '';
-      b.historicoArquivado = b.historicoArquivado && typeof b.historicoArquivado === 'object' ? b.historicoArquivado : {};
-      b.fechamentoMensal = b.fechamentoMensal && typeof b.fechamentoMensal === 'object' ? b.fechamentoMensal : {};
-      b.extrasAceitasCancelaveis = b.extrasAceitasCancelaveis && typeof b.extrasAceitasCancelaveis === 'object' ? b.extrasAceitasCancelaveis : {};
-      b.userModes = b.userModes && typeof b.userModes === 'object' ? b.userModes : {};
-      b.extraConfig = normalizeExtraConfig(b.extraConfig);
+      const src = d && typeof d === 'object' ? d : {};
+      const b = structuredClone(DEFAULT_DATA);
+      b.fila = Array.isArray(src.fila) ? src.fila.map(p => ({...p, trelloUsername: cleanUsername(p.trelloUsername || p.username || '')})) : [];
+      b.extrasAtivas = Array.isArray(src.extrasAtivas) ? src.extrasAtivas : [];
+      b.historico = Array.isArray(src.historico) ? src.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
+      b.historicoMes = typeof src.historicoMes === 'string' ? src.historicoMes : '';
+      b.historicoArquivado = src.historicoArquivado && typeof src.historicoArquivado === 'object' ? src.historicoArquivado : {};
+      b.fechamentoMensal = src.fechamentoMensal && typeof src.fechamentoMensal === 'object' ? src.fechamentoMensal : {};
+      b.extrasAceitasCancelaveis = src.extrasAceitasCancelaveis && typeof src.extrasAceitasCancelaveis === 'object' ? src.extrasAceitasCancelaveis : {};
+      b.extraConfig = normalizeExtraConfig(src.extraConfig);
       return b;
     }
-    function memberKey(){ return member?.id || member?.username || 'usuario'; }
 
     async function apiGet(){
       const res = await fetch(`/api/store?boardId=${encodeURIComponent(board.id)}&ts=${Date.now()}`);
@@ -462,8 +449,6 @@
       if(!res.ok) throw new Error(await res.text());
       const json = await res.json();
       data = normalize(json.data || data);
-      // O modo de acesso não é salvo; toda abertura começa no menu inicial.
-      mode = mode || '';
     }
 
     async function notificarExtraNoTrello(extra, tipo='gerada'){
@@ -595,11 +580,9 @@
       await loadBoardMembers();
       try { await apiGet(); await sincronizarExpiradas(); $('syncStatus').textContent = 'Dados compartilhados'; } catch(e){ $('syncStatus').textContent = 'Erro ao carregar dados'; await infoDialog('Erro', 'Não foi possível carregar os dados compartilhados.'); }
 
-      if(modoFixo === 'coordenador'){
+      if(mode === 'coordenador'){
         const autorizado = await validarAcessoCoordenador();
-        if(autorizado) mode = 'coordenador';
-      } else if(modoFixo === 'membro'){
-        mode = 'membro';
+        if(!autorizado) mode = '';
       }
 
       render();
@@ -607,19 +590,15 @@
     }
 
     function render(){
-      const isConfig = !mode && !modoFixo;
       const heroTitle = $('heroBox')?.querySelector('h1');
       if(heroTitle){
         heroTitle.textContent = mode === 'coordenador' ? 'Fila de Extras - Coordenador' : mode === 'membro' ? 'Fila de Extras - Membro' : 'Fila de Extras';
       }
-      $('configInicial').classList.toggle('hide', !!mode || !!modoFixo);
       $('coordenador').classList.toggle('hide', mode !== 'coordenador');
       $('membro').classList.toggle('hide', mode !== 'membro');
-      $('trocarModoBtn').classList.toggle('hide', !mode || !!modoFixo);
-      $('trocarModoHint').classList.add('hide');
-      $('heroBox').classList.toggle('heroCentered', isConfig);
+      $('heroBox').classList.remove('heroCentered');
       $('heroSubtitle').classList.add('hide');
-      $('modoBadge').classList.toggle('hide', isConfig || !mode);
+      $('modoBadge').classList.toggle('hide', !mode);
       $('modoBadge').textContent = mode === 'coordenador' ? 'COORDENADOR' : mode === 'membro' ? 'MEMBRO' : '';
       if(mode === 'coordenador') renderCoordenador();
       if(mode === 'membro') renderMembro();
@@ -819,7 +798,7 @@
         const hasDetails = !!(h.extraId && (extraSnapshot || data.extrasAtivas.some(e => e.id === h.extraId) || data.extrasAceitasCancelaveis[h.extraId]));
         const showPublicDetails = !isCoord && (h.acao === 'EXTRA ACEITA' || h.acao === 'EXTRA RECUSADA') && hasDetails;
         const showCoordDetails = isCoord && hasDetails;
-        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div><div class="histActions">${showPublicDetails || showCoordDetails ? `<button class="historyDetailsBtn" onclick="mostrarDetalhesHistoricoExtra('${h.id}')">Mais detalhes</button>` : ''}${pending ? `<button class="btn red miniAction" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}</div></div></div>`;
+        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div><div class="histActions">${showPublicDetails || showCoordDetails ? `<button class="historyDetailsBtn" onclick="mostrarDetalhesHistoricoExtra('${h.id}')">Mais detalhes</button>` : ''}${pending ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}</div></div></div>`;
       }).join('') || '<p class="muted">Nenhuma ação registrada.</p>';
       pageButtons(pager, items.length, page, histPageSize, isCoord ? 'setHistCoordPage' : 'setHistMembroPage');
     }
@@ -1062,14 +1041,6 @@
       data.fila = data.fila.filter(x=>x.id!==id); log('MEMBRO REMOVIDO', `${p.nome} foi removido da fila. Motivo: ${motivo.trim()}`); await persistAndRender();
     }
 
-    $('setCoordenador').addEventListener('click', async()=>{
-      const autorizado = await validarAcessoCoordenador();
-      if(!autorizado) return;
-      mode='coordenador';
-      render();
-    });
-    $('setMembro').addEventListener('click', async()=>{ mode='membro'; render(); });
-    $('trocarModoBtn').addEventListener('click', async()=>{ if(modoFixo) return; const ok=await confirmDialog('Trocar modo','Deseja trocar o modo de acesso desta conta?'); if(!ok) return; mode=''; render(); });
     $('addPessoa').addEventListener('click', async()=>{ const nome=$('novoNome').value.trim(); const trelloUsername = cleanUsername($('novoUsuario').value); if(!nome) return infoDialog('Atenção','Informe o nome da pessoa.'); data.fila.push({id:uid(),nome,trelloUsername}); $('novoNome').value=''; $('novoUsuario').value=''; log('MEMBRO ADICIONADO', `${nome} foi adicionado à fila${trelloUsername ? ' e vinculado a @' + trelloUsername : ''}.`); coordPage = ensurePage(data.fila.length, 999, pageSize); await persistAndRender(); });
     $('puxarPessoaBtn').addEventListener('click', async()=>{ const id = $('puxarPessoaSelect').value; const targetIndex = $('posicaoDestinoSelect').value; if(!id) return infoDialog('Atenção','Selecione uma pessoa.'); await colocarNaPosicao(id, targetIndex); });
     $('gerarExtra').addEventListener('click', gerarExtra); $('pularVez').addEventListener('click', pularVez); $('refreshNowBtn').addEventListener('click', atualizarDadosManual);
