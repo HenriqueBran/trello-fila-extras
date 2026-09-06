@@ -10,7 +10,7 @@
 <script src="https://p.trellocdn.com/power-up.min.js"></script>
 <script>
 const baseUrl = window.location.origin;
-const icon = baseUrl + '/icon.png?v=127';
+const icon = baseUrl + '/icon.png?v=128';
 
 async function coordenadorAutorizado(t){
   try{
@@ -26,7 +26,7 @@ async function coordenadorAutorizado(t){
 const abrirPainel = function(t){
   return t.modal({
     title:'Fila de Extras - Coordenador',
-    url:'./fila.html?modo=coordenador&v=127',
+    url:'./fila.html?modo=coordenador&v=128',
     height:740,
     fullscreen:false,
     accentColor:'#111827'
@@ -45,7 +45,7 @@ window.TrelloPowerUp.initialize({
   'show-settings': function(t){
     return t.modal({
       title:'Gerenciar coordenadores',
-      url:'./gerenciar-coordenadores.html?v=127',
+      url:'./gerenciar-coordenadores.html?v=128',
       height:640,
       fullscreen:false,
       accentColor:'#111827'

@@ -124,6 +124,10 @@ input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:v
 .orange{background:var(--magenta);color:var(--white);box-shadow:0 10px 24px rgba(255,50,100,.16)}
 .ghost{background:var(--gray-3);color:var(--black);border:1px solid var(--line)}
 .linklike{background:transparent;color:var(--magenta);padding:0;font-weight:900;border-radius:0;box-shadow:none}.linklike:hover{text-decoration:underline;filter:none;transform:none}
+.rejectExtraLink{background:transparent;color:#6b7280;padding:8px 4px;border-radius:0;box-shadow:none;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.rejectExtraLink:hover{background:transparent;color:var(--magenta);filter:none;transform:none;text-decoration-thickness:2px}
+.rejectExtraLink:active{transform:none}
+.rejectExtraLink:focus-visible{outline:2px solid var(--magenta);outline-offset:3px;border-radius:4px}
 .btn:disabled,select:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
 
 .list{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow:auto;padding-right:4px}
