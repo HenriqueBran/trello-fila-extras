@@ -304,96 +304,26 @@
       return parts.length ? ` ${parts.join(' • ')}.` : '';
     }
 
-    function parseBrDateTime(value){
-      if(!value || typeof value !== 'string') return null;
-      const match = value.trim().match(/^(\d{2})\/(\d{2})\/(\d{4}),?\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
-      if(!match) return null;
-      const [, dd, mm, yyyy, hh, mi, ss] = match;
-      const dt = new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(mi), Number(ss || 0));
-      return Number.isFinite(dt.getTime()) ? dt : null;
-    }
-    function relativeTimeLabel(value){
-      const dt = parseBrDateTime(value);
-      if(!dt) return '';
-      const diffMs = Date.now() - dt.getTime();
-      if(diffMs < 0) return 'agora';
-      const mins = Math.floor(diffMs / 60000);
-      if(mins < 1) return 'agora';
-      if(mins < 60) return `há ${mins} min`;
-      const hours = Math.floor(mins / 60);
-      if(hours < 24) return `há ${hours} h`;
-      const days = Math.floor(hours / 24);
-      return `há ${days} d`;
-    }
-    function initials(name){
-      const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
-      if(!parts.length) return '??';
-      return parts.slice(0, 2).map(part => (part[0] || '').toUpperCase()).join('');
-    }
-    function formatExtraDateChip(value){
+    function formatExtraHistoryDay(value){
       const t = toTime(value);
       if(t === null) return '';
-      let label = new Date(t).toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit' });
-      label = label.replace('.', '').replace(/([a-zà-ú])/i, s => s.toLowerCase());
-      return label;
+      const date = new Date(t);
+      const weekday = date.toLocaleDateString('pt-BR', { weekday:'short' }).replace('.', '').toLowerCase();
+      const dayMonth = date.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
+      return `${weekday}, ${dayMonth}`;
     }
-    function formatExtraTimeRange(extra){
-      const iniT = toTime(extra?.inicioAt);
-      const fimT = toTime(extra?.fimAt);
+    function formatExtraHistoryTimeRange(extra){
+      const ini = toTime(extra?.inicioAt);
+      const fim = toTime(extra?.fimAt);
       const fmt = (t) => t === null ? '--:--' : new Date(t).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
-      if(iniT === null && fimT === null) return '';
-      return `${fmt(iniT)} – ${fmt(fimT)}`;
+      if(ini === null && fim === null) return '';
+      return `${fmt(ini)} – ${fmt(fim)}`;
     }
-    function formatExtraDuration(extra){
-      const iniT = toTime(extra?.inicioAt);
-      const fimT = toTime(extra?.fimAt);
-      if(iniT === null || fimT === null || fimT <= iniT) return '';
-      const totalMinutes = Math.round((fimT - iniT) / 60000);
-      const hours = Math.floor(totalMinutes / 60);
-      const minutes = totalMinutes % 60;
-      if(hours <= 0) return `${minutes}min`;
-      return `${hours}h${String(minutes).padStart(2,'0')}`;
-    }
-    function historyStatusMeta(action){
-      switch(action){
-        case 'EXTRA ACEITA': return { label:'Extra aceita', className:'accepted' };
-        case 'EXTRA RECUSADA': return { label:'Extra recusada', className:'refused' };
-        case 'EXTRA CANCELADA': return { label:'Extra cancelada', className:'cancelled' };
-        case 'EXTRA REDIRECIONADA': return { label:'Extra redirecionada', className:'redirected' };
-        case 'EXTRA GERADA': return { label:'Extra gerada', className:'generated' };
-        case 'SEM RESPOSTA': return { label:'Sem resposta', className:'noresponse' };
-        default: return { label: action || 'Atualização', className:'generated' };
-      }
-    }
-    function renderHistoryPreviewCard(h, extra, actionsHtml){
-      const meta = historyStatusMeta(h?.acao);
-      const personName = extra?.pessoaNome || h?.usuario || 'Pessoa não identificada';
-      const relative = relativeTimeLabel(h?.data);
-      const dateChip = formatExtraDateChip(extra?.inicioAt);
-      const timeRange = formatExtraTimeRange(extra);
-      const duration = formatExtraDuration(extra);
-      const leadText = extra?.descricao ? escapeHtml(extra.descricao) : 'Detalhes disponíveis para consulta';
-      return `<div class="histPreview ${meta.className}">
-        <div class="histPreviewTop">
-          <div class="histPreviewIdentity">
-            <div class="histAvatar" aria-hidden="true">${escapeHtml(initials(personName))}</div>
-            <div class="histIdentityText">
-              <strong>${escapeHtml(personName)}</strong>
-              <span>${escapeHtml(relative || h?.data || '')}</span>
-            </div>
-          </div>
-          <div class="histStatusBadge ${meta.className}">${escapeHtml(meta.label)}</div>
-        </div>
-        <div class="histPreviewSchedule">
-          <div class="histScheduleMain">
-            <span class="histScheduleItem"><span class="histScheduleIcon">📅</span>${escapeHtml(dateChip || '-')}</span>
-            <span class="histScheduleItem"><span class="histScheduleIcon">🕒</span>${escapeHtml(timeRange || '-')}</span>
-            ${duration ? `<span class="histDurationPill">${escapeHtml(duration)}</span>` : ''}
-          </div>
-        </div>
-        <div class="histPreviewLead">${leadText}</div>
-        <div class="histPreviewActions">${actionsHtml}</div>
-      </div>`;
+    function getHistoryStatusMeta(action){
+      if(action === 'EXTRA ACEITA') return { label:'Extra aceita', className:'accepted' };
+      if(action === 'EXTRA RECUSADA') return { label:'Extra recusada', className:'refused' };
+      if(action === 'EXTRA CANCELADA') return { label:'Extra cancelada', className:'cancelled' };
+      return null;
     }
 
     let activeHelpTooltip = null;
@@ -893,8 +823,12 @@
         const hasDetails = !!(h.extraId && (extraSnapshot || data.extrasAtivas.some(e => e.id === h.extraId) || data.extrasAceitasCancelaveis[h.extraId]));
         const showPublicDetails = !isCoord && (h.acao === 'EXTRA ACEITA' || h.acao === 'EXTRA RECUSADA') && hasDetails;
         const showCoordDetails = isCoord && hasDetails;
-        const actionsHtml = `${pending ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}${showPublicDetails || showCoordDetails ? `<button class="historyDetailsBtn historyDetailsLink" onclick="mostrarDetalhesHistoricoExtra('${h.id}')">Mais detalhes <span aria-hidden="true">›</span></button>` : ''}`;
-        return `<div class="hist ${histClass(h.acao)}">${hasDetails && extraSnapshot ? renderHistoryPreviewCard(h, extraSnapshot, actionsHtml) : `<div class="histHead"><div><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div><div class="histActions ${isCoord ? 'histActionsCoord' : ''}">${actionsHtml}</div></div>`}</div>`;
+        const statusMeta = getHistoryStatusMeta(h.acao);
+        const extraDay = extraSnapshot ? formatExtraHistoryDay(extraSnapshot.inicioAt) : '';
+        const extraTimeRange = extraSnapshot ? formatExtraHistoryTimeRange(extraSnapshot) : '';
+        const timelineHtml = (extraDay || extraTimeRange) ? `<div class="histTimeline"><span class="histTimelineItem"><span class="histTimelineIcon" aria-hidden="true">📅</span>${escapeHtml(extraDay || '-')}</span><span class="histTimelineItem"><span class="histTimelineIcon" aria-hidden="true">🕒</span>${escapeHtml(extraTimeRange || '-')}</span></div>` : '';
+        const detailsBtn = (showPublicDetails || showCoordDetails) ? `<button class="historyDetailsBtn historyDetailsLink" onclick="mostrarDetalhesHistoricoExtra('${h.id}')">Mais detalhes <span aria-hidden="true">›</span></button>` : '';
+        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div class="histContent"><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small>${timelineHtml}</div><div class="histActions ${isCoord ? 'histActionsCoord' : ''}">${statusMeta ? `<span class="historyStatusPill ${statusMeta.className}">${escapeHtml(statusMeta.label)}</span>` : ''}${pending ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}${detailsBtn}</div></div></div>`;
       }).join('') || '<p class="muted">Nenhuma ação registrada.</p>';
       pageButtons(pager, items.length, page, histPageSize, isCoord ? 'setHistCoordPage' : 'setHistMembroPage');
     }
