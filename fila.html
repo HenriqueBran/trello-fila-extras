@@ -5,7 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=128" />
+  <link rel="stylesheet" href="./style.css?v=131" />
+  <style>
+    /* v131 - ajuste do histórico */
+    .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:14px !important;align-items:flex-start !important;}
+    .histContent{min-width:0;flex:1 1 auto;}
+    .histTimeline{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:14px;color:#454545;}
+    .histTimeline .histTimelineItem{display:inline-flex !important;align-items:center;gap:8px;font-size:15px;font-weight:700;color:#4b4b4b;white-space:nowrap;}
+    .histTimeline .histTimelineIcon{display:inline-flex !important;align-items:center;justify-content:center;font-size:16px;line-height:1;flex:0 0 auto;}
+    .histActions{margin-left:auto;display:flex !important;flex-direction:column !important;align-items:flex-end !important;justify-content:flex-start !important;gap:10px !important;min-width:180px;}
+    .histActionsCoord{align-items:flex-end !important;}
+    .historyStatusPill{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:999px;font-size:14px;font-weight:700;line-height:1;white-space:nowrap;}
+    .historyStatusPill.accepted{background:#d9f2d7;color:#116d20;}
+    .historyStatusPill.refused,.historyStatusPill.cancelled{background:#ffe3ea;color:#bf1743;}
+    .historyDetailsBtn{appearance:none;border:0;background:transparent !important;padding:0 !important;color:#1f57b5 !important;font:inherit;font-size:14px;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer;box-shadow:none;display:inline-flex !important;align-items:center;justify-content:flex-end;gap:8px;min-height:auto;margin:0;vertical-align:middle;transition:transform .18s ease,opacity .18s ease,color .18s ease;}
+    .historyDetailsBtn:hover{background:transparent !important;color:#003fc2 !important;transform:translateX(1px);opacity:1;box-shadow:none;}
+    .historyDetailsBtn:focus-visible{outline:2px solid rgba(0,80,242,.28);outline-offset:4px;border-radius:8px;}
+    .historyDetailsLink span{display:inline-block !important;font-size:24px;line-height:.7;transform:translateY(-1px);}
+    @media (max-width: 800px){
+      .histHead{grid-template-columns:1fr !important;}
+      .histActions,.histActionsCoord{min-width:0;align-items:flex-start !important;margin-left:0;}
+      .historyDetailsBtn{justify-content:flex-start;}
+      .histTimeline{gap:12px;}
+    }
+  </style>
 </head>
 <body>
   <div id="frameSizer" aria-hidden="true"></div>
