@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=142" />
+  <link rel="stylesheet" href="./style.css?v=144" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -23,7 +23,7 @@
     .histActions{margin-left:auto;display:flex !important;flex-direction:column !important;align-items:flex-end !important;justify-content:flex-start !important;gap:12px !important;min-width:180px;align-self:stretch;justify-self:end;}
     .histActionsCoord{align-items:flex-end !important;}
     .historyStatusPill{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:999px;font-size:14px;font-weight:700;line-height:1;white-space:nowrap;align-self:flex-end;}
-    .historyStatusPill.accepted{background:#d9f2d7;color:#116d20;}
+    .historyStatusPill.accepted{background:rgba(0,80,242,.12);color:#0050F2;}
     .historyStatusPill.refused,.historyStatusPill.cancelled{background:#ffe3ea;color:#bf1743;}
     .historyDetailsBtn{appearance:none;border:0;background:transparent !important;padding:0 !important;color:#1f57b5 !important;font:inherit;font-size:14px;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer;box-shadow:none;display:inline-flex !important;align-items:center;justify-content:flex-end;gap:8px;min-height:auto;margin:0;vertical-align:middle;align-self:flex-end;transition:transform .18s ease,opacity .18s ease,color .18s ease;margin-top:auto;}
     .historyDetailsBtn:hover{background:transparent !important;color:#003fc2 !important;transform:translateX(1px);opacity:1;box-shadow:none;}
@@ -847,7 +847,7 @@
       }
       renderHistory('historicoMembro', 'paginacaoHistMembro', false);
     }
-    function histClass(acao){ if(acao==='EXTRA ACEITA') return 'success'; if(acao==='ORDEM ALTERADA') return 'ok'; if(acao==='EXTRA RECUSADA'||acao==='EXTRA CANCELADA'||acao==='SEM RESPOSTA') return 'danger'; if(acao==='VEZ PULADA') return 'warn'; return 'neutral'; }
+    function histClass(acao){ if(acao==='EXTRA GERADA') return 'generated'; if(acao==='EXTRA ACEITA') return 'accepted'; if(acao==='ORDEM ALTERADA') return 'orderChanged'; if(acao==='SEM RESPOSTA') return 'noResponse'; if(acao==='EXTRA RECUSADA'||acao==='EXTRA CANCELADA') return 'danger'; if(acao==='VEZ PULADA') return 'warn'; return 'neutral'; }
     window.mostrarDetalhesHistoricoExtra = function(histId){
       const historico = Array.isArray(data.historico) ? data.historico : [];
       const h = historico.find(item => item.id === histId);
