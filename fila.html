@@ -5,27 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=131" />
+  <link rel="stylesheet" href="./style.css?v=133" />
   <style>
-    /* v131 - ajuste do histórico */
-    .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:14px !important;align-items:flex-start !important;}
+    /* v133 - histórico ajustado */
+    .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
     .histContent{min-width:0;flex:1 1 auto;}
+    .histSummaryLine{display:block;color:#52525b;font-size:14px;line-height:1.25;margin-top:2px;}
+    .histSummaryLine.strongBreak{margin-top:6px;}
+    .histMetaLine{display:block;color:#8b93a1;font-size:13px;line-height:1.2;margin-top:8px;}
     .histTimeline{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:14px;color:#454545;}
     .histTimeline .histTimelineItem{display:inline-flex !important;align-items:center;gap:8px;font-size:15px;font-weight:700;color:#4b4b4b;white-space:nowrap;}
     .histTimeline .histTimelineIcon{display:inline-flex !important;align-items:center;justify-content:center;font-size:16px;line-height:1;flex:0 0 auto;}
-    .histActions{margin-left:auto;display:flex !important;flex-direction:column !important;align-items:flex-end !important;justify-content:flex-start !important;gap:10px !important;min-width:180px;}
+    .histInlineActions{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-top:14px;}
+    .histActions{margin-left:auto;display:flex !important;flex-direction:column !important;align-items:flex-end !important;justify-content:flex-start !important;gap:12px !important;min-width:180px;align-self:stretch;}
     .histActionsCoord{align-items:flex-end !important;}
     .historyStatusPill{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:999px;font-size:14px;font-weight:700;line-height:1;white-space:nowrap;}
     .historyStatusPill.accepted{background:#d9f2d7;color:#116d20;}
     .historyStatusPill.refused,.historyStatusPill.cancelled{background:#ffe3ea;color:#bf1743;}
-    .historyDetailsBtn{appearance:none;border:0;background:transparent !important;padding:0 !important;color:#1f57b5 !important;font:inherit;font-size:14px;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer;box-shadow:none;display:inline-flex !important;align-items:center;justify-content:flex-end;gap:8px;min-height:auto;margin:0;vertical-align:middle;align-self:flex-end;transition:transform .18s ease,opacity .18s ease,color .18s ease;}
+    .historyDetailsBtn{appearance:none;border:0;background:transparent !important;padding:0 !important;color:#1f57b5 !important;font:inherit;font-size:14px;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer;box-shadow:none;display:inline-flex !important;align-items:center;justify-content:flex-end;gap:8px;min-height:auto;margin:0;vertical-align:middle;align-self:flex-end;transition:transform .18s ease,opacity .18s ease,color .18s ease;margin-top:auto;}
     .historyDetailsBtn:hover{background:transparent !important;color:#003fc2 !important;transform:translateX(1px);opacity:1;box-shadow:none;}
     .historyDetailsBtn:focus-visible{outline:2px solid rgba(0,80,242,.28);outline-offset:4px;border-radius:8px;}
     .historyDetailsLink span{display:inline-block !important;font-size:24px;line-height:.7;transform:translateY(-1px);}
     @media (max-width: 800px){
       .histHead{grid-template-columns:1fr !important;}
-      .histActions,.histActionsCoord{min-width:0;align-items:flex-end !important;margin-left:0;}
-      .historyDetailsBtn{justify-content:flex-end;}
+      .histActions,.histActionsCoord{min-width:0;align-items:flex-start !important;margin-left:0;}
+      .historyDetailsBtn{justify-content:flex-start;align-self:flex-start;margin-top:0;}
       .histTimeline{gap:12px;}
     }
   </style>
@@ -347,6 +351,15 @@
       if(action === 'EXTRA RECUSADA') return { label:'Extra recusada', className:'refused' };
       if(action === 'EXTRA CANCELADA') return { label:'Extra cancelada', className:'cancelled' };
       return null;
+    }
+    function splitHistoryText(text){
+      const raw = String(text || '').trim();
+      if(!raw) return { line1:'', line2:'' };
+      const idx = raw.indexOf(' Início:');
+      if(idx >= 0){
+        return { line1: raw.slice(0, idx).trim(), line2: raw.slice(idx + 1).trim() };
+      }
+      return { line1: raw, line2:'' };
     }
 
     let activeHelpTooltip = null;
@@ -849,9 +862,11 @@
         const statusMeta = getHistoryStatusMeta(h.acao);
         const extraDay = extraSnapshot ? formatExtraHistoryDay(extraSnapshot.inicioAt) : '';
         const extraTimeRange = extraSnapshot ? formatExtraHistoryTimeRange(extraSnapshot) : '';
+        const textLines = splitHistoryText(h.texto);
         const timelineHtml = (extraDay || extraTimeRange) ? `<div class="histTimeline"><span class="histTimelineItem"><span class="histTimelineIcon" aria-hidden="true">📅</span>${escapeHtml(extraDay || '-')}</span><span class="histTimelineItem"><span class="histTimelineIcon" aria-hidden="true">🕒</span>${escapeHtml(extraTimeRange || '-')}</span></div>` : '';
         const detailsBtn = (showPublicDetails || showCoordDetails) ? `<button class="historyDetailsBtn historyDetailsLink" onclick="mostrarDetalhesHistoricoExtra('${h.id}')">Mais detalhes <span aria-hidden="true">›</span></button>` : '';
-        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div class="histContent"><b>${escapeHtml(h.acao)}</b><span>${escapeHtml(h.texto)}</span><small>${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small>${timelineHtml}</div><div class="histActions ${isCoord ? 'histActionsCoord' : ''}">${statusMeta ? `<span class="historyStatusPill ${statusMeta.className}">${escapeHtml(statusMeta.label)}</span>` : ''}${pending ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : ''}${accepted ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : ''}${detailsBtn}</div></div></div>`;
+        const cancelBtn = pending ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : (accepted ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : '');
+        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div class="histContent"><b>${escapeHtml(h.acao)}</b>${textLines.line1 ? `<span class="histSummaryLine">${escapeHtml(textLines.line1)}</span>` : ''}${textLines.line2 ? `<span class="histSummaryLine strongBreak">${escapeHtml(textLines.line2)}</span>` : ''}<small class="histMetaLine">${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small>${timelineHtml}${cancelBtn ? `<div class="histInlineActions">${cancelBtn}</div>` : ''}</div><div class="histActions ${isCoord ? 'histActionsCoord' : ''}">${statusMeta ? `<span class="historyStatusPill ${statusMeta.className}">${escapeHtml(statusMeta.label)}</span>` : ''}${detailsBtn}</div></div></div>`;
       }).join('') || '<p class="muted">Nenhuma ação registrada.</p>';
       pageButtons(pager, items.length, page, histPageSize, isCoord ? 'setHistCoordPage' : 'setHistMembroPage');
     }
