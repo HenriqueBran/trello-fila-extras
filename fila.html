@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=138" />
+  <link rel="stylesheet" href="./style.css?v=139" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -847,13 +847,41 @@
       const extra = h.extraSnapshot || h.extra || (h.extraId ? data.extrasAceitasCancelaveis?.[h.extraId] : null) || null;
       if(!extra) return infoDialog('Detalhes do extra', 'Os detalhes completos deste extra não estão disponíveis neste registro.');
       const pessoaNome = escapeHtml(extra.pessoaNome || 'Pessoa chamada');
+      const podeAdicionarCodigoOs = mode === 'coordenador' && !String(extra.codigoOs || '').trim();
       const detalhes = `<div class="extraCard historyExtraDetails">
         <div class="notice"><b>${pessoaNome}</b> foi chamado para uma extra.</div>
         <p><b>Descrição:</b> ${escapeHtml(extra.descricao || 'Extra gerada pelo coordenador.')}</p>
         ${extraResponsaveisHtml(extra)}
         ${extraPeriodoHtml(extra)}
+        ${podeAdicionarCodigoOs ? `<div class="historyOsAction"><button type="button" class="btn primary historyAddOsBtn" onclick="adicionarCodigoOsAoExtra('${h.extraId}','${h.id}')">Adicionar código OS</button></div>` : ''}
       </div>`;
       return htmlDialog('Detalhes do extra', detalhes);
+    };
+
+    window.adicionarCodigoOsAoExtra = async function(extraId, histId){
+      if(mode !== 'coordenador') return infoDialog('Acesso negado', 'Somente o modo Coordenador pode adicionar o Código OS.');
+      const historico = Array.isArray(data.historico) ? data.historico : [];
+      const hist = historico.find(item => item.id === histId) || historico.find(item => item.extraId === extraId);
+      const extraAtual = data.extrasAtivas.find(e => e.id === extraId) || data.extrasAceitasCancelaveis?.[extraId] || hist?.extraSnapshot || hist?.extra || null;
+      if(!extraAtual) return infoDialog('Atenção', 'Não foi possível localizar este extra.');
+      if(String(extraAtual.codigoOs || '').trim()) return infoDialog('Código OS já informado', `Código OS: ${escapeHtml(extraAtual.codigoOs)}`);
+
+      const codigo = await promptDialog('Adicionar código OS', 'Informe somente o código da OS:', '', 'Código OS obrigatório.');
+      if(codigo === null) return;
+      const codigoLimpo = String(codigo || '').trim();
+      if(!codigoLimpo) return;
+
+      const ativo = data.extrasAtivas.find(e => e.id === extraId);
+      if(ativo) ativo.codigoOs = codigoLimpo;
+      if(data.extrasAceitasCancelaveis?.[extraId]) data.extrasAceitasCancelaveis[extraId].codigoOs = codigoLimpo;
+
+      (data.historico || []).forEach(item => {
+        if(item.extraId !== extraId) return;
+        if(item.extraSnapshot && typeof item.extraSnapshot === 'object') item.extraSnapshot.codigoOs = codigoLimpo;
+        if(item.extra && typeof item.extra === 'object') item.extra.codigoOs = codigoLimpo;
+      });
+
+      await persistAndRender('Código OS adicionado com sucesso.');
     };
     function renderHistory(target, pager, isCoord){
       const items = data.historico || [];
