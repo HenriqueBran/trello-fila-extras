@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=135" />
+  <link rel="stylesheet" href="./style.css?v=136" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
     .histContent{min-width:0;flex:1 1 auto;}
+    .histAcceptedRow{display:flex;align-items:flex-start;gap:12px;margin-top:6px;}
+    .histAcceptedAvatar{width:48px;height:48px;border-radius:50%;background:#dbeafe;color:#2c5fb2;display:inline-flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;line-height:1;flex:0 0 48px;}
+    .histAcceptedTextWrap{min-width:0;display:flex;flex-direction:column;align-items:flex-start;}
     .histSummaryLine{display:block;color:#52525b;font-size:14px;line-height:1.25;margin-top:2px;}
     .histSummaryLine.strongBreak{margin-top:6px;}
     .histMetaLine{display:block;color:#8b93a1;font-size:13px;line-height:1.2;margin-top:8px;}
@@ -31,6 +34,8 @@
       .histActions,.histActionsCoord{min-width:160px;align-items:flex-end !important;margin-left:auto;justify-self:end;}
       .historyDetailsBtn{justify-content:flex-end;align-self:flex-end;margin-top:auto;}
       .histTimeline{gap:12px;}
+      .histAcceptedAvatar{width:42px;height:42px;flex-basis:42px;font-size:18px;}
+      .histAcceptedRow{gap:10px;}
     }
   </style>
 </head>
@@ -360,6 +365,11 @@
         return { line1: raw.slice(0, idx).trim(), line2: raw.slice(idx + 1).trim() };
       }
       return { line1: raw, line2:'' };
+    }
+    function getInitials(name){
+      const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+      if(!parts.length) return '??';
+      return parts.slice(0, 2).map(p => (p[0] || '').toUpperCase()).join('');
     }
 
     let activeHelpTooltip = null;
@@ -866,7 +876,8 @@
         const timelineHtml = (extraDay || extraTimeRange) ? `<div class="histTimeline"><span class="histTimelineItem"><span class="histTimelineIcon" aria-hidden="true">📅</span>${escapeHtml(extraDay || '-')}</span><span class="histTimelineItem"><span class="histTimelineIcon" aria-hidden="true">🕒</span>${escapeHtml(extraTimeRange || '-')}</span></div>` : '';
         const detailsBtn = (showPublicDetails || showCoordDetails) ? `<button class="historyDetailsBtn historyDetailsLink" onclick="mostrarDetalhesHistoricoExtra('${h.id}')">Mais detalhes <span aria-hidden="true">›</span></button>` : '';
         const cancelBtn = pending ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : (accepted ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : '');
-        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div class="histContent"><b>${escapeHtml(h.acao)}</b>${textLines.line1 ? `<span class="histSummaryLine">${escapeHtml(textLines.line1)}</span>` : ''}<small class="histMetaLine">${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small>${timelineHtml}${cancelBtn ? `<div class="histInlineActions">${cancelBtn}</div>` : ''}</div><div class="histActions ${isCoord ? 'histActionsCoord' : ''}">${statusMeta ? `<span class="historyStatusPill ${statusMeta.className}">${escapeHtml(statusMeta.label)}</span>` : ''}${detailsBtn}</div></div></div>`;
+        const acceptedAvatarRow = h.acao === 'EXTRA ACEITA' ? `<div class="histAcceptedRow"><div class="histAcceptedAvatar">${escapeHtml(getInitials(h.usuario || ''))}</div><div class="histAcceptedTextWrap">${textLines.line1 ? `<span class="histSummaryLine">${escapeHtml(textLines.line1)}</span>` : ''}<small class="histMetaLine">${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div></div>` : `${textLines.line1 ? `<span class="histSummaryLine">${escapeHtml(textLines.line1)}</span>` : ''}<small class="histMetaLine">${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small>`;
+        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div class="histContent"><b>${escapeHtml(h.acao)}</b>${acceptedAvatarRow}${timelineHtml}${cancelBtn ? `<div class="histInlineActions">${cancelBtn}</div>` : ''}</div><div class="histActions ${isCoord ? 'histActionsCoord' : ''}">${statusMeta ? `<span class="historyStatusPill ${statusMeta.className}">${escapeHtml(statusMeta.label)}</span>` : ''}${detailsBtn}</div></div></div>`;
       }).join('') || '<p class="muted">Nenhuma ação registrada.</p>';
       pageButtons(pager, items.length, page, histPageSize, isCoord ? 'setHistCoordPage' : 'setHistMembroPage');
     }
