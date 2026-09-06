@@ -2211,3 +2211,9 @@ html,body{
 }
 
 @media(max-width:800px){.histActions{justify-content:flex-start;margin-top:10px}.histActionsCoord{align-items:flex-start}.historyDetailsBtn{margin-top:0}}
+
+#coordenador{grid-template-columns:1fr;}
+.coordSectionCard{position:relative;}
+.coordSectionCard + .coordSectionCard{margin-top:2px;}
+.standaloneQuickTopBox{margin-top:0;}
+.standaloneQuickTopBox label{display:none;}

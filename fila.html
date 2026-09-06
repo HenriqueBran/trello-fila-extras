@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=141" />
+  <link rel="stylesheet" href="./style.css?v=142" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -57,7 +57,7 @@
 
 
     <main id="coordenador" class="grid hide">
-      <section class="card">
+      <section class="card full coordSectionCard">
         <h2>Pessoa da vez</h2>
         <div id="pessoaDaVez" class="person">Nenhuma pessoa cadastrada</div>
         <div id="extraStatus" class="status muted">Nenhuma extra ativa.</div>
@@ -68,8 +68,26 @@
         <p class="muted small">Pular vez exige motivo. O cancelamento fica disponível no histórico conforme o status da solicitação.</p>
       </section>
 
-      <section class="card">
-        <h2 class="sectionTitleWithHelp">Gerenciar fila <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Gerenciar fila" data-tooltip="Use esta seção para adicionar pessoas à fila, vincular o usuário Trello, alterar posição e remover membros quando necessário.">?</span></h2>
+      <section class="card full coordSectionCard">
+        <h2 class="sectionTitleWithHelp">Ordem da fila <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Ordem da fila" data-tooltip="Visualize a ordem atual da fila e acompanhe a posição de cada pessoa cadastrada.">?</span></h2>
+        <div id="listaCoordenador" class="list"></div>
+        <div id="paginacaoCoordenador" class="pagination"></div>
+      </section>
+
+      <section class="card full coordSectionCard">
+        <h2 class="sectionTitleWithHelp">Alterar posição de uma pessoa na fila <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Alterar posição" data-tooltip="Use esta seção para mover uma pessoa para qualquer posição da fila sem precisar pular uma a uma.">?</span></h2>
+        <div class="quickTopBox standaloneQuickTopBox">
+          <div class="quickTopRow positionRow">
+            <select id="puxarPessoaSelect"></select>
+            <select id="posicaoDestinoSelect"></select>
+            <button class="btn primary" id="puxarPessoaBtn">Mover pessoa</button>
+          </div>
+          <p class="muted small">Use para colocar uma pessoa em qualquer posição da fila, sem precisar pular pessoa por pessoa.</p>
+        </div>
+      </section>
+
+      <section class="card full coordSectionCard">
+        <h2 class="sectionTitleWithHelp">Gerenciar fila <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Gerenciar fila" data-tooltip="Use esta seção para adicionar novas pessoas à fila e vincular o usuário Trello.">?</span></h2>
         <div class="inputRow inputRowSuggest">
           <input id="novoNome" placeholder="Nome da pessoa" autocomplete="off" />
           <div class="suggestWrap">
@@ -78,17 +96,7 @@
           </div>
           <button class="btn dark" id="addPessoa">Adicionar</button>
         </div>
-        <div class="quickTopBox">
-          <label for="puxarPessoaSelect">Alterar posição de uma pessoa na fila</label>
-          <div class="quickTopRow positionRow">
-            <select id="puxarPessoaSelect"></select>
-            <select id="posicaoDestinoSelect"></select>
-            <button class="btn primary" id="puxarPessoaBtn">Mover pessoa</button>
-          </div>
-          <p class="muted small">Use para colocar uma pessoa em qualquer posição da fila, sem precisar pular pessoa por pessoa.</p>
-        </div>
-        <div id="listaCoordenador" class="list"></div>
-        <div id="paginacaoCoordenador" class="pagination"></div>
+        <p class="muted small">Adicione novas pessoas à fila e vincule o usuário Trello para notificações e identificação no modo membro.</p>
       </section>
 
       <section class="card full">
