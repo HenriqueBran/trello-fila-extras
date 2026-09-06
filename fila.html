@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=134" />
+  <link rel="stylesheet" href="./style.css?v=135" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -866,7 +866,7 @@
         const timelineHtml = (extraDay || extraTimeRange) ? `<div class="histTimeline"><span class="histTimelineItem"><span class="histTimelineIcon" aria-hidden="true">📅</span>${escapeHtml(extraDay || '-')}</span><span class="histTimelineItem"><span class="histTimelineIcon" aria-hidden="true">🕒</span>${escapeHtml(extraTimeRange || '-')}</span></div>` : '';
         const detailsBtn = (showPublicDetails || showCoordDetails) ? `<button class="historyDetailsBtn historyDetailsLink" onclick="mostrarDetalhesHistoricoExtra('${h.id}')">Mais detalhes <span aria-hidden="true">›</span></button>` : '';
         const cancelBtn = pending ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : (accepted ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : '');
-        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div class="histContent"><b>${escapeHtml(h.acao)}</b>${textLines.line1 ? `<span class="histSummaryLine">${escapeHtml(textLines.line1)}</span>` : ''}${textLines.line2 ? `<span class="histSummaryLine strongBreak">${escapeHtml(textLines.line2)}</span>` : ''}<small class="histMetaLine">${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small>${timelineHtml}${cancelBtn ? `<div class="histInlineActions">${cancelBtn}</div>` : ''}</div><div class="histActions ${isCoord ? 'histActionsCoord' : ''}">${statusMeta ? `<span class="historyStatusPill ${statusMeta.className}">${escapeHtml(statusMeta.label)}</span>` : ''}${detailsBtn}</div></div></div>`;
+        return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div class="histContent"><b>${escapeHtml(h.acao)}</b>${textLines.line1 ? `<span class="histSummaryLine">${escapeHtml(textLines.line1)}</span>` : ''}<small class="histMetaLine">${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small>${timelineHtml}${cancelBtn ? `<div class="histInlineActions">${cancelBtn}</div>` : ''}</div><div class="histActions ${isCoord ? 'histActionsCoord' : ''}">${statusMeta ? `<span class="historyStatusPill ${statusMeta.className}">${escapeHtml(statusMeta.label)}</span>` : ''}${detailsBtn}</div></div></div>`;
       }).join('') || '<p class="muted">Nenhuma ação registrada.</p>';
       pageButtons(pager, items.length, page, histPageSize, isCoord ? 'setHistCoordPage' : 'setHistMembroPage');
     }
