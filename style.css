@@ -2218,3 +2218,5 @@ html,body{
 .coordSectionCard + .coordSectionCard{margin-top:2px;}
 .standaloneQuickTopBox{margin-top:0;}
 .standaloneQuickTopBox label{display:none;}
+
+.exportHistoryDescription{margin-top:4px;margin-bottom:16px;max-width:760px}.exportHistoryBox{border:1px solid var(--line);border-radius:18px;padding:18px;background:#fafafa}.exportHistoryGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.exportField{display:flex;flex-direction:column;gap:8px}.exportField span{font-size:14px;font-weight:800;color:var(--black)}.exportField input{height:48px;border:1px solid var(--line);border-radius:14px;padding:0 14px;background:#fff;color:var(--black);font:inherit;outline:none}.exportField input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,80,242,.10)}.exportHistoryActions{display:flex;gap:10px;flex-wrap:wrap}.exportHistoryHint{margin-top:12px;margin-bottom:0}@media(max-width:640px){.exportHistoryGrid{grid-template-columns:1fr}.exportHistoryActions{flex-direction:column}.exportHistoryActions .btn{width:100%}}

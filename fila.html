@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=145" />
+  <link rel="stylesheet" href="./style.css?v=146" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -106,6 +106,28 @@
         </div>
         <div id="historicoCoordenador" class="history"></div>
         <div id="paginacaoHistCoordenador" class="pagination"></div>
+      </section>
+
+      <section class="card full coordSectionCard">
+        <h2 class="sectionTitleWithHelp">Salvar histórico por período <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Salvar histórico por período" data-tooltip="Escolha um período para exportar o histórico registrado no quadro em PDF ou Excel.">?</span></h2>
+        <p class="muted small exportHistoryDescription">Selecione a data de início e a data de fim do período desejado. O histórico poderá ser salvo em <strong>PDF</strong> ou <strong>Excel</strong>.</p>
+        <div class="exportHistoryBox">
+          <div class="exportHistoryGrid">
+            <label class="exportField">
+              <span>Data de início</span>
+              <input id="exportHistoryStart" type="date" />
+            </label>
+            <label class="exportField">
+              <span>Data de fim</span>
+              <input id="exportHistoryEnd" type="date" />
+            </label>
+          </div>
+          <div class="exportHistoryActions">
+            <button class="btn ghost" id="exportHistoryPdfBtn">Salvar em PDF</button>
+            <button class="btn primary" id="exportHistoryExcelBtn">Salvar em Excel</button>
+          </div>
+          <p class="muted small exportHistoryHint">O arquivo será gerado somente com os registros encontrados dentro do período selecionado.</p>
+        </div>
       </section>
     </main>
 
@@ -365,6 +387,186 @@
       if(action === 'EXTRA CANCELADA') return { label:'Extra cancelada', className:'cancelled' };
       return null;
     }
+    function parsePtBrDateTime(value){
+      const raw = String(value || '').trim();
+      if(!raw) return null;
+      const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:,)?\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
+      if(match){
+        const [, dd, mm, yyyy, hh, mi, ss='00'] = match;
+        return new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(mi), Number(ss)).getTime();
+      }
+      const parsed = new Date(raw).getTime();
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    function dateInputToTime(value, endOfDay=false){
+      const raw = String(value || '').trim();
+      if(!raw) return null;
+      const [year, month, day] = raw.split('-').map(Number);
+      if(!year || !month || !day) return null;
+      return endOfDay
+        ? new Date(year, month - 1, day, 23, 59, 59, 999).getTime()
+        : new Date(year, month - 1, day, 0, 0, 0, 0).getTime();
+    }
+    function formatInputDateLabel(value){
+      const t = dateInputToTime(value);
+      return t === null ? '' : new Date(t).toLocaleDateString('pt-BR');
+    }
+    function inputDateValue(date){
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    function ensureHistoryExportDefaults(){
+      const startInput = $('exportHistoryStart');
+      const endInput = $('exportHistoryEnd');
+      if(!startInput || !endInput) return;
+      const today = new Date();
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      if(!startInput.value) startInput.value = inputDateValue(firstDay);
+      if(!endInput.value) endInput.value = inputDateValue(today);
+    }
+    function getHistoryItemsBySelectedPeriod(){
+      const startValue = $('exportHistoryStart')?.value || '';
+      const endValue = $('exportHistoryEnd')?.value || '';
+      const start = dateInputToTime(startValue, false);
+      const end = dateInputToTime(endValue, true);
+      if(start === null || end === null){
+        return { error:'Selecione a data de início e a data de fim para continuar.' };
+      }
+      if(start > end){
+        return { error:'A data de início não pode ser maior do que a data de fim.' };
+      }
+      const items = (data.historico || []).filter(item => {
+        const time = parsePtBrDateTime(item?.data);
+        return time !== null && time >= start && time <= end;
+      });
+      return { items, startValue, endValue };
+    }
+    function buildHistoryExportRows(items){
+      return (Array.isArray(items) ? items : []).map(h => {
+        const extra = h.extraSnapshot || h.extra || (h.extraId ? data.extrasAceitasCancelaveis?.[h.extraId] : null) || null;
+        return {
+          acao: h.acao || '',
+          dataRegistro: h.data || '',
+          usuarioRegistro: h.usuario || '',
+          resumo: splitHistoryText(h.texto || '').line1 || h.texto || '',
+          diaExtra: extra ? formatExtraHistoryDay(extra.inicioAt) : '',
+          horarioExtra: extra ? formatExtraHistoryTimeRange(extra) : '',
+          status: getHistoryStatusMeta(h.acao)?.label || '',
+          descricao: extra?.descricao || '',
+          responsavelSolicitante: extra?.responsavelSolicitante || '',
+          codigoOs: extra?.codigoOs || '',
+          squad: extra?.squad || '',
+          responsavelAtendimento: extra?.responsavelAtendimento || '',
+          inicio: extra ? (formatDateTime(extra.inicioAt) || '') : '',
+          fim: extra ? (formatDateTime(extra.fimAt) || '') : ''
+        };
+      });
+    }
+    function downloadBlobFile(blob, fileName){
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1200);
+    }
+    function historyExportFileBaseName(startValue, endValue){
+      return `historico_${startValue || 'inicio'}_a_${endValue || 'fim'}`.replace(/[^a-zA-Z0-9_\-]+/g, '_');
+    }
+    function escapeExportHtml(value){
+      return escapeHtml(String(value ?? ''));
+    }
+    window.exportarHistoricoExcel = function(){
+      if(mode !== 'coordenador') return infoDialog('Atenção', 'Essa exportação está disponível apenas no modo Coordenador.');
+      const result = getHistoryItemsBySelectedPeriod();
+      if(result.error) return infoDialog('Atenção', result.error);
+      if(!result.items.length) return infoDialog('Nenhum registro encontrado', 'Não existem registros no histórico dentro do período selecionado.');
+      const rows = buildHistoryExportRows(result.items);
+      const headers = ['Ação', 'Data do registro', 'Usuário do registro', 'Resumo', 'Dia do extra', 'Horário do extra', 'Status', 'Descrição', 'Responsável solicitante', 'Código OS', 'Squad', 'Responsável atendimento', 'Início', 'Fim'];
+      const bodyRows = rows.map(row => `<tr>${[
+        row.acao,
+        row.dataRegistro,
+        row.usuarioRegistro,
+        row.resumo,
+        row.diaExtra,
+        row.horarioExtra,
+        row.status,
+        row.descricao,
+        row.responsavelSolicitante,
+        row.codigoOs,
+        row.squad,
+        row.responsavelAtendimento,
+        row.inicio,
+        row.fim
+      ].map(cell => `<td>${escapeExportHtml(cell)}</td>`).join('')}</tr>`).join('');
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+        body{font-family:Arial,sans-serif;padding:24px;color:#111}
+        h1{font-size:22px;margin:0 0 8px}
+        p{margin:0 0 18px;color:#555}
+        table{width:100%;border-collapse:collapse;font-size:12px}
+        th,td{border:1px solid #d9d9d9;padding:8px;vertical-align:top;text-align:left}
+        th{background:#f3f4f6;font-weight:700}
+      </style></head><body>
+        <h1>Histórico por período</h1>
+        <p>Período selecionado: ${escapeExportHtml(formatInputDateLabel(result.startValue))} até ${escapeExportHtml(formatInputDateLabel(result.endValue))}</p>
+        <table>
+          <thead><tr>${headers.map(h => `<th>${escapeExportHtml(h)}</th>`).join('')}</tr></thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+      </body></html>`;
+      downloadBlobFile(new Blob(['﻿' + html], { type:'application/vnd.ms-excel;charset=utf-8;' }), `${historyExportFileBaseName(result.startValue, result.endValue)}.xls`);
+    };
+    window.exportarHistoricoPdf = function(){
+      if(mode !== 'coordenador') return infoDialog('Atenção', 'Essa exportação está disponível apenas no modo Coordenador.');
+      const result = getHistoryItemsBySelectedPeriod();
+      if(result.error) return infoDialog('Atenção', result.error);
+      if(!result.items.length) return infoDialog('Nenhum registro encontrado', 'Não existem registros no histórico dentro do período selecionado.');
+      const rows = buildHistoryExportRows(result.items);
+      const blocks = rows.map(row => `
+        <div class="pdfHistoryCard">
+          <div class="pdfHistoryHead">
+            <strong>${escapeExportHtml(row.acao)}</strong>
+            ${row.status ? `<span class="pdfHistoryStatus">${escapeExportHtml(row.status)}</span>` : ''}
+          </div>
+          <p>${escapeExportHtml(row.resumo || '-')}</p>
+          <p><b>Registro:</b> ${escapeExportHtml(row.dataRegistro)} • ${escapeExportHtml(row.usuarioRegistro)}</p>
+          ${(row.diaExtra || row.horarioExtra) ? `<p><b>Período do extra:</b> ${escapeExportHtml(row.diaExtra || '-')} • ${escapeExportHtml(row.horarioExtra || '-')}</p>` : ''}
+          ${(row.descricao || row.responsavelSolicitante || row.squad || row.responsavelAtendimento || row.codigoOs || row.inicio || row.fim) ? `
+            <div class="pdfDetailsGrid">
+              <div><b>Descrição:</b> ${escapeExportHtml(row.descricao || '-')}</div>
+              <div><b>Responsável solicitante:</b> ${escapeExportHtml(row.responsavelSolicitante || '-')}</div>
+              <div><b>Código OS:</b> ${escapeExportHtml(row.codigoOs || '-')}</div>
+              <div><b>Squad:</b> ${escapeExportHtml(row.squad || '-')}</div>
+              <div><b>Responsável atendimento:</b> ${escapeExportHtml(row.responsavelAtendimento || '-')}</div>
+              <div><b>Início / Fim:</b> ${escapeExportHtml(row.inicio || '-')} • ${escapeExportHtml(row.fim || '-')}</div>
+            </div>` : ''}
+        </div>`).join('');
+      const printWindow = window.open('', '_blank', 'width=980,height=760');
+      if(!printWindow) return infoDialog('Atenção', 'Não foi possível abrir a janela para salvar em PDF. Verifique se o navegador bloqueou a abertura.');
+      printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Histórico por período</title><style>
+        body{font-family:Arial,sans-serif;background:#fff;color:#111;padding:24px;margin:0}
+        h1{font-size:24px;margin:0 0 8px}
+        .subtitle{margin:0 0 22px;color:#555}
+        .pdfHistoryCard{border:1px solid #d7dce6;border-radius:18px;padding:18px 20px;margin-bottom:14px;page-break-inside:avoid}
+        .pdfHistoryHead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+        .pdfHistoryHead strong{font-size:16px}
+        .pdfHistoryStatus{display:inline-flex;align-items:center;padding:8px 14px;border-radius:999px;background:#eef2ff;color:#1d4ed8;font-size:12px;font-weight:700}
+        .pdfHistoryCard p{margin:0 0 8px;line-height:1.45}
+        .pdfDetailsGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:8px;font-size:13px}
+        @media print{body{padding:0 8mm}.pdfHistoryCard{break-inside:avoid}.noPrint{display:none}}
+      </style></head><body>
+        <h1>Histórico por período</h1>
+        <p class="subtitle">Período selecionado: ${escapeExportHtml(formatInputDateLabel(result.startValue))} até ${escapeExportHtml(formatInputDateLabel(result.endValue))}</p>
+        ${blocks}
+        <script>setTimeout(function(){ window.focus(); window.print(); }, 350);<\/script>
+      </body></html>`);
+      printWindow.document.close();
+    };
+
     function splitHistoryText(text){
       const raw = String(text || '').trim();
       if(!raw) return { line1:'', line2:'' };
@@ -756,6 +958,7 @@
       }).join('') || '<p class="muted">Nenhuma pessoa cadastrada.</p>';
       pageButtons('paginacaoCoordenador', total, coordPage, pageSize, 'setCoordPage');
       bindDrag(); renderHistory('historicoCoordenador', 'paginacaoHistCoordenador', true);
+      ensureHistoryExportDefaults();
     }
     function renderQuickTopSelect(){
       const select = $('puxarPessoaSelect');
@@ -1166,6 +1369,8 @@
     $('addPessoa').addEventListener('click', async()=>{ const nome=$('novoNome').value.trim(); const trelloUsername = cleanUsername($('novoUsuario').value); if(!nome) return infoDialog('Atenção','Informe o nome da pessoa.'); data.fila.push({id:uid(),nome,trelloUsername}); $('novoNome').value=''; $('novoUsuario').value=''; log('MEMBRO ADICIONADO', `${nome} foi adicionado à fila${trelloUsername ? ' e vinculado a @' + trelloUsername : ''}.`); coordPage = ensurePage(data.fila.length, 999, pageSize); await persistAndRender(); });
     $('puxarPessoaBtn').addEventListener('click', async()=>{ const id = $('puxarPessoaSelect').value; const targetIndex = $('posicaoDestinoSelect').value; if(!id) return infoDialog('Atenção','Selecione uma pessoa.'); await colocarNaPosicao(id, targetIndex); });
     $('gerarExtra').addEventListener('click', gerarExtra); $('pularVez').addEventListener('click', pularVez); $('refreshNowBtn').addEventListener('click', atualizarDadosManual);
+    $('exportHistoryPdfBtn')?.addEventListener('click', exportarHistoricoPdf);
+    $('exportHistoryExcelBtn')?.addEventListener('click', exportarHistoricoExcel);
 
     function bindMemberSuggestions(){
       const nome = $('novoNome');
