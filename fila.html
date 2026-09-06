@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=137" />
+  <link rel="stylesheet" href="./style.css?v=138" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -839,7 +839,7 @@
       }
       renderHistory('historicoMembro', 'paginacaoHistMembro', false);
     }
-    function histClass(acao){ if(acao==='EXTRA ACEITA') return 'ok'; if(acao==='EXTRA RECUSADA'||acao==='EXTRA CANCELADA'||acao==='SEM RESPOSTA') return 'danger'; if(acao==='VEZ PULADA') return 'warn'; return 'neutral'; }
+    function histClass(acao){ if(acao==='EXTRA ACEITA') return 'success'; if(acao==='ORDEM ALTERADA') return 'ok'; if(acao==='EXTRA RECUSADA'||acao==='EXTRA CANCELADA'||acao==='SEM RESPOSTA') return 'danger'; if(acao==='VEZ PULADA') return 'warn'; return 'neutral'; }
     window.mostrarDetalhesHistoricoExtra = function(histId){
       const historico = Array.isArray(data.historico) ? data.historico : [];
       const h = historico.find(item => item.id === histId);
