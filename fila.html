@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=146" />
+  <link rel="stylesheet" href="./style.css?v=148" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -115,16 +115,22 @@
           <div class="exportHistoryGrid">
             <label class="exportField">
               <span>Data de início</span>
-              <input id="exportHistoryStart" type="date" />
+              <div class="dateInputWrap">
+                <input id="exportHistoryStart" type="date" />
+                <button type="button" class="datePickerBtn" onclick="openDatePicker('exportHistoryStart')" aria-label="Abrir calendário da data de início">📅</button>
+              </div>
             </label>
             <label class="exportField">
               <span>Data de fim</span>
-              <input id="exportHistoryEnd" type="date" />
+              <div class="dateInputWrap">
+                <input id="exportHistoryEnd" type="date" />
+                <button type="button" class="datePickerBtn" onclick="openDatePicker('exportHistoryEnd')" aria-label="Abrir calendário da data de fim">📅</button>
+              </div>
             </label>
           </div>
           <div class="exportHistoryActions">
             <button class="btn ghost" id="exportHistoryPdfBtn">Salvar em PDF</button>
-            <button class="btn primary" id="exportHistoryExcelBtn">Salvar em Excel</button>
+            <button class="btn ghost" id="exportHistoryExcelBtn">Salvar em Excel</button>
           </div>
           <p class="muted small exportHistoryHint">O arquivo será gerado somente com os registros encontrados dentro do período selecionado.</p>
         </div>
@@ -417,6 +423,15 @@
       const day = String(date.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     }
+    window.openDatePicker = function(id){
+      const input = $(id);
+      if(!input) return;
+      if(typeof input.showPicker === 'function'){
+        try { input.showPicker(); return; } catch(e){}
+      }
+      input.focus();
+      input.click();
+    };
     function ensureHistoryExportDefaults(){
       const startInput = $('exportHistoryStart');
       const endInput = $('exportHistoryEnd');
