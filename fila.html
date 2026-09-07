@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=153" />
+  <link rel="stylesheet" href="./style.css?v=154" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -935,6 +935,11 @@
       }
     }
     function log(acao, texto, meta = {}){ data.historico.unshift({ id: uid(), acao, texto, usuario: member?.fullName || member?.username || 'Usuário', data: now(), ...meta }); }
+    function nomeCoordenadorDoExtra(extra){ return String(extra?.coordenadorRegistroNome || extra?.coordenadorNome || '').trim(); }
+    function metaLineHistorico(h, extraSnapshot){
+      const coordenador = nomeCoordenadorDoExtra(extraSnapshot);
+      return coordenador ? `${h.data} • Por: ${coordenador}` : `${h.data} • ${h.usuario}`;
+    }
     function pessoaDaVez(){ return data.fila[0] || null; }
     function extrasAguardandoResposta(){ return data.extrasAtivas.filter(e => !isExtraStarted(e)); }
     function finalizarExtrasSemResposta(){
@@ -1221,7 +1226,8 @@
         const timelineHtml = (extraDay || extraTimeRange) ? `<div class="histTimeline"><span class="histTimelineItem"><span class="histTimelineIcon" aria-hidden="true">📅</span>${escapeHtml(extraDay || '-')}</span><span class="histTimelineItem"><span class="histTimelineIcon" aria-hidden="true">🕒</span>${escapeHtml(extraTimeRange || '-')}</span></div>` : '';
         const detailsBtn = (showPublicDetails || showCoordDetails) ? `<button class="historyDetailsBtn historyDetailsLink" onclick="mostrarDetalhesHistoricoExtra('${h.id}')">Mais detalhes <span aria-hidden="true">›</span></button>` : '';
         const cancelBtn = pending ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarSolicitacao('${h.extraId}')">Cancelar extra</button>` : (accepted ? `<button class="btn red miniAction historyCancelBtn" onclick="cancelarAceita('${h.extraId}')">Cancelar extra</button>` : '');
-        const acceptedAvatarRow = h.acao === 'EXTRA ACEITA' ? `<div class="histAcceptedRow"><div class="histAcceptedAvatar">${escapeHtml(getInitials(h.usuario || ''))}</div><div class="histAcceptedTextWrap">${textLines.line1 ? `<span class="histSummaryLine">${escapeHtml(textLines.line1)}</span>` : ''}<small class="histMetaLine">${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small></div></div>` : `${textLines.line1 ? `<span class="histSummaryLine">${escapeHtml(textLines.line1)}</span>` : ''}<small class="histMetaLine">${escapeHtml(h.data)} • ${escapeHtml(h.usuario)}</small>`;
+        const metaLine = metaLineHistorico(h, extraSnapshot);
+        const acceptedAvatarRow = h.acao === 'EXTRA ACEITA' ? `<div class="histAcceptedRow"><div class="histAcceptedAvatar">${escapeHtml(getInitials(h.usuario || ''))}</div><div class="histAcceptedTextWrap">${textLines.line1 ? `<span class="histSummaryLine">${escapeHtml(textLines.line1)}</span>` : ''}<small class="histMetaLine">${escapeHtml(metaLine)}</small></div></div>` : `${textLines.line1 ? `<span class="histSummaryLine">${escapeHtml(textLines.line1)}</span>` : ''}<small class="histMetaLine">${escapeHtml(metaLine)}</small>`;
         return `<div class="hist ${histClass(h.acao)}"><div class="histHead"><div class="histContent"><b>${escapeHtml(h.acao)}</b>${acceptedAvatarRow}${timelineHtml}${cancelBtn ? `<div class="histInlineActions">${cancelBtn}</div>` : ''}</div><div class="histActions ${isCoord ? 'histActionsCoord' : ''}">${statusMeta ? `<span class="historyStatusPill ${statusMeta.className}">${escapeHtml(statusMeta.label)}</span>` : ''}${detailsBtn}</div></div></div>`;
       }).join('') || '<p class="muted">Nenhuma ação registrada.</p>';
       pageButtons(pager, items.length, page, histPageSize, isCoord ? 'setHistCoordPage' : 'setHistMembroPage');
@@ -1292,6 +1298,8 @@
           responsavelAtendimento: item.responsavelAtendimento,
           status:'AGUARDANDO',
           criadaEm:now(),
+          coordenadorRegistroNome: member?.fullName || member?.username || 'Usuário',
+          coordenadorRegistroUsername: member?.username || '',
           loteId,
           ordemNoLote: i + 1,
           totalNoLote: quantidade
