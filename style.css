@@ -1315,7 +1315,7 @@ html,body{
   .selectPopover{width:min(320px, calc(100vw - 28px));}
 }
 
-/* v77 - alinhamento dos campos extras e atendimento GOL/Smiles */
+/* alinhamento dos campos extras */
 .dialogBox.extraDialogBox .extraMetaRow{
   grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
   gap:12px !important;
@@ -1362,18 +1362,6 @@ html,body{
 .dialogBox.extraDialogBox .selectPopover{
   width:300px !important;
   max-width:min(300px, calc(100vw - 32px)) !important;
-}
-.selectCategoryTitle{
-  display:block;
-  margin:5px 0 4px;
-  padding:7px 9px;
-  border-radius:10px;
-  background:#eef4ff;
-  color:var(--blue);
-  font-size:12px;
-  font-weight:900;
-  letter-spacing:.03em;
-  text-transform:uppercase;
 }
 .selectCategoryOnly{
   gap:0 !important;
@@ -1455,145 +1443,6 @@ html,body{
   }
   .dialogBox.extraDialogBox .extraMetaRow{
     grid-template-columns:1fr !important;
-  }
-}
-
-/* v79 - responsável atendimento em duas etapas: GOL / Smiles */
-.atendimentoRoot{
-  gap:8px !important;
-}
-.selectCategoryButton{
-  width:100%;
-  min-height:42px;
-  border:0;
-  border-radius:12px;
-  background:var(--gray-3);
-  color:var(--black);
-  font-size:14px;
-  font-weight:900;
-  padding:0 12px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  cursor:pointer;
-}
-.selectCategoryButton:hover{
-  background:var(--blue-soft);
-  color:var(--blue);
-}
-.selectCategoryButton em{
-  font-style:normal;
-  font-size:18px;
-  line-height:1;
-}
-
-.selectCategoryButton.hasLogo{
-  min-height:42px;
-  padding:7px 12px;
-}
-.selectCategoryLogoWrap{
-  width:78px;
-  height:22px;
-  display:flex;
-  align-items:center;
-  justify-content:flex-start;
-  flex:0 0 78px;
-  overflow:hidden;
-}
-.selectCategoryLogo{
-  display:block;
-  width:78px;
-  height:22px;
-  max-width:78px;
-  max-height:22px;
-  object-fit:contain;
-  object-position:left center;
-}
-.selectCategoryLogo--gol,
-.selectCategoryLogo--smiles{
-  width:78px;
-  height:22px;
-}
-@media(max-width:520px){
-  .selectCategoryLogoWrap{
-    width:68px;
-    height:20px;
-    flex-basis:68px;
-  }
-  .selectCategoryLogo,
-  .selectCategoryLogo--gol,
-  .selectCategoryLogo--smiles{
-    width:68px;
-    height:20px;
-    max-width:68px;
-    max-height:20px;
-  }
-}
-.selectBackButton{
-  width:max-content;
-  border:0;
-  background:transparent;
-  color:var(--magenta);
-  font-size:12px;
-  font-weight:900;
-  padding:0 0 4px;
-  cursor:pointer;
-  text-decoration:underline;
-  text-underline-offset:2px;
-}
-.selectCategoryTitle{
-  display:block;
-  margin:4px 0 6px;
-  padding:7px 9px;
-  border-radius:10px;
-  background:#eef4ff;
-  color:var(--blue);
-  font-size:12px;
-  font-weight:900;
-  letter-spacing:.03em;
-  text-transform:uppercase;
-}
-
-.selectCategoryTitle--logo{
-  height:29px;
-  display:flex;
-  align-items:center;
-  justify-content:flex-start;
-}
-.selectCategoryTitleLogoWrap{
-  width:62px;
-  height:16px;
-  display:flex;
-  align-items:center;
-  justify-content:flex-start;
-  overflow:hidden;
-}
-.selectCategoryTitleLogo{
-  display:block;
-  width:62px;
-  height:16px;
-  max-width:62px;
-  max-height:16px;
-  object-fit:contain;
-  object-position:left center;
-}
-.selectCategoryTitleLogo--gol,
-.selectCategoryTitleLogo--smiles{
-  width:62px;
-  height:16px;
-}
-@media(max-width:520px){
-  .selectCategoryTitleLogoWrap{
-    width:56px;
-    height:15px;
-  }
-  .selectCategoryTitleLogo,
-  .selectCategoryTitleLogo--gol,
-  .selectCategoryTitleLogo--smiles{
-    width:56px;
-    height:15px;
-    max-width:56px;
-    max-height:15px;
   }
 }
 

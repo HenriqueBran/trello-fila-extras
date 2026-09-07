@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=151" />
+  <link rel="stylesheet" href="./style.css?v=153" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -96,7 +96,7 @@
           </div>
           <button class="btn dark" id="addPessoa">Adicionar</button>
         </div>
-        <p class="muted small">Adicione novas pessoas à fila e vincule o usuário Trello para notificações e identificação no modo membro.</p>
+        <p class="muted small">Utilize essa sessão para adicionar pessoas à fila</p>
       </section>
 
       <section class="card full">
@@ -804,18 +804,6 @@
     }
 
     function escapeHtml(str){ return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
-    function categoryLogoMarkup(name){
-      const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=127' : './smiles-logo.png?v=127';
-      const cls = normalized === 'gol' ? 'gol' : 'smiles';
-      return `<span class="selectCategoryLogoWrap"><img class="selectCategoryLogo selectCategoryLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
-    }
-    function categoryTitleLogoMarkup(name){
-      const normalized = String(name || '').toLowerCase();
-      const src = normalized === 'gol' ? './gol-logo.png?v=127' : './smiles-logo.png?v=127';
-      const cls = normalized === 'gol' ? 'gol' : 'smiles';
-      return `<span class="selectCategoryTitleLogoWrap"><img class="selectCategoryTitleLogo selectCategoryTitleLogo--${cls}" src="${src}" alt="${escapeHtml(name)}"></span>`;
-    }
     function normalize(d){
       const src = d && typeof d === 'object' ? d : {};
       const b = structuredClone(DEFAULT_DATA);
@@ -2017,120 +2005,8 @@
         });
       };
 
-      const renderSquadRoot = (pop, hidden, label, placeholder='Squad') => {
-        pop.innerHTML = `
-          <div class="selectPickerList atendimentoRoot">
-            <button type="button" class="selectCategoryButton hasLogo" data-squad-root="GOL" aria-label="GOL">
-              ${categoryLogoMarkup('GOL')}
-            </button>
-            <button type="button" class="selectCategoryButton hasLogo" data-squad-root="Smiles" aria-label="Smiles">
-              ${categoryLogoMarkup('Smiles')}<em>›</em>
-            </button>
-          </div>`;
-        pop.querySelectorAll('[data-squad-root]').forEach(btn => {
-          btn.onclick = (ev) => {
-            ev.stopPropagation();
-            const selected = btn.dataset.squadRoot || '';
-            if(selected === 'GOL'){
-              hidden.value = 'GOL';
-              label.textContent = 'GOL';
-              try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ }
-              closePickers(pop.closest('.extraItems') || document);
-              return;
-            }
-            renderSquadSmilesList(pop, hidden, label, placeholder);
-          };
-        });
-      };
-
-      const renderSquadSmilesList = (pop, hidden, label, placeholder='Squad') => {
-        pop.innerHTML = `
-          <div class="selectPickerList">
-            <button type="button" class="selectBackButton" data-squad-back>← Voltar</button>
-            <strong class="selectCategoryTitle selectCategoryTitle--logo">${categoryTitleLogoMarkup('Smiles')}</strong>
-            <div class="selectOptionGroup">
-              <div class="selectOptionItems">
-                ${EXTRA_SQUAD_OPTIONS.map(option => `
-                  <button type="button" class="selectOption${hidden.value === option ? ' active' : ''}" data-select-value="${escapeHtml(option)}">${escapeHtml(option)}</button>
-                `).join('')}
-              </div>
-            </div>
-          </div>`;
-        pop.querySelector('[data-squad-back]')?.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          renderSquadRoot(pop, hidden, label, placeholder);
-        });
-        pop.querySelectorAll('[data-select-value]').forEach(btn => {
-          btn.onclick = (ev) => {
-            ev.stopPropagation();
-            hidden.value = btn.dataset.selectValue || '';
-            label.textContent = hidden.value || placeholder;
-            try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ }
-            closePickers(pop.closest('.extraItems') || document);
-          };
-        });
-      };
-
-      const renderAtendimentoRoot = (pop, hidden, label, placeholder='Responsável atendimento') => {
-        pop.innerHTML = `
-          <div class="selectPickerList atendimentoRoot">
-            <button type="button" class="selectCategoryButton hasLogo" data-atendimento-grupo="GOL" aria-label="GOL">
-              ${categoryLogoMarkup('GOL')}<em>›</em>
-            </button>
-            <button type="button" class="selectCategoryButton hasLogo" data-atendimento-grupo="Smiles" aria-label="Smiles">
-              ${categoryLogoMarkup('Smiles')}<em>›</em>
-            </button>
-          </div>`;
-        pop.querySelectorAll('[data-atendimento-grupo]').forEach(btn => {
-          btn.onclick = (ev) => {
-            ev.stopPropagation();
-            renderAtendimentoGroup(pop, hidden, label, btn.dataset.atendimentoGrupo, placeholder);
-          };
-        });
-      };
-
-      const renderAtendimentoGroup = (pop, hidden, label, groupName, placeholder='Responsável atendimento') => {
-        const groups = EXTRA_ATENDIMENTO_GRUPOS[groupName] || [];
-        pop.innerHTML = `
-          <div class="selectPickerList">
-            <button type="button" class="selectBackButton" data-atendimento-back>← Voltar</button>
-            <strong class="selectCategoryTitle selectCategoryTitle--logo">${categoryTitleLogoMarkup(groupName)}</strong>
-            ${groups.map(group => `
-              <div class="selectOptionGroup">
-                ${group?.label && group.label !== groupName ? `<strong class="selectGroupTitle">${escapeHtml(group.label)}</strong>` : ''}
-                <div class="selectOptionItems">
-                  ${(Array.isArray(group?.options) ? group.options : []).map(option => `
-                    <button type="button" class="selectOption${hidden.value === option ? ' active' : ''}" data-select-value="${escapeHtml(option)}">${escapeHtml(option)}</button>
-                  `).join('')}
-                </div>
-              </div>
-            `).join('')}
-          </div>`;
-        pop.querySelector('[data-atendimento-back]')?.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          renderAtendimentoRoot(pop, hidden, label, placeholder);
-        });
-        pop.querySelectorAll('[data-select-value]').forEach(btn => {
-          btn.onclick = (ev) => {
-            ev.stopPropagation();
-            hidden.value = btn.dataset.selectValue || '';
-            label.textContent = hidden.value || placeholder;
-            try{ hidden.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){ }
-            closePickers(pop.closest('.extraItems') || document);
-          };
-        });
-      };
-
-      const renderSelectPicker = (pop, hidden, label, configOrGroups, placeholder='Selecionar') => {
-        if(configOrGroups?.mode === 'atendimento'){
-          renderAtendimentoRoot(pop, hidden, label, configOrGroups.placeholder || placeholder);
-          return;
-        }
-        if(configOrGroups?.mode === 'squad'){
-          renderSquadRoot(pop, hidden, label, configOrGroups.placeholder || placeholder);
-          return;
-        }
-        renderSimpleSelectList(pop, hidden, label, configOrGroups, placeholder);
+      const renderSelectPicker = (pop, hidden, label, groups, placeholder='Selecionar') => {
+        renderSimpleSelectList(pop, hidden, label, groups, placeholder);
       };
 
       const positionPickerPopover = (pop, btn) => {
@@ -2240,7 +2116,7 @@
             closePickers(scope);
             if(wasOpen) return;
             const config = getSelectConfig(wrap);
-            renderSelectPicker(pop, hidden, label, (config.mode === 'atendimento' || config.mode === 'squad') ? config : config.groups, config.placeholder);
+            renderSelectPicker(pop, hidden, label, config.groups, config.placeholder);
             pop.classList.remove('hide');
             positionPickerPopover(pop, btn);
           };
