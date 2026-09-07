@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=149" />
+  <link rel="stylesheet" href="./style.css?v=150" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -117,14 +117,14 @@
               <span>Data de início</span>
               <div class="dateInputWrap" onclick="openDatePicker('exportHistoryStart', event)">
                 <input id="exportHistoryStart" type="date" />
-                <button type="button" class="datePickerBtn" onclick="event.stopPropagation(); openDatePicker('exportHistoryStart', event)" aria-label="Abrir calendário da data de início">📅</button>
+                <button type="button" class="datePickerBtn" onmousedown="event.preventDefault(); event.stopPropagation(); openDatePicker('exportHistoryStart', event)" onclick="event.preventDefault(); event.stopPropagation(); openDatePicker('exportHistoryStart', event)" aria-label="Abrir calendário da data de início">📅</button>
               </div>
             </label>
             <label class="exportField">
               <span>Data de fim</span>
               <div class="dateInputWrap" onclick="openDatePicker('exportHistoryEnd', event)">
                 <input id="exportHistoryEnd" type="date" />
-                <button type="button" class="datePickerBtn" onclick="event.stopPropagation(); openDatePicker('exportHistoryEnd', event)" aria-label="Abrir calendário da data de fim">📅</button>
+                <button type="button" class="datePickerBtn" onmousedown="event.preventDefault(); event.stopPropagation(); openDatePicker('exportHistoryEnd', event)" onclick="event.preventDefault(); event.stopPropagation(); openDatePicker('exportHistoryEnd', event)" aria-label="Abrir calendário da data de fim">📅</button>
               </div>
             </label>
           </div>
@@ -430,14 +430,16 @@
       }
       const input = $(id);
       if(!input) return;
-      input.focus();
+      try { input.focus({ preventScroll:true }); } catch(e){ try { input.focus(); } catch(_){} }
       if(typeof input.showPicker === 'function'){
         try { input.showPicker(); return; } catch(e){}
       }
       try { input.click(); } catch(e){}
-      try {
-        const nativePickerArea = input.showPicker ? null : input.querySelector?.('::-webkit-calendar-picker-indicator');
-      } catch(e){}
+      setTimeout(() => {
+        if(typeof input.showPicker === 'function'){
+          try { input.showPicker(); } catch(e){}
+        }
+      }, 0);
     };
     function ensureHistoryExportDefaults(){
       const startInput = $('exportHistoryStart');
