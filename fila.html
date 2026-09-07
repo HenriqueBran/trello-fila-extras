@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=150" />
+  <link rel="stylesheet" href="./style.css?v=151" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -115,16 +115,24 @@
           <div class="exportHistoryGrid">
             <label class="exportField">
               <span>Data de início</span>
-              <div class="dateInputWrap" onclick="openDatePicker('exportHistoryStart', event)">
-                <input id="exportHistoryStart" type="date" />
-                <button type="button" class="datePickerBtn" onmousedown="event.preventDefault(); event.stopPropagation(); openDatePicker('exportHistoryStart', event)" onclick="event.preventDefault(); event.stopPropagation(); openDatePicker('exportHistoryStart', event)" aria-label="Abrir calendário da data de início">📅</button>
+              <div class="exportDatePicker" data-export-picker="start">
+                <input id="exportHistoryStart" type="hidden" />
+                <button type="button" class="exportDateButton" data-export-date-button="exportHistoryStart" aria-label="Selecionar data de início">
+                  <span data-export-date-label>Selecionar data</span>
+                  <span class="exportDateIcon" aria-hidden="true">📅</span>
+                </button>
+                <div class="exportDatePopover hide" data-export-date-popover></div>
               </div>
             </label>
             <label class="exportField">
               <span>Data de fim</span>
-              <div class="dateInputWrap" onclick="openDatePicker('exportHistoryEnd', event)">
-                <input id="exportHistoryEnd" type="date" />
-                <button type="button" class="datePickerBtn" onmousedown="event.preventDefault(); event.stopPropagation(); openDatePicker('exportHistoryEnd', event)" onclick="event.preventDefault(); event.stopPropagation(); openDatePicker('exportHistoryEnd', event)" aria-label="Abrir calendário da data de fim">📅</button>
+              <div class="exportDatePicker" data-export-picker="end">
+                <input id="exportHistoryEnd" type="hidden" />
+                <button type="button" class="exportDateButton" data-export-date-button="exportHistoryEnd" aria-label="Selecionar data de fim">
+                  <span data-export-date-label>Selecionar data</span>
+                  <span class="exportDateIcon" aria-hidden="true">📅</span>
+                </button>
+                <div class="exportDatePopover hide" data-export-date-popover></div>
               </div>
             </label>
           </div>
@@ -423,24 +431,101 @@
       const day = String(date.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     }
-    window.openDatePicker = function(id, evt){
-      if(evt){
-        try { evt.preventDefault(); } catch(e){}
-        try { evt.stopPropagation(); } catch(e){}
+    function formatExportDateLabel(value){
+      if(!value) return 'Selecionar data';
+      const [y,m,d] = String(value).split('-');
+      if(!y || !m || !d) return 'Selecionar data';
+      return `${d}/${m}/${y}`;
+    }
+    function exportMonthName(month){
+      return new Date(2026, month, 1).toLocaleDateString('pt-BR', { month:'long' });
+    }
+    function closeExportCalendars(except=null){
+      document.querySelectorAll('.exportDatePopover').forEach(pop => {
+        if(pop !== except) pop.classList.add('hide');
+      });
+    }
+    function updateExportDateButton(inputId){
+      const input = $(inputId);
+      const picker = input?.closest('.exportDatePicker');
+      const label = picker?.querySelector('[data-export-date-label]');
+      if(label) label.textContent = formatExportDateLabel(input?.value || '');
+    }
+    function renderExportCalendar(pop, inputId, year, month){
+      const input = $(inputId);
+      if(!input || !pop) return;
+      const selected = input.value || '';
+      const startDay = new Date(year, month, 1).getDay();
+      const days = new Date(year, month + 1, 0).getDate();
+      let cells = '';
+      for(let i=0;i<startDay;i++) cells += '<span class="calendarBlank"></span>';
+      for(let d=1; d<=days; d++){
+        const val = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        cells += `<button type="button" class="calendarDay${selected===val?' active':''}" data-export-day="${val}">${d}</button>`;
       }
-      const input = $(id);
-      if(!input) return;
-      try { input.focus({ preventScroll:true }); } catch(e){ try { input.focus(); } catch(_){} }
-      if(typeof input.showPicker === 'function'){
-        try { input.showPicker(); return; } catch(e){}
+      const currentYear = new Date().getFullYear();
+      let yearOptions = '';
+      for(let y=currentYear+5; y>=2000; y--){
+        yearOptions += `<option value="${y}"${y===year?' selected':''}>${y}</option>`;
       }
-      try { input.click(); } catch(e){}
-      setTimeout(() => {
-        if(typeof input.showPicker === 'function'){
-          try { input.showPicker(); } catch(e){}
-        }
-      }, 0);
-    };
+      let monthOptions = '';
+      for(let m=0; m<12; m++){
+        monthOptions += `<option value="${m}"${m===month?' selected':''}>${exportMonthName(m)}</option>`;
+      }
+      pop.innerHTML = `
+        <div class="exportCalendarSelectors">
+          <select data-export-month aria-label="Selecionar mês">${monthOptions}</select>
+          <select data-export-year aria-label="Selecionar ano">${yearOptions}</select>
+        </div>
+        <div class="calendarWeek"><span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span></div>
+        <div class="calendarGrid">${cells}</div>`;
+      pop.dataset.year = String(year);
+      pop.dataset.month = String(month);
+      pop.querySelector('[data-export-month]').onchange = (ev) => {
+        ev.stopPropagation();
+        renderExportCalendar(pop, inputId, Number(pop.querySelector('[data-export-year]').value), Number(ev.target.value));
+      };
+      pop.querySelector('[data-export-year]').onchange = (ev) => {
+        ev.stopPropagation();
+        renderExportCalendar(pop, inputId, Number(ev.target.value), Number(pop.querySelector('[data-export-month]').value));
+      };
+      pop.querySelectorAll('[data-export-day]').forEach(btn => {
+        btn.onclick = (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          input.value = btn.dataset.exportDay;
+          updateExportDateButton(inputId);
+          pop.classList.add('hide');
+          try{ input.dispatchEvent(new Event('change', { bubbles:true })); }catch(_){}
+        };
+      });
+    }
+    function openExportCalendar(inputId){
+      const input = $(inputId);
+      const picker = input?.closest('.exportDatePicker');
+      const pop = picker?.querySelector('[data-export-date-popover]');
+      if(!input || !pop) return;
+      const wasOpen = !pop.classList.contains('hide');
+      closeExportCalendars(pop);
+      if(wasOpen){ pop.classList.add('hide'); return; }
+      const base = input.value ? new Date(`${input.value}T12:00:00`) : new Date();
+      renderExportCalendar(pop, inputId, base.getFullYear(), base.getMonth());
+      pop.classList.remove('hide');
+    }
+    function setupExportDatePickers(){
+      document.querySelectorAll('[data-export-date-button]').forEach(btn => {
+        if(btn.dataset.boundExportPicker === '1') return;
+        btn.dataset.boundExportPicker = '1';
+        btn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          openExportCalendar(btn.dataset.exportDateButton);
+        });
+      });
+      document.querySelectorAll('.exportDatePopover').forEach(pop => {
+        pop.addEventListener('click', ev => ev.stopPropagation());
+      });
+    }
     function ensureHistoryExportDefaults(){
       const startInput = $('exportHistoryStart');
       const endInput = $('exportHistoryEnd');
@@ -449,6 +534,9 @@
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
       if(!startInput.value) startInput.value = inputDateValue(firstDay);
       if(!endInput.value) endInput.value = inputDateValue(today);
+      updateExportDateButton('exportHistoryStart');
+      updateExportDateButton('exportHistoryEnd');
+      setupExportDatePickers();
     }
     function getHistoryItemsBySelectedPeriod(){
       const startValue = $('exportHistoryStart')?.value || '';
@@ -1395,6 +1483,7 @@
     $('gerarExtra').addEventListener('click', gerarExtra); $('pularVez').addEventListener('click', pularVez); $('refreshNowBtn').addEventListener('click', atualizarDadosManual);
     $('exportHistoryPdfBtn')?.addEventListener('click', exportarHistoricoPdf);
     $('exportHistoryExcelBtn')?.addEventListener('click', exportarHistoricoExcel);
+    document.addEventListener('click', () => closeExportCalendars());
 
     function bindMemberSuggestions(){
       const nome = $('novoNome');
