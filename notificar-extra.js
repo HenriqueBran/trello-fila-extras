@@ -52,9 +52,6 @@ function buildComment(extra = {}, tipo = 'gerada') {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Método não permitido' });
@@ -64,7 +61,7 @@ export default async function handler(req, res) {
   const cardId = process.env.TRELLO_NOTIFICATION_CARD_ID || process.env.TRELLO_CARD_NOTIFICACOES_ID;
 
   if (!key || !token || !cardId) {
-    return res.status(200).json({
+    return res.status(503).json({
       ok: false,
       skipped: true,
       reason: 'Configure TRELLO_API_KEY, TRELLO_API_TOKEN e TRELLO_NOTIFICATION_CARD_ID na Vercel.'
@@ -84,7 +81,7 @@ export default async function handler(req, res) {
 
     const responseText = await trelloRes.text();
     if (!trelloRes.ok) {
-      return res.status(200).json({
+      return res.status(502).json({
         ok: false,
         trelloStatus: trelloRes.status,
         trelloResponse: responseText.slice(0, 500)
@@ -93,6 +90,6 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true });
   } catch (error) {
-    return res.status(200).json({ ok: false, error: error?.message || 'Erro ao notificar no Trello' });
+    return res.status(500).json({ ok: false, error: error?.message || 'Erro ao notificar no Trello' });
   }
 }

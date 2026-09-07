@@ -15,6 +15,12 @@ const DEFAULT_DATA = {
 
 const memory = globalThis.__filaExtrasMemory || (globalThis.__filaExtrasMemory = {});
 
+function hasKvConfig() {
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  return !!(url && token);
+}
+
 function getSaoPauloParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
@@ -84,7 +90,7 @@ function normalizeExtraConfig(config) {
   const seenAtendimento = new Set();
   return {
     responsaveisSolicitantes: uniqCleanList(cfg.responsaveisSolicitantes),
-    squads: uniqCleanList(cfg.squads),
+    squads: uniqCleanList(cfg.squads).filter(squad => String(squad || '').trim().toLowerCase() !== 'rotativo'),
     responsaveisAtendimento: responsaveisAtendimento.filter(item => {
       const key = `${item.squad.toLowerCase()}|${item.nome.toLowerCase()}`;
       if (seenAtendimento.has(key)) return false;
@@ -157,8 +163,8 @@ function parseKvResult(value) {
 }
 
 async function kvGet(key) {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null;
 
   const baseUrl = String(url).trim().replace(/\/+$/, '');
@@ -172,8 +178,8 @@ async function kvGet(key) {
 }
 
 async function kvSet(key, value) {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return false;
 
   const baseUrl = String(url).trim().replace(/\/+$/, '');
@@ -195,13 +201,13 @@ async function kvSet(key, value) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const boardId = String(req.query.boardId || '').trim();
   if (!boardId) return res.status(400).json({ error: 'boardId obrigatório' });
+  if (process.env.VERCEL && !hasKvConfig()) {
+    return res.status(503).json({ error: 'Persistência não configurada. Configure KV_REST_API_URL/KV_REST_API_TOKEN ou UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN.' });
+  }
   const key = `fila-extras:${boardId}`;
 
   try {

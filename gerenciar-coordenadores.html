@@ -106,7 +106,8 @@
 
         if(isAdmin){
           const saved = await t.get('board', 'shared', 'coordenadoresAutorizados', []);
-          selected = new Set(Array.isArray(saved) ? saved.map(id => String(id || '').trim()).filter(Boolean) : []);
+          const memberIds = new Set(members.map(item => String(item?.id || '').trim()).filter(Boolean));
+          selected = new Set(Array.isArray(saved) ? saved.map(id => String(id || '').trim()).filter(id => id && memberIds.has(id)) : []);
         }
         render();
         t.sizeTo('body');

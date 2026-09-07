@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=154" />
+  <link rel="stylesheet" href="./style.css?v=156" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -219,20 +219,36 @@
     const t = window.TrelloPowerUp.iframe();
     const DEFAULT_DATA = { fila: [], extrasAtivas: [], historico: [], historicoMes: '', historicoArquivado: {}, fechamentoMensal: {}, extrasAceitasCancelaveis: {}, extraConfig: { responsaveisSolicitantes: [], squads: [], responsaveisAtendimento: [] } };
     let data = structuredClone(DEFAULT_DATA);
+    let lastPersistedData = structuredClone(DEFAULT_DATA);
     let board = null;
     let member = null;
     let boardMembers = [];
     const urlParams = new URLSearchParams(window.location.search);
     let mode = urlParams.get('modo') === 'membro' ? 'membro' : 'coordenador';
     let coordPage = 1, membroPage = 1, histCoordPage = 1, histMembroPage = 1;
-    const pageSize = 3, histPageSize = 4;
+    const pageSize = 3, histPageSize = 3;
     let dragId = null;
 
     const $ = (id) => document.getElementById(id);
-    const now = () => new Date().toLocaleString('pt-BR');
+    const now = () => new Date().toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo' });
     const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
     const cleanUsername = (v) => String(v || '').trim().replace(/^@+/, '').toLowerCase();
     const currentUsername = () => cleanUsername(member?.username || '');
+    function usernameJaVinculado(username, exceptId=''){
+      const alvo = cleanUsername(username);
+      if(!alvo) return false;
+      return data.fila.some(p => p.id !== exceptId && cleanUsername(p.trelloUsername) === alvo);
+    }
+    function usernameExisteNoQuadro(username){
+      const alvo = cleanUsername(username);
+      if(!alvo || !boardMembers.length) return true;
+      return boardMembers.some(m => cleanUsername(m.username) === alvo);
+    }
+    function garantirModoCoordenador(){
+      if(mode === 'coordenador') return true;
+      infoDialog('Acesso negado', 'Esta ação está disponível somente no modo Coordenador.');
+      return false;
+    }
     const DEFAULT_EXTRA_CONFIG = {
       responsaveisSolicitantes: [],
       squads: [],
@@ -549,10 +565,20 @@
       if(start > end){
         return { error:'A data de início não pode ser maior do que a data de fim.' };
       }
-      const items = (data.historico || []).filter(item => {
+      const currentItems = Array.isArray(data.historico) ? data.historico : [];
+      const archivedItems = Object.values(data.historicoArquivado || {}).flatMap(list => Array.isArray(list) ? list : []);
+      const seen = new Set();
+      const allItems = [...currentItems, ...archivedItems].filter(item => {
+        if(!item) return false;
+        const key = String(item.id || `${item.acao || ''}|${item.data || ''}|${item.texto || ''}`);
+        if(seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      const items = allItems.filter(item => {
         const time = parsePtBrDateTime(item?.data);
         return time !== null && time >= start && time <= end;
-      });
+      }).sort((a,b) => (parsePtBrDateTime(b?.data) || 0) - (parsePtBrDateTime(a?.data) || 0));
       return { items, startValue, endValue };
     }
     function buildHistoryExportRows(items){
@@ -562,6 +588,7 @@
           acao: h.acao || '',
           dataRegistro: h.data || '',
           usuarioRegistro: h.usuario || '',
+          coordenadorRegistro: nomeCoordenadorHistorico(h, extra),
           resumo: splitHistoryText(h.texto || '').line1 || h.texto || '',
           diaExtra: extra ? formatExtraHistoryDay(extra.inicioAt) : '',
           horarioExtra: extra ? formatExtraHistoryTimeRange(extra) : '',
@@ -598,10 +625,11 @@
       if(result.error) return infoDialog('Atenção', result.error);
       if(!result.items.length) return infoDialog('Nenhum registro encontrado', 'Não existem registros no histórico dentro do período selecionado.');
       const rows = buildHistoryExportRows(result.items);
-      const headers = ['Ação', 'Data do registro', 'Usuário do registro', 'Resumo', 'Dia do extra', 'Horário do extra', 'Status', 'Descrição', 'Responsável solicitante', 'Código OS', 'Squad', 'Responsável atendimento', 'Início', 'Fim'];
+      const headers = ['Ação', 'Data do registro', 'Coordenador que registrou', 'Usuário da ação', 'Resumo', 'Dia do extra', 'Horário do extra', 'Status', 'Descrição', 'Responsável solicitante', 'Código OS', 'Squad', 'Responsável atendimento', 'Início', 'Fim'];
       const bodyRows = rows.map(row => `<tr>${[
         row.acao,
         row.dataRegistro,
+        row.coordenadorRegistro,
         row.usuarioRegistro,
         row.resumo,
         row.diaExtra,
@@ -645,7 +673,7 @@
             ${row.status ? `<span class="pdfHistoryStatus">${escapeExportHtml(row.status)}</span>` : ''}
           </div>
           <p>${escapeExportHtml(row.resumo || '-')}</p>
-          <p><b>Registro:</b> ${escapeExportHtml(row.dataRegistro)} • ${escapeExportHtml(row.usuarioRegistro)}</p>
+          <p><b>Registro:</b> ${escapeExportHtml(row.dataRegistro)}${row.coordenadorRegistro ? ` •Por: ${escapeExportHtml(row.coordenadorRegistro)}` : ''}</p>
           ${(row.diaExtra || row.horarioExtra) ? `<p><b>Período do extra:</b> ${escapeExportHtml(row.diaExtra || '-')} • ${escapeExportHtml(row.horarioExtra || '-')}</p>` : ''}
           ${(row.descricao || row.responsavelSolicitante || row.squad || row.responsavelAtendimento || row.codigoOs || row.inicio || row.fim) ? `
             <div class="pdfDetailsGrid">
@@ -822,19 +850,33 @@
       const res = await fetch(`/api/store?boardId=${encodeURIComponent(board.id)}&ts=${Date.now()}`);
       if(!res.ok) throw new Error(await res.text());
       data = normalize(await res.json());
+      lastPersistedData = structuredClone(data);
     }
     async function apiSave(){
       data = normalize(data);
+      const checkRes = await fetch(`/api/store?boardId=${encodeURIComponent(board.id)}&ts=${Date.now()}`);
+      if(!checkRes.ok) throw new Error(await checkRes.text());
+      const latestServerData = normalize(await checkRes.json());
+      if(JSON.stringify(latestServerData) !== JSON.stringify(lastPersistedData)){
+        lastPersistedData = structuredClone(latestServerData);
+        const err = new Error('Os dados foram alterados por outro usuário. A tela foi atualizada para evitar sobrescrever informações.');
+        err.code = 'DATA_CONFLICT';
+        throw err;
+      }
       const res = await fetch(`/api/store?boardId=${encodeURIComponent(board.id)}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ data }) });
       if(!res.ok) throw new Error(await res.text());
       const json = await res.json();
       data = normalize(json.data || data);
+      lastPersistedData = structuredClone(data);
+    }
+    function rollbackToLastPersisted(){
+      data = structuredClone(lastPersistedData);
     }
 
     async function notificarExtraNoTrello(extra, tipo='gerada'){
       try {
         if(!extra || !extra.pessoaUsername) return;
-        await fetch('/api/notificar-extra', {
+        const res = await fetch('/api/notificar-extra', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
@@ -854,8 +896,15 @@
             }
           })
         });
+        const result = await res.json().catch(() => ({}));
+        if(!res.ok || result?.ok !== true){
+          console.warn('A extra foi salva, mas a notificação no Trello não foi enviada.', result?.reason || result?.error || `HTTP ${res.status}`);
+          return false;
+        }
+        return true;
       } catch(e) {
-        console.warn('Não foi possível enviar notificação no Trello.', e);
+        console.warn('A extra foi salva, mas não foi possível enviar a notificação no Trello.', e);
+        return false;
       }
     }
     function showLoading(title='Salvando alterações...', text='Aguarde um instante.'){
@@ -906,8 +955,13 @@
         render();
         showSuccess(successMessage);
       } catch(e) {
+        rollbackToLastPersisted();
+        render();
         hideLoading();
-        await infoDialog('Erro', 'Não foi possível salvar a alteração. Tente novamente.');
+        const mensagem = e?.code === 'DATA_CONFLICT'
+          ? 'Os dados foram alterados por outra pessoa enquanto você realizava esta ação. A tela foi atualizada para evitar perda de informações. Faça a ação novamente.'
+          : 'Não foi possível salvar a alteração. Os dados locais foram restaurados para a última versão salva. Tente novamente.';
+        await infoDialog(e?.code === 'DATA_CONFLICT' ? 'Dados atualizados' : 'Erro', mensagem);
         throw e;
       }
     }
@@ -924,7 +978,7 @@
       }
     }
     async function autoAtualizarDados(){
-      if(!board || isDialogOpen()) return;
+      if(!board || isDialogOpen() || dragId) return;
       try {
         await apiGet();
         await sincronizarExpiradas();
@@ -935,10 +989,56 @@
       }
     }
     function log(acao, texto, meta = {}){ data.historico.unshift({ id: uid(), acao, texto, usuario: member?.fullName || member?.username || 'Usuário', data: now(), ...meta }); }
+    function todosHistoricos(){
+      const current = Array.isArray(data.historico) ? data.historico : [];
+      const archived = Object.values(data.historicoArquivado || {}).flatMap(list => Array.isArray(list) ? list : []);
+      return [...current, ...archived];
+    }
     function nomeCoordenadorDoExtra(extra){ return String(extra?.coordenadorRegistroNome || extra?.coordenadorNome || '').trim(); }
+    function coordenadorMetaDoExtra(extra){
+      const nome = nomeCoordenadorDoExtra(extra);
+      if(!nome) return {};
+      return {
+        coordenadorRegistroNome: nome,
+        coordenadorRegistroUsername: String(extra?.coordenadorRegistroUsername || '').trim()
+      };
+    }
+    function nomeCoordenadorHistorico(h, extraSnapshot){
+      const diretoHistorico = String(h?.coordenadorRegistroNome || '').trim();
+      if(diretoHistorico) return diretoHistorico;
+      const diretoExtra = nomeCoordenadorDoExtra(extraSnapshot);
+      if(diretoExtra) return diretoExtra;
+
+      const ids = new Set([h?.extraId, extraSnapshot?.id, extraSnapshot?.extraOriginalId].filter(Boolean).map(String));
+      const loteId = String(extraSnapshot?.loteId || '').trim();
+      const ordemNoLote = Number(extraSnapshot?.ordemNoLote || 0);
+      const geradas = todosHistoricos().filter(item => item?.acao === 'EXTRA GERADA');
+      let gerada = geradas.find(item => ids.has(String(item?.extraId || '')));
+
+      if(!gerada && loteId){
+        gerada = geradas.find(item => {
+          const snap = item?.extraSnapshot || item?.extra || null;
+          if(!snap || String(snap.loteId || '') !== loteId) return false;
+          if(ordemNoLote && Number(snap.ordemNoLote || 0) !== ordemNoLote) return false;
+          return true;
+        });
+      }
+
+      if(gerada){
+        const snap = gerada.extraSnapshot || gerada.extra || null;
+        const nomeSalvo = String(gerada.coordenadorRegistroNome || nomeCoordenadorDoExtra(snap) || '').trim();
+        if(nomeSalvo) return nomeSalvo;
+        if(gerada.usuario) return String(gerada.usuario).trim();
+      }
+
+      if(h?.acao === 'EXTRA GERADA' && h?.usuario) return String(h.usuario).trim();
+      return '';
+    }
     function metaLineHistorico(h, extraSnapshot){
-      const coordenador = nomeCoordenadorDoExtra(extraSnapshot);
-      return coordenador ? `${h.data} • Por: ${coordenador}` : `${h.data} • ${h.usuario}`;
+      const temVinculoComExtra = !!(h?.extraId || extraSnapshot);
+      const coordenador = nomeCoordenadorHistorico(h, extraSnapshot);
+      const autor = coordenador || (!temVinculoComExtra ? String(h?.usuario || '').trim() : 'Não identificado');
+      return `${String(h?.data || '')} •Por: ${autor}`;
     }
     function pessoaDaVez(){ return data.fila[0] || null; }
     function extrasAguardandoResposta(){ return data.extrasAtivas.filter(e => !isExtraStarted(e)); }
@@ -947,15 +1047,31 @@
       const expiradas = ativas.filter(e => isExtraStarted(e));
       if(!expiradas.length) return false;
       expiradas.forEach(extra => {
-        log('SEM RESPOSTA', `${extra.pessoaNome} não respondeu ao chamado até o horário de início do extra.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra, semRespostaEm: now()} });
+        log('SEM RESPOSTA', `${extra.pessoaNome} não respondeu ao chamado até o horário de início do extra.${extraPeriodoTexto(extra)}`, { usuario:'Sistema', extraId: extra.id, extraSnapshot: {...extra, semRespostaEm: now()}, ...coordenadorMetaDoExtra(extra) });
       });
       data.extrasAtivas = ativas.filter(e => !isExtraStarted(e));
       return true;
     }
+    function limparExtrasAceitasEncerradas(){
+      const atuais = data.extrasAceitasCancelaveis && typeof data.extrasAceitasCancelaveis === 'object' ? data.extrasAceitasCancelaveis : {};
+      let changed = false;
+      Object.keys(atuais).forEach(id => {
+        if(isExtraStarted(atuais[id])){ delete atuais[id]; changed = true; }
+      });
+      return changed;
+    }
     async function sincronizarExpiradas(){
-      if(finalizarExtrasSemResposta()){
-        await apiSave();
-        return true;
+      const expiradasAlteradas = finalizarExtrasSemResposta();
+      const aceitasLimpas = limparExtrasAceitasEncerradas();
+      const changed = expiradasAlteradas || aceitasLimpas;
+      if(changed){
+        try{
+          await apiSave();
+          return true;
+        }catch(e){
+          rollbackToLastPersisted();
+          throw e;
+        }
       }
       return false;
     }
@@ -994,34 +1110,22 @@
     function pageButtons(containerId, total, current, size, fn){
       const pages = Math.ceil(total / size); const el = $(containerId); if(!el) return;
       if(pages <= 1){ el.innerHTML = ''; return; }
-
-      const isHistoryPager = containerId === 'paginacaoHistCoordenador' || containerId === 'paginacaoHistMembro';
-
-      if(isHistoryPager){
-        const groupSize = 3;
-        const groupStart = Math.floor((current - 1) / groupSize) * groupSize + 1;
-        const groupEnd = Math.min(groupStart + groupSize - 1, pages);
-        let html = '';
-
-        if(groupStart > 1){
-          const prevStart = Math.max(1, groupStart - groupSize);
-          html += `<button class="pageBtn pageNav" title="Ver páginas anteriores" onclick="${fn}(${prevStart})">Anterior</button>`;
-        }
-
-        for(let p = groupStart; p <= groupEnd; p++){
-          html += `<button class="pageBtn ${p===current?'active':''}" onclick="${fn}(${p})">${p}</button>`;
-        }
-
-        if(groupEnd < pages){
-          const nextStart = groupEnd + 1;
-          html += `<button class="pageBtn pageNav" title="Ver próximas páginas" onclick="${fn}(${nextStart})">Mais</button>`;
-        }
-
-        el.innerHTML = html;
-        return;
+      const groupSize = 3;
+      const groupStart = Math.floor((current - 1) / groupSize) * groupSize + 1;
+      const groupEnd = Math.min(groupStart + groupSize - 1, pages);
+      let html = '';
+      if(groupStart > 1){
+        const prevStart = Math.max(1, groupStart - groupSize);
+        html += `<button class="pageBtn pageNav" title="Ver páginas anteriores" aria-label="Ver páginas anteriores" onclick="${fn}(${prevStart})">‹</button>`;
       }
-
-      el.innerHTML = Array.from({length: pages}, (_,i)=>`<button class="pageBtn ${i+1===current?'active':''}" onclick="${fn}(${i+1})">${i+1}</button>`).join('');
+      for(let p = groupStart; p <= groupEnd; p++){
+        html += `<button class="pageBtn ${p===current?'active':''}" onclick="${fn}(${p})">${p}</button>`;
+      }
+      if(groupEnd < pages){
+        const nextStart = groupEnd + 1;
+        html += `<button class="pageBtn pageNav" title="Ver mais páginas" aria-label="Ver mais páginas" onclick="${fn}(${nextStart})">…</button>`;
+      }
+      el.innerHTML = html;
     }
     window.setCoordPage = p => { coordPage = p; render(); };
     window.setMembroPage = p => { membroPage = p; render(); };
@@ -1197,7 +1301,7 @@
       if(ativo) ativo.codigoOs = codigoLimpo;
       if(data.extrasAceitasCancelaveis?.[extraId]) data.extrasAceitasCancelaveis[extraId].codigoOs = codigoLimpo;
 
-      (data.historico || []).forEach(item => {
+      todosHistoricos().forEach(item => {
         if(item.extraId !== extraId) return;
         if(item.extraSnapshot && typeof item.extraSnapshot === 'object') item.extraSnapshot.codigoOs = codigoLimpo;
         if(item.extra && typeof item.extra === 'object') item.extra.codigoOs = codigoLimpo;
@@ -1242,6 +1346,7 @@
       });
     }
     async function reorderByDrag(fromId, toId){
+      if(!garantirModoCoordenador()) return;
       const from = data.fila.findIndex(p=>p.id===fromId), to = data.fila.findIndex(p=>p.id===toId);
       if(from<0||to<0||from===to) return;
       const moved = data.fila[from]; const motivo = await promptDialog('Justificar alteração da fila', `Motivo para mover ${moved.nome} para a posição ${to+1}:`, '', 'Justificativa obrigatória.');
@@ -1265,6 +1370,7 @@
     }
 
     async function gerarExtra(){
+      if(!garantirModoCoordenador()) return;
       if(!data.fila.length) return infoDialog('Atenção','Cadastre pessoas na fila primeiro.');
       const form = await extraDialog();
       if(form === null) return;
@@ -1273,6 +1379,10 @@
       const semUsuario = data.fila.filter(p => !p.trelloUsername);
       if(semUsuario.length){
         return infoDialog('Atenção', `Antes de gerar extras, vincule o usuário Trello de todos os membros da fila. Sem vínculo: ${semUsuario.map(p=>p.nome).join(', ')}.`);
+      }
+      const usuariosForaDoQuadro = boardMembers.length ? data.fila.filter(p => p.trelloUsername && !usernameExisteNoQuadro(p.trelloUsername)) : [];
+      if(usuariosForaDoQuadro.length){
+        return infoDialog('Atenção', `Existem usuários vinculados que não foram encontrados neste quadro: ${usuariosForaDoQuadro.map(p=>`${p.nome} (@${p.trelloUsername})`).join(', ')}. Corrija os vínculos antes de gerar extras.`);
       }
       if(quantidade > data.fila.length){
         return infoDialog('Atenção', `Você solicitou ${quantidade} extras, mas há apenas ${data.fila.length} pessoa(s) na fila. Ajuste a quantidade ou cadastre mais membros.`);
@@ -1306,29 +1416,36 @@
         };
         data.extrasAtivas.push(extra);
         extrasParaNotificar.push(extra);
-        log('EXTRA GERADA', `Extra ${i+1}/${quantidade} gerada para ${p.nome}.${extraPeriodoTexto(extra)}${extraResponsaveisTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra} });
+        log('EXTRA GERADA', `Extra ${i+1}/${quantidade} gerada para ${p.nome}.${extraPeriodoTexto(extra)}${extraResponsaveisTexto(extra)}`, { extraId: extra.id, extraSnapshot: {...extra}, ...coordenadorMetaDoExtra(extra) });
         advanceQueueAfterGenerate();
       }
-      await Promise.allSettled(extrasParaNotificar.map(extra => notificarExtraNoTrello(extra, 'gerada')));
       await persistAndRender(quantidade > 1 ? 'Extras gerados e direcionados para as pessoas da fila com sucesso.' : 'Extra gerado e direcionado para a pessoa da vez com sucesso.');
+      await Promise.allSettled(extrasParaNotificar.map(extra => notificarExtraNoTrello(extra, 'gerada')));
     }
     async function pularVez(){
+      if(!garantirModoCoordenador()) return;
       const p = pessoaDaVez(); if(!p) return infoDialog('Atenção','Não há pessoa na fila.');
       const motivo = await promptDialog('Pular vez', `Motivo para pular a vez de ${p.nome}:`, '', 'Motivo obrigatório.');
       if(motivo===null) return;
       log('VEZ PULADA', `${p.nome} teve a vez pulada. Motivo: ${motivo.trim()}`); moveOneDownFirst(); await persistAndRender();
     }
     window.aceitarExtra = async function(extraId){
+      if(mode !== 'membro') return infoDialog('Acesso negado', 'Somente o membro chamado pode aceitar a extra.');
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
+      if(cleanUsername(extra.pessoaUsername) !== currentUsername()) return infoDialog('Acesso negado', 'Esta extra foi direcionada para outro membro da fila.');
+      if(isExtraStarted(extra)){ await sincronizarExpiradas(); render(); return infoDialog('Atenção', 'O horário de início desta extra já chegou e ela não pode mais ser aceita.'); }
       const aceita = {...extra, aceitaEm: now()};
-      log('EXTRA ACEITA', `${extra.pessoaNome} aceitou a extra.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: aceita });
+      log('EXTRA ACEITA', `${extra.pessoaNome} aceitou a extra.${extraPeriodoTexto(extra)}`, { extraId: extra.id, extraSnapshot: aceita, ...coordenadorMetaDoExtra(extra) });
       data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); data.extrasAceitasCancelaveis[extraId] = aceita; await persistAndRender('Extra aceito.');
     }
     window.recusarExtra = async function(extraId){
+      if(mode !== 'membro') return infoDialog('Acesso negado', 'Somente o membro chamado pode recusar a extra.');
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
+      if(cleanUsername(extra.pessoaUsername) !== currentUsername()) return infoDialog('Acesso negado', 'Esta extra foi direcionada para outro membro da fila.');
+      if(isExtraStarted(extra)){ await sincronizarExpiradas(); render(); return infoDialog('Atenção', 'O horário de início desta extra já chegou e ela não pode mais ser recusada.'); }
       const motivo = await promptDialog('Recusar extra','Motivo da recusa:', '', 'Motivo obrigatório.');
       if(motivo===null) return;
-      log('EXTRA RECUSADA', `${extra.pessoaNome} recusou a extra. Motivo: ${motivo.trim()}`, { extraId, extraSnapshot: {...extra, recusadaEm: now(), motivoRecusa: motivo.trim()} });
+      log('EXTRA RECUSADA', `${extra.pessoaNome} recusou a extra. Motivo: ${motivo.trim()}`, { extraId, extraSnapshot: {...extra, recusadaEm: now(), motivoRecusa: motivo.trim()}, ...coordenadorMetaDoExtra(extra) });
       data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId);
 
       const proximo = proximaPessoaComUsuario();
@@ -1346,24 +1463,29 @@
           extraOriginalId: extra.extraOriginalId || extra.id
         };
         data.extrasAtivas.push(redistribuida);
-        await notificarExtraNoTrello(redistribuida, 'redirecionada');
-        log('EXTRA REDIRECIONADA', `Após recusa de ${extra.pessoaNome}, a extra foi enviada para ${proximo.nome}.${extraPeriodoTexto(redistribuida)}`, { extraId: redistribuida.id, extraSnapshot: {...redistribuida} });
+        log('EXTRA REDIRECIONADA', `Após recusa de ${extra.pessoaNome}, a extra foi enviada para ${proximo.nome}.${extraPeriodoTexto(redistribuida)}`, { extraId: redistribuida.id, extraSnapshot: {...redistribuida}, ...coordenadorMetaDoExtra(redistribuida) });
         mensagemSucessoRecusa = 'Extra recusado e direcionado para o próximo da fila com sucesso.';
         advanceQueueAfterGenerate();
       } else {
         log('EXTRA SEM DESTINO', `Após recusa de ${extra.pessoaNome}, não havia próximo membro com usuário Trello vinculado para receber a extra.`, { extraId });
       }
       await persistAndRender(mensagemSucessoRecusa);
+      if(proximo){
+        const atual = data.extrasAtivas.find(e => e.extraOriginalId === (extra.extraOriginalId || extra.id) && e.pessoaId === proximo.id);
+        if(atual) await notificarExtraNoTrello(atual, 'redirecionada');
+      }
     }
     window.cancelarSolicitacao = async function(extraId){
+      if(!garantirModoCoordenador()) return;
       const extra = data.extrasAtivas.find(e=>e.id===extraId); if(!extra) return;
       if(!canCancelExtra(extra)) return infoDialog('Atenção', 'Não é possível cancelar: o horário de início do extra já chegou.');
       const motivo = await promptDialog('Cancelar solicitação','Motivo do cancelamento:', '', 'Motivo obrigatório.');
       if(motivo===null) return;
-      log('EXTRA CANCELADA', `Solicitação de ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
+      log('EXTRA CANCELADA', `Solicitação de ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId, extraSnapshot:{...extra, canceladaEm:now(), motivoCancelamento:motivo.trim()}, ...coordenadorMetaDoExtra(extra) });
       data.extrasAtivas = data.extrasAtivas.filter(e=>e.id!==extraId); movePersonToTop(extra.pessoaId); await persistAndRender('Extra cancelado.');
     }
     window.cancelarAceita = async function(extraId){
+      if(!garantirModoCoordenador()) return;
       let extra = data.extrasAceitasCancelaveis[extraId];
       if(!extra){
         const hist = (data.historico || []).find(h => h.extraId === extraId && h.acao === 'EXTRA ACEITA');
@@ -1373,7 +1495,7 @@
       if(!canCancelExtra(extra)) return infoDialog('Atenção', 'Não é possível cancelar: o horário de início do extra já chegou.');
       const motivo = await promptDialog('Cancelar extra aceita','Motivo do cancelamento:', '', 'Motivo obrigatório.');
       if(motivo===null) return;
-      log('EXTRA CANCELADA', `Extra aceita por ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId });
+      log('EXTRA CANCELADA', `Extra aceita por ${extra.pessoaNome} foi cancelada. Motivo: ${motivo.trim()}`, { extraId, extraSnapshot:{...extra, canceladaEm:now(), motivoCancelamento:motivo.trim()}, ...coordenadorMetaDoExtra(extra) });
       movePersonToTop(extra.pessoaId); delete data.extrasAceitasCancelaveis[extraId]; await persistAndRender('Extra cancelado.');
     }
 
@@ -1426,6 +1548,7 @@
     }
 
     window.colocarNaPosicao = async function(id, targetIndex){
+      if(!garantirModoCoordenador()) return;
       const idx = data.fila.findIndex(p=>p.id===id);
       targetIndex = Number(targetIndex);
       if(idx < 0 || Number.isNaN(targetIndex) || targetIndex < 0 || targetIndex >= data.fila.length) return;
@@ -1435,13 +1558,14 @@
       if(motivo===null) return;
       data.fila.splice(idx,1);
       data.fila.splice(targetIndex,0,p);
-      coordPage = ensurePage(targetIndex + 1, 1, pageSize);
+      coordPage = Math.floor(targetIndex / pageSize) + 1;
       log('ORDEM ALTERADA', `${p.nome} foi movido para a posição ${targetIndex + 1}. Justificativa: ${motivo.trim()}`);
       await persistAndRender();
     }
 
 
     window.editarUsuario = async function(id){
+      if(!garantirModoCoordenador()) return;
       const p = data.fila.find(x=>x.id===id); if(!p) return;
       const usuario = await promptDialog('Vincular usuário Trello', `Informe o usuário Trello de ${p.nome} sem @:`, p.trelloUsername || '', 'Usuário Trello obrigatório.', 'Permite corrigir ou alterar o @Trello vinculado a essa pessoa sem remover da fila. Esse vínculo é usado para notificações, aceite/recusa e identificação da extra no modo membro.');
       if(usuario === null) return;
@@ -1449,10 +1573,16 @@
       const atual = cleanUsername(p.trelloUsername || '');
       if(!limpo) return infoDialog('Atenção', 'Informe um usuário Trello válido.');
       if(limpo === atual) return infoDialog('Atenção', 'Esse já é o nome atual do usuário.');
+      if(!usernameExisteNoQuadro(limpo)) return infoDialog('Atenção', `O usuário @${limpo} não foi encontrado entre os membros deste quadro.`);
+      if(usernameJaVinculado(limpo, p.id)) return infoDialog('Atenção', `O usuário @${limpo} já está vinculado a outra pessoa da fila.`);
       const antigo = p.trelloUsername || 'sem vínculo';
       p.trelloUsername = limpo;
+      const extrasAtualizadas = data.extrasAtivas.filter(e => e.pessoaId === p.id);
+      extrasAtualizadas.forEach(e => { e.pessoaUsername = limpo; });
+      Object.values(data.extrasAceitasCancelaveis || {}).forEach(e => { if(e?.pessoaId === p.id) e.pessoaUsername = limpo; });
       log('USUÁRIO VINCULADO', `${p.nome} foi vinculado ao usuário @${limpo}. Anterior: ${antigo}.`);
       await persistAndRender();
+      await Promise.allSettled(extrasAtualizadas.map(extra => notificarExtraNoTrello(extra, 'gerada')));
     }
 
     window.vincularMinhaConta = async function(id){
@@ -1462,23 +1592,40 @@
       const ok = await confirmDialog('Vincular minha conta', `Deseja vincular sua conta @${myUser} ao nome ${p.nome}?`);
       if(!ok) return;
       if(p.trelloUsername && p.trelloUsername !== myUser) return infoDialog('Atenção', `${p.nome} já está vinculado a outro usuário.`);
+      if(usernameJaVinculado(myUser, p.id)) return infoDialog('Atenção', `Sua conta @${myUser} já está vinculada a outra pessoa da fila.`);
       p.trelloUsername = myUser;
       log('USUÁRIO VINCULADO', `${p.nome} vinculou a própria conta Trello @${myUser}.`);
       await persistAndRender();
     }
 
     window.removePessoa = async function(id){
+      if(!garantirModoCoordenador()) return;
       const p = data.fila.find(x=>x.id===id); if(!p) return;
+      const temPendente = data.extrasAtivas.some(e => e.pessoaId === id);
+      const temAceitaCancelavel = Object.values(data.extrasAceitasCancelaveis || {}).some(e => e?.pessoaId === id && canCancelExtra(e));
+      if(temPendente || temAceitaCancelavel) return infoDialog('Atenção', 'Não é possível remover esta pessoa enquanto ela possui uma extra pendente ou aceita ainda cancelável. Cancele ou finalize a extra primeiro.');
       const motivo = await promptDialog('Remover pessoa', `Motivo para remover ${p.nome} da fila:`, '', 'Motivo obrigatório.');
       if(motivo===null) return;
       data.fila = data.fila.filter(x=>x.id!==id); log('MEMBRO REMOVIDO', `${p.nome} foi removido da fila. Motivo: ${motivo.trim()}`); await persistAndRender();
     }
 
-    $('addPessoa').addEventListener('click', async()=>{ const nome=$('novoNome').value.trim(); const trelloUsername = cleanUsername($('novoUsuario').value); if(!nome) return infoDialog('Atenção','Informe o nome da pessoa.'); data.fila.push({id:uid(),nome,trelloUsername}); $('novoNome').value=''; $('novoUsuario').value=''; log('MEMBRO ADICIONADO', `${nome} foi adicionado à fila${trelloUsername ? ' e vinculado a @' + trelloUsername : ''}.`); coordPage = ensurePage(data.fila.length, 999, pageSize); await persistAndRender(); });
+    $('addPessoa').addEventListener('click', async()=>{
+      if(!garantirModoCoordenador()) return;
+      const nome=$('novoNome').value.trim();
+      const trelloUsername = cleanUsername($('novoUsuario').value);
+      if(!nome) return infoDialog('Atenção','Informe o nome da pessoa.');
+      if(trelloUsername && !usernameExisteNoQuadro(trelloUsername)) return infoDialog('Atenção', `O usuário @${trelloUsername} não foi encontrado entre os membros deste quadro.`);
+      if(trelloUsername && usernameJaVinculado(trelloUsername)) return infoDialog('Atenção', `O usuário @${trelloUsername} já está vinculado a outra pessoa da fila.`);
+      data.fila.push({id:uid(),nome,trelloUsername});
+      $('novoNome').value=''; $('novoUsuario').value='';
+      log('MEMBRO ADICIONADO', `${nome} foi adicionado à fila${trelloUsername ? ' e vinculado a @' + trelloUsername : ''}.`);
+      coordPage = ensurePage(data.fila.length, 999, pageSize);
+      await persistAndRender();
+    });
     $('puxarPessoaBtn').addEventListener('click', async()=>{ const id = $('puxarPessoaSelect').value; const targetIndex = $('posicaoDestinoSelect').value; if(!id) return infoDialog('Atenção','Selecione uma pessoa.'); await colocarNaPosicao(id, targetIndex); });
     $('gerarExtra').addEventListener('click', gerarExtra); $('pularVez').addEventListener('click', pularVez); $('refreshNowBtn').addEventListener('click', atualizarDadosManual);
-    $('exportHistoryPdfBtn')?.addEventListener('click', exportarHistoricoPdf);
-    $('exportHistoryExcelBtn')?.addEventListener('click', exportarHistoricoExcel);
+    $('exportHistoryPdfBtn')?.addEventListener('click', window.exportarHistoricoPdf);
+    $('exportHistoryExcelBtn')?.addEventListener('click', window.exportarHistoricoExcel);
     document.addEventListener('click', () => closeExportCalendars());
 
     function bindMemberSuggestions(){
@@ -1499,6 +1646,7 @@
 
 
     function openExtraConfigModal(){ return new Promise(resolve => {
+      if(mode !== 'coordenador'){ infoDialog('Acesso negado', 'Somente coordenadores podem alterar estas configurações.'); resolve(false); return; }
       const cfg = getExtraConfig();
       const overlay = document.createElement('div');
       overlay.className = 'extraConfigOverlay';
@@ -1697,10 +1845,10 @@
             close(true);
             showSuccess('Todas as configurações foram apagadas com sucesso.');
           }catch(e){
-            data.extraConfig = previousExtraConfig;
+            rollbackToLastPersisted();
             hideLoading();
             overlay.classList.remove('hide');
-            showConfigError('Não foi possível limpar as configurações. Confira a API/Vercel e tente novamente.');
+            showConfigError('Não foi possível limpar as configurações. Os dados anteriores foram restaurados. Tente novamente.');
           }
           return;
         }
@@ -1786,7 +1934,8 @@
           close(true);
           showSuccess('Configuração salva com sucesso.');
         }catch(e){
-          showConfigError('Não foi possível salvar a configuração. Confira a API/Vercel e tente novamente.');
+          rollbackToLastPersisted();
+          showConfigError('Não foi possível salvar a configuração. Os dados anteriores foram restaurados. Tente novamente.');
         }
       };
       document.body.appendChild(overlay);
