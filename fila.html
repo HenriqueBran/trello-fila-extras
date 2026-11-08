@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=156" />
+  <link rel="stylesheet" href="./style.css?v=156.1" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -68,35 +68,99 @@
         <p class="muted small">Pular vez exige motivo. O cancelamento fica disponível no histórico conforme o status da solicitação.</p>
       </section>
 
-      <section class="card full coordSectionCard">
-        <h2 class="sectionTitleWithHelp">Ordem da fila <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Ordem da fila" data-tooltip="Visualize a ordem atual da fila e acompanhe a posição de cada pessoa cadastrada.">?</span></h2>
-        <div id="listaCoordenador" class="list"></div>
-        <div id="paginacaoCoordenador" class="pagination"></div>
+      <section class="card full coordSectionCard coordAccordionCard">
+        <details class="coordAccordion">
+          <summary class="coordAccordionHeader">
+            <h2 class="sectionTitleWithHelp">Ordem da fila <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Ordem da fila" data-tooltip="Visualize a ordem atual da fila e acompanhe a posição de cada pessoa cadastrada.">?</span></h2>
+            <span class="coordAccordionChevron" aria-hidden="true"></span>
+          </summary>
+          <div class="coordAccordionBody">
+            <div id="listaCoordenador" class="list"></div>
+            <div id="paginacaoCoordenador" class="pagination"></div>
+          </div>
+        </details>
       </section>
 
-      <section class="card full coordSectionCard">
-        <h2 class="sectionTitleWithHelp">Alterar posição de uma pessoa na fila <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Alterar posição" data-tooltip="Use esta seção para mover uma pessoa para qualquer posição da fila sem precisar pular uma a uma.">?</span></h2>
-        <div class="quickTopBox standaloneQuickTopBox">
-          <div class="quickTopRow positionRow">
-            <select id="puxarPessoaSelect"></select>
-            <select id="posicaoDestinoSelect"></select>
-            <button class="btn primary" id="puxarPessoaBtn">Mover pessoa</button>
+      <section class="card full coordSectionCard coordAccordionCard">
+        <details class="coordAccordion">
+          <summary class="coordAccordionHeader">
+            <h2 class="sectionTitleWithHelp">Alterar posição de uma pessoa na fila <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Alterar posição" data-tooltip="Use esta seção para mover uma pessoa para qualquer posição da fila sem precisar pular uma a uma.">?</span></h2>
+            <span class="coordAccordionChevron" aria-hidden="true"></span>
+          </summary>
+          <div class="coordAccordionBody">
+            <div class="quickTopBox standaloneQuickTopBox">
+              <div class="quickTopRow positionRow">
+                <select id="puxarPessoaSelect"></select>
+                <select id="posicaoDestinoSelect"></select>
+                <button class="btn primary" id="puxarPessoaBtn">Mover pessoa</button>
+              </div>
+              <p class="muted small">Use para colocar uma pessoa em qualquer posição da fila, sem precisar pular pessoa por pessoa.</p>
+            </div>
           </div>
-          <p class="muted small">Use para colocar uma pessoa em qualquer posição da fila, sem precisar pular pessoa por pessoa.</p>
-        </div>
+        </details>
       </section>
 
-      <section class="card full coordSectionCard">
-        <h2 class="sectionTitleWithHelp">Gerenciar fila <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Gerenciar fila" data-tooltip="Use esta seção para adicionar novas pessoas à fila e vincular o usuário Trello.">?</span></h2>
-        <div class="inputRow inputRowSuggest">
-          <input id="novoNome" placeholder="Nome da pessoa" autocomplete="off" />
-          <div class="suggestWrap">
-            <input id="novoUsuario" placeholder="Usuário Trello" autocomplete="off" />
-            <div id="membroSugestoes" class="suggestions hide"></div>
+      <section class="card full coordSectionCard coordAccordionCard">
+        <details class="coordAccordion">
+          <summary class="coordAccordionHeader">
+            <h2 class="sectionTitleWithHelp">Gerenciar fila <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Gerenciar fila" data-tooltip="Use esta seção para adicionar novas pessoas à fila e vincular o usuário Trello.">?</span></h2>
+            <span class="coordAccordionChevron" aria-hidden="true"></span>
+          </summary>
+          <div class="coordAccordionBody">
+            <div class="inputRow inputRowSuggest">
+              <input id="novoNome" placeholder="Nome da pessoa" autocomplete="off" />
+              <div class="suggestWrap">
+                <input id="novoUsuario" placeholder="Usuário Trello" autocomplete="off" />
+                <div id="membroSugestoes" class="suggestions hide"></div>
+              </div>
+              <button class="btn dark" id="addPessoa">Adicionar</button>
+            </div>
+            <p class="muted small">Utilize essa sessão para adicionar pessoas à fila</p>
           </div>
-          <button class="btn dark" id="addPessoa">Adicionar</button>
-        </div>
-        <p class="muted small">Utilize essa sessão para adicionar pessoas à fila</p>
+        </details>
+      </section>
+
+      <section class="card full coordSectionCard coordAccordionCard">
+        <details class="coordAccordion">
+          <summary class="coordAccordionHeader">
+            <h2 class="sectionTitleWithHelp">Salvar histórico por período <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Salvar histórico por período" data-tooltip="Escolha um período para exportar o histórico registrado no quadro em PDF ou Excel.">?</span></h2>
+            <span class="coordAccordionChevron" aria-hidden="true"></span>
+          </summary>
+          <div class="coordAccordionBody">
+            <p class="muted small exportHistoryDescription">Selecione a data de início e a data de fim do período desejado. O histórico poderá ser salvo em <strong>PDF</strong> ou <strong>Excel</strong>.</p>
+            <div class="exportHistoryBox">
+              <div class="exportHistoryGrid">
+                <label class="exportField">
+                  <span>Data de início</span>
+                  <div class="exportDatePicker" data-export-picker="start">
+                    <input id="exportHistoryStart" type="hidden" />
+                    <button type="button" class="exportDateButton" data-export-date-button="exportHistoryStart" aria-label="Selecionar data de início">
+                      <span data-export-date-label>Selecionar data</span>
+                      <span class="exportDateIcon" aria-hidden="true">📅</span>
+                    </button>
+                    <div class="exportDatePopover hide" data-export-date-popover></div>
+                  </div>
+                </label>
+                <label class="exportField">
+                  <span>Data de fim</span>
+                  <div class="exportDatePicker" data-export-picker="end">
+                    <input id="exportHistoryEnd" type="hidden" />
+                    <button type="button" class="exportDateButton" data-export-date-button="exportHistoryEnd" aria-label="Selecionar data de fim">
+                      <span data-export-date-label>Selecionar data</span>
+                      <span class="exportDateIcon" aria-hidden="true">📅</span>
+                    </button>
+                    <div class="exportDatePopover hide" data-export-date-popover></div>
+                  </div>
+                </label>
+              </div>
+              <div class="exportHistoryActions">
+                <button class="btn ghost" id="exportHistoryPdfBtn">Salvar em PDF</button>
+                <button class="btn ghost" id="exportHistoryExcelBtn">Salvar em Excel</button>
+              </div>
+              <p class="muted small exportHistoryHint">O arquivo será gerado somente com os registros encontrados dentro do período selecionado.</p>
+            </div>
+          </div>
+        </details>
       </section>
 
       <section class="card full">
@@ -106,42 +170,6 @@
         </div>
         <div id="historicoCoordenador" class="history"></div>
         <div id="paginacaoHistCoordenador" class="pagination"></div>
-      </section>
-
-      <section class="card full coordSectionCard">
-        <h2 class="sectionTitleWithHelp">Salvar histórico por período <span class="ctaHelpIcon sectionTitleHelpIcon" tabindex="0" role="button" aria-label="Ajuda sobre Salvar histórico por período" data-tooltip="Escolha um período para exportar o histórico registrado no quadro em PDF ou Excel.">?</span></h2>
-        <p class="muted small exportHistoryDescription">Selecione a data de início e a data de fim do período desejado. O histórico poderá ser salvo em <strong>PDF</strong> ou <strong>Excel</strong>.</p>
-        <div class="exportHistoryBox">
-          <div class="exportHistoryGrid">
-            <label class="exportField">
-              <span>Data de início</span>
-              <div class="exportDatePicker" data-export-picker="start">
-                <input id="exportHistoryStart" type="hidden" />
-                <button type="button" class="exportDateButton" data-export-date-button="exportHistoryStart" aria-label="Selecionar data de início">
-                  <span data-export-date-label>Selecionar data</span>
-                  <span class="exportDateIcon" aria-hidden="true">📅</span>
-                </button>
-                <div class="exportDatePopover hide" data-export-date-popover></div>
-              </div>
-            </label>
-            <label class="exportField">
-              <span>Data de fim</span>
-              <div class="exportDatePicker" data-export-picker="end">
-                <input id="exportHistoryEnd" type="hidden" />
-                <button type="button" class="exportDateButton" data-export-date-button="exportHistoryEnd" aria-label="Selecionar data de fim">
-                  <span data-export-date-label>Selecionar data</span>
-                  <span class="exportDateIcon" aria-hidden="true">📅</span>
-                </button>
-                <div class="exportDatePopover hide" data-export-date-popover></div>
-              </div>
-            </label>
-          </div>
-          <div class="exportHistoryActions">
-            <button class="btn ghost" id="exportHistoryPdfBtn">Salvar em PDF</button>
-            <button class="btn ghost" id="exportHistoryExcelBtn">Salvar em Excel</button>
-          </div>
-          <p class="muted small exportHistoryHint">O arquivo será gerado somente com os registros encontrados dentro do período selecionado.</p>
-        </div>
       </section>
     </main>
 
@@ -764,6 +792,20 @@
     });
     document.addEventListener('focusout', (ev) => {
       if(ev.target.closest?.('.ctaHelpIcon')) hideHelpTooltip();
+    });
+
+    // Os ícones de ajuda dos títulos não devem abrir ou fechar seus painéis.
+    document.addEventListener('click', (ev) => {
+      const ajuda = ev.target.closest?.('.coordAccordionHeader .ctaHelpIcon');
+      if(ajuda){ ev.preventDefault(); ev.stopPropagation(); }
+    });
+    document.addEventListener('keydown', (ev) => {
+      const ajuda = ev.target.closest?.('.coordAccordionHeader .ctaHelpIcon');
+      if(ajuda && (ev.key === 'Enter' || ev.key === ' ')){
+        ev.preventDefault();
+        ev.stopPropagation();
+        showHelpTooltip(ajuda);
+      }
     });
 
     function normalizeBoardMember(m){

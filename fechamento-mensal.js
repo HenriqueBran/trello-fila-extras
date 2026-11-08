@@ -6,20 +6,10 @@ const DEFAULT_DATA = {
   historicoArquivado: {},
   fechamentoMensal: {},
   extrasAceitasCancelaveis: {},
-  extraConfig: {
-    responsaveisSolicitantes: [],
-    squads: [],
-    responsaveisAtendimento: []
-  }
+  userModes: {}
 };
 
 const memory = globalThis.__filaExtrasMemory || (globalThis.__filaExtrasMemory = {});
-
-function hasKvConfig(){
-  const url=process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token=process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  return !!(url && token);
-}
 
 function getSaoPauloParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -50,21 +40,15 @@ function shouldClose(date = new Date()){
 }
 function normalize(data){
   const currentMonth = ym(getSaoPauloParts());
-  const src = data && typeof data === 'object' ? data : {};
-  const base = { ...DEFAULT_DATA };
-  base.fila = Array.isArray(src.fila) ? src.fila : [];
-  base.extrasAtivas = Array.isArray(src.extrasAtivas) ? src.extrasAtivas : [];
-  base.historico = Array.isArray(src.historico) ? src.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
-  base.historicoMes = typeof src.historicoMes === 'string' && src.historicoMes ? src.historicoMes : currentMonth;
-  base.historicoArquivado = src.historicoArquivado && typeof src.historicoArquivado === 'object' ? src.historicoArquivado : {};
-  base.fechamentoMensal = src.fechamentoMensal && typeof src.fechamentoMensal === 'object' ? src.fechamentoMensal : {};
-  base.extrasAceitasCancelaveis = src.extrasAceitasCancelaveis && typeof src.extrasAceitasCancelaveis === 'object' ? src.extrasAceitasCancelaveis : {};
-  const cfg = src.extraConfig && typeof src.extraConfig === 'object' ? src.extraConfig : {};
-  base.extraConfig = {
-    responsaveisSolicitantes: Array.isArray(cfg.responsaveisSolicitantes) ? cfg.responsaveisSolicitantes : [],
-    squads: Array.isArray(cfg.squads) ? cfg.squads : [],
-    responsaveisAtendimento: Array.isArray(cfg.responsaveisAtendimento) ? cfg.responsaveisAtendimento : []
-  };
+  const base = { ...DEFAULT_DATA, ...(data || {}) };
+  base.fila = Array.isArray(base.fila) ? base.fila : [];
+  base.extrasAtivas = Array.isArray(base.extrasAtivas) ? base.extrasAtivas : [];
+  base.historico = Array.isArray(base.historico) ? base.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
+  base.historicoMes = typeof base.historicoMes === 'string' && base.historicoMes ? base.historicoMes : currentMonth;
+  base.historicoArquivado = base.historicoArquivado && typeof base.historicoArquivado === 'object' ? base.historicoArquivado : {};
+  base.fechamentoMensal = base.fechamentoMensal && typeof base.fechamentoMensal === 'object' ? base.fechamentoMensal : {};
+  base.extrasAceitasCancelaveis = base.extrasAceitasCancelaveis && typeof base.extrasAceitasCancelaveis === 'object' ? base.extrasAceitasCancelaveis : {};
+  base.userModes = base.userModes && typeof base.userModes === 'object' ? base.userModes : {};
   return base;
 }
 function applyMonthlyHistoryClose(data, date = new Date()){
@@ -81,7 +65,7 @@ function applyMonthlyHistoryClose(data, date = new Date()){
   return { data:base, changed:true, closedMonth:oldMonth };
 }
 async function kvGet(key){
-  const url=process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL, token=process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url=process.env.KV_REST_API_URL, token=process.env.KV_REST_API_TOKEN;
   if(!url || !token) return null;
   const baseUrl = String(url).trim().replace(/\/+$/, '');
   const res=await fetch(`${baseUrl}/get/${encodeURIComponent(key)}`, { headers:{ Authorization:`Bearer ${String(token).trim()}` }});
@@ -96,7 +80,7 @@ async function kvGet(key){
   return parsed && typeof parsed === 'object' ? parsed : null;
 }
 async function kvSet(key,value){
-  const url=process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL, token=process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url=process.env.KV_REST_API_URL, token=process.env.KV_REST_API_TOKEN;
   if(!url || !token) return false;
   const baseUrl = String(url).trim().replace(/\/+$/, '');
   const res=await fetch(`${baseUrl}/set/${encodeURIComponent(key)}`, { method:'POST', headers:{ Authorization:`Bearer ${String(token).trim()}`, 'Content-Type':'application/json' }, body:JSON.stringify(value) });
@@ -104,7 +88,7 @@ async function kvSet(key,value){
   return true;
 }
 async function kvKeys(){
-  const url=process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL, token=process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url=process.env.KV_REST_API_URL, token=process.env.KV_REST_API_TOKEN;
   if(!url || !token) return Object.keys(memory).filter(k => k.startsWith('fila-extras:'));
   const baseUrl = String(url).trim().replace(/\/+$/, '');
   const res=await fetch(`${baseUrl}/keys/${encodeURIComponent('fila-extras:*')}`, { headers:{ Authorization:`Bearer ${String(token).trim()}` }});
@@ -115,7 +99,6 @@ async function kvKeys(){
 
 export default async function handler(req,res){
   if(req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error:'Método não permitido' });
-  if(process.env.VERCEL && !hasKvConfig()) return res.status(503).json({ error:'Persistência não configurada para o fechamento mensal.' });
   try{
     const keys = await kvKeys();
     const result = { checked:0, closed:0, keys:[] };
