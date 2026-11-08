@@ -1288,12 +1288,22 @@
       renderHistory('historicoMembro', 'paginacaoHistMembro', false);
     }
     function histClass(acao){ if(acao==='EXTRA GERADA') return 'generated'; if(acao==='EXTRA ACEITA') return 'accepted'; if(acao==='ORDEM ALTERADA') return 'orderChanged'; if(acao==='SEM RESPOSTA') return 'noResponse'; if(acao==='EXTRA RECUSADA'||acao==='EXTRA CANCELADA') return 'danger'; if(acao==='VEZ PULADA') return 'warn'; return 'neutral'; }
+    // No modo Membro, os detalhes pertencem à conta Trello que recebeu o chamado.
+    // O histórico continua público; somente o acesso aos detalhes é individual.
+    function membroPodeVerDetalhesHistorico(h, extra){
+      if(h?.acao !== 'EXTRA ACEITA' && h?.acao !== 'EXTRA RECUSADA') return false;
+      const usuarioAtual = currentUsername();
+      return !!(usuarioAtual && cleanUsername(extra?.pessoaUsername) === usuarioAtual);
+    }
     window.mostrarDetalhesHistoricoExtra = function(histId){
       const historico = Array.isArray(data.historico) ? data.historico : [];
       const h = historico.find(item => item.id === histId);
       if(!h) return infoDialog('Detalhes do extra', 'Não foi possível localizar este registro no histórico.');
       const extra = h.extraSnapshot || h.extra || (h.extraId ? data.extrasAceitasCancelaveis?.[h.extraId] : null) || null;
       if(!extra) return infoDialog('Detalhes do extra', 'Os detalhes completos deste extra não estão disponíveis neste registro.');
+      if(mode !== 'coordenador' && !membroPodeVerDetalhesHistorico(h, extra)){
+        return infoDialog('Acesso negado', 'Os detalhes deste extra estão disponíveis apenas para o membro que recebeu o chamado.');
+      }
       const pessoaNome = escapeHtml(extra.pessoaNome || 'Pessoa chamada');
       const podeGerenciarCodigoOs = mode === 'coordenador';
       const possuiCodigoOs = !!String(extra.codigoOs || '').trim();
@@ -1349,7 +1359,7 @@
         const pending = pendingExtra && data.extrasAtivas.some(e => e.id === h.extraId) && canCancelExtra(pendingExtra);
         const accepted = acceptedExtraCurrent && canCancelExtra(acceptedExtraCurrent);
         const hasDetails = !!(h.extraId && (extraSnapshot || data.extrasAtivas.some(e => e.id === h.extraId) || data.extrasAceitasCancelaveis[h.extraId]));
-        const showPublicDetails = !isCoord && (h.acao === 'EXTRA ACEITA' || h.acao === 'EXTRA RECUSADA') && hasDetails;
+        const showPublicDetails = !isCoord && hasDetails && membroPodeVerDetalhesHistorico(h, extraSnapshot || data.extrasAceitasCancelaveis[h.extraId]);
         const showCoordDetails = isCoord && hasDetails;
         const statusMeta = getHistoryStatusMeta(h.acao);
         const extraDay = extraSnapshot ? formatExtraHistoryDay(extraSnapshot.inicioAt) : '';
