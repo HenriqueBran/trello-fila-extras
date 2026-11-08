@@ -2123,7 +2123,7 @@ html,body{
 }
 
 
-/* v156.6 — Ícones das seções do coordenador com dimensões 24x24 e fundo 48x48. */
+/* v156.7 — Ícones pretos sem fundo nas seções do coordenador (24x24). */
 #coordenador .coordSectionTitleGroup {
   display:inline-flex;
   align-items:center;
@@ -2145,8 +2145,8 @@ html,body{
   height:48px;
   min-width:48px;
   border-radius:12px;
-  background:linear-gradient(140deg, #e8f1ff 0%, #cbdfff 100%);
-  color:#194d9f;
+  background:none;
+  color:var(--black);
 }
 #coordenador .coordSectionIcon svg {
   width:24px;
@@ -2163,7 +2163,7 @@ html,body{
   color:var(--black);
 }
 #coordenador .coordAccordionHeader:hover .coordSectionIcon {
-  color:#194d9f;
+  color:var(--black);
 }
 #coordenador .coordHistoryHeader {align-items:center;gap:12px;}
 #coordenador .coordHistoryHeader > .muted {margin-left:auto;}
