@@ -2123,7 +2123,7 @@ html,body{
 }
 
 
-/* v156.5 — Ícones das seções do coordenador, conforme referência visual. */
+/* v156.6 — Ícones das seções do coordenador com dimensões 24x24 e fundo 48x48. */
 #coordenador .coordSectionTitleGroup {
   display:inline-flex;
   align-items:center;
@@ -2141,16 +2141,16 @@ html,body{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  width:50px;
-  height:50px;
-  min-width:50px;
-  border-radius:13px;
+  width:48px;
+  height:48px;
+  min-width:48px;
+  border-radius:12px;
   background:linear-gradient(140deg, #e8f1ff 0%, #cbdfff 100%);
   color:#194d9f;
 }
 #coordenador .coordSectionIcon svg {
-  width:26px;
-  height:26px;
+  width:24px;
+  height:24px;
   display:block;
 }
 #coordenador .coordAccordionHeader:hover .coordSectionTitleGroup h2,
@@ -2169,7 +2169,7 @@ html,body{
 #coordenador .coordHistoryHeader > .muted {margin-left:auto;}
 @media (max-width:640px){
   #coordenador .coordSectionTitleGroup {gap:12px;}
-  #coordenador .coordSectionIcon {width:44px;height:44px;min-width:44px;border-radius:12px;}
+  #coordenador .coordSectionIcon {width:48px;height:48px;min-width:48px;border-radius:12px;}
   #coordenador .coordSectionIcon svg {width:24px;height:24px;}
   #coordenador .coordSectionTitleGroup h2 {font-size:18px;}
   #coordenador .coordAccordionHeader {gap:12px;}
