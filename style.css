@@ -2166,6 +2166,8 @@ html,body{
   color:var(--black);
 }
 #coordenador .coordHistoryHeader {align-items:center;gap:12px;}
+/* Espaçamento exclusivo do cabeçalho do histórico: separa ícone e título. */
+#coordenador .coordHistoryHeader .coordSectionTitleGroup {gap:24px;}
 #coordenador .coordHistoryHeader > .muted {margin-left:auto;}
 @media (max-width:640px){
   #coordenador .coordSectionTitleGroup {gap:12px;}
@@ -2173,4 +2175,5 @@ html,body{
   #coordenador .coordSectionIcon svg {width:24px;height:24px;}
   #coordenador .coordSectionTitleGroup h2 {font-size:18px;}
   #coordenador .coordAccordionHeader {gap:12px;}
+  #coordenador .coordHistoryHeader .coordSectionTitleGroup {gap:20px;}
 }
