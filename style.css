@@ -2121,3 +2121,56 @@ html,body{
   .coordAccordionHeader > h2 { font-size:20px; }
   .coordAccordionChevron { width:10px;height:10px;flex-basis:10px; }
 }
+
+
+/* v156.5 — Ícones das seções do coordenador, conforme referência visual. */
+#coordenador .coordSectionTitleGroup {
+  display:inline-flex;
+  align-items:center;
+  gap:16px;
+  min-width:0;
+  flex:1;
+}
+#coordenador .coordSectionTitleGroup h2 {
+  margin:0;
+  min-width:0;
+  color:var(--black);
+  line-height:1.25;
+}
+#coordenador .coordSectionIcon {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:50px;
+  height:50px;
+  min-width:50px;
+  border-radius:13px;
+  background:linear-gradient(140deg, #e8f1ff 0%, #cbdfff 100%);
+  color:#194d9f;
+}
+#coordenador .coordSectionIcon svg {
+  width:26px;
+  height:26px;
+  display:block;
+}
+#coordenador .coordAccordionHeader:hover .coordSectionTitleGroup h2,
+#coordenador .coordAccordionHeader:hover .coordSectionIcon,
+#coordenador .coordAccordionHeader:active .coordSectionTitleGroup h2 {
+  color:inherit;
+}
+#coordenador .coordAccordionHeader:hover .coordSectionTitleGroup h2,
+#coordenador .coordAccordionHeader:active .coordSectionTitleGroup h2 {
+  color:var(--black);
+}
+#coordenador .coordAccordionHeader:hover .coordSectionIcon {
+  color:#194d9f;
+}
+#coordenador .coordHistoryHeader {align-items:center;gap:12px;}
+#coordenador .coordHistoryHeader > .muted {margin-left:auto;}
+@media (max-width:640px){
+  #coordenador .coordSectionTitleGroup {gap:12px;}
+  #coordenador .coordSectionIcon {width:44px;height:44px;min-width:44px;border-radius:12px;}
+  #coordenador .coordSectionIcon svg {width:24px;height:24px;}
+  #coordenador .coordSectionTitleGroup h2 {font-size:18px;}
+  #coordenador .coordAccordionHeader {gap:12px;}
+}
