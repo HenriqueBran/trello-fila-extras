@@ -2123,7 +2123,7 @@ html,body{
 }
 
 
-/* v156.8 — Ícones pretos com fundo #EFF1F5 (48x48), SVG 24x24. */
+/* v156.9 — Ícones pretos com fundo #EFF1F5 (45x45), SVG 24x24. */
 #coordenador .coordSectionTitleGroup {
   display:inline-flex;
   align-items:center;
@@ -2141,9 +2141,9 @@ html,body{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  width:48px;
-  height:48px;
-  min-width:48px;
+  width:45px;
+  height:45px;
+  min-width:45px;
   border-radius:12px;
   background:#EFF1F5;
   color:var(--black);
@@ -2169,7 +2169,7 @@ html,body{
 #coordenador .coordHistoryHeader > .muted {margin-left:auto;}
 @media (max-width:640px){
   #coordenador .coordSectionTitleGroup {gap:12px;}
-  #coordenador .coordSectionIcon {width:48px;height:48px;min-width:48px;border-radius:12px;}
+  #coordenador .coordSectionIcon {width:45px;height:45px;min-width:45px;border-radius:12px;}
   #coordenador .coordSectionIcon svg {width:24px;height:24px;}
   #coordenador .coordSectionTitleGroup h2 {font-size:18px;}
   #coordenador .coordAccordionHeader {gap:12px;}
