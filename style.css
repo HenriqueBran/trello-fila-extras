@@ -2182,3 +2182,48 @@ html,body{
   #coordenador .coordHistoryHeader {margin-bottom:20px;}
   #coordenador .coordHistoryHeader .coordSectionTitleGroup {column-gap:20px;}
 }
+
+
+/* v156.13 — CTAs de Pessoa da vez e configuração compacta do modal Gerar extra. */
+#coordenador #gerarExtra,
+#coordenador #gerarExtra:hover {
+  background:#DFEBFD;
+  color:#0050F2;
+  box-shadow:none;
+}
+#coordenador #pularVez,
+#coordenador #pularVez:hover {
+  background:#FEE9EE;
+  color:#C91D4D;
+  border:1px solid #F8CFD9;
+  box-shadow:none;
+}
+#extraConfigTopBtn.dialogConfigBtn {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 42px;
+  width:42px;
+  height:42px;
+  min-height:42px;
+  padding:0 !important;
+  border:0 !important;
+  border-radius:12px !important;
+  background:transparent !important;
+  color:#111111 !important;
+  box-shadow:none !important;
+}
+#extraConfigTopBtn.dialogConfigBtn:hover {
+  background:#EFF1F5 !important;
+}
+#extraConfigTopBtn.dialogConfigBtn:focus-visible {
+  outline:2px solid #0050F2;
+  outline-offset:2px;
+}
+#extraConfigTopBtn.dialogConfigBtn svg {
+  display:block;
+  width:20px;
+  height:20px;
+  flex:0 0 20px;
+  fill:currentColor;
+}
