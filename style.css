@@ -2316,3 +2316,12 @@ html,body{
   .dialogBox.extraDialogBox .extraQuantityInput{max-width:100%;}
   .dialogBox.extraDialogBox .extraStepHeader strong{font-size:21px;}
 }
+
+
+/* v156.17 — Apenas os textos destacados: nome e valores dos seletores sem negrito. */
+#coordenador #pessoaDaVez {
+  font-weight:500;
+}
+.dialogBox.extraDialogBox #extraForm .pickerField {
+  font-weight:500;
+}
