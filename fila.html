@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=156.15" />
+  <link rel="stylesheet" href="./style.css?v=156.16" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -2385,7 +2385,7 @@
             </div>
             <div class="extraWizardTopActions" role="status" aria-live="polite">
               <span class="extraSummaryIcon">${extraUiIcon('info')}</span>
-              <span class="extraSummaryText"><strong>Extra ${currentExtraStep + 1} de ${qtd}</strong><small>Direcionada para a ${currentExtraStep + 1}ª pessoa da fila.</small></span>
+              <span class="extraSummaryText"><strong>Extra ${currentExtraStep + 1} de ${qtd}</strong></span>
             </div>
           </div>
           ${extraConfigIsComplete() ? '' : '<div class="extraConfigWarning">Configure os responsáveis, squads e atendimentos antes de gerar a extra.</div>'}
