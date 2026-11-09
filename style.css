@@ -2227,3 +2227,90 @@ html,body{
   flex:0 0 20px;
   fill:currentColor;
 }
+
+
+/* v156.14 — Modal Gerar extra: apresentação na referência, identidade visual CANTA. */
+.dialogHeader .extraDialogHeadingIcon{display:none;}
+.dialogBox.extraDialogBox{width:min(860px,calc(100vw - 24px)) !important;height:calc(100% - 24px) !important;max-height:calc(100% - 24px) !important;padding:26px 30px 22px !important;border-radius:22px !important;}
+.dialogBox.extraDialogBox .dialogHeader{display:flex;align-items:center;gap:14px;margin:0 0 18px !important;padding:0 0 4px !important;top:0 !important;}
+.dialogBox.extraDialogBox .extraDialogHeadingIcon{display:inline-flex;flex:0 0 60px;width:60px;height:60px;align-items:center;justify-content:center;background:#DFEBFD;color:#0050F2;border-radius:14px;}
+.dialogBox.extraDialogBox .extraDialogHeadingIcon svg{width:34px;height:34px;}
+.dialogBox.extraDialogBox .dialogTitle{font-size:26px;line-height:1.2;font-weight:850;letter-spacing:-.025em;color:#111111;}
+.dialogBox.extraDialogBox .dialogHeader .dialogTitle{flex:1 1 auto !important;text-align:left;}
+.dialogBox.extraDialogBox .dialogText{display:none;}
+.dialogBox.extraDialogBox #extraConfigTopBtn.dialogConfigBtn{width:42px;height:42px;flex-basis:42px;border:1px solid #D6DEEB !important;border-radius:12px !important;background:#FFFFFF !important;color:#111111 !important;}
+.dialogBox.extraDialogBox #extraConfigTopBtn.dialogConfigBtn:hover{background:#EFF1F5 !important;}
+.dialogBox.extraDialogBox #extraForm{padding:0 6px 24px 0 !important;margin-right:-6px !important;gap:0;}
+.dialogBox.extraDialogBox .extraWizardTop,
+.dialogBox.extraDialogBox .extraStepProgress,
+.dialogBox.extraDialogBox .extraItems,
+.dialogBox.extraDialogBox .extraStepHeader,
+.dialogBox.extraDialogBox .iconLabel,
+.dialogBox.extraDialogBox .textareaWrap,
+.dialogBox.extraDialogBox .extraDateSections,
+.dialogBox.extraDialogBox .extraMetaRow{max-width:none;width:100%;}
+.dialogBox.extraDialogBox .extraWizardTop{display:grid;grid-template-columns:minmax(170px,205px) minmax(0,1fr);gap:20px;align-items:end;margin:2px 0 18px;}
+.dialogBox.extraDialogBox .extraQuantityBox{min-width:0;}
+.dialogBox.extraDialogBox .extraQuantityBox label{display:block;font-size:14px;font-weight:800;color:#202838;margin:0 0 9px;}
+.dialogBox.extraDialogBox .extraQuantityInput{display:block;width:100%;max-width:none;height:44px;margin:0;padding:0 13px;font-size:15px;font-weight:650;border:1px solid #CCD5E5;border-radius:10px;}
+.dialogBox.extraDialogBox .extraWizardTopActions{display:flex;min-width:0;align-items:center;justify-content:flex-start;gap:12px;flex-wrap:nowrap;min-height:56px;padding:10px 14px;background:#DFEBFD;border-radius:12px;color:#0050F2;position:relative;}
+.dialogBox.extraDialogBox .extraWizardTopActions:before{content:'';position:absolute;top:0;bottom:0;left:-11px;width:1px;background:#D6DEEB;}
+.dialogBox.extraDialogBox .extraSummaryIcon{display:inline-flex;flex:0 0 22px;align-items:center;justify-content:center;color:#0050F2;}
+.dialogBox.extraDialogBox .extraSummaryIcon svg{width:22px;height:22px;}
+.dialogBox.extraDialogBox .extraSummaryText{display:flex;flex-direction:column;min-width:0;gap:2px;color:#1C2840;}
+.dialogBox.extraDialogBox .extraSummaryText strong{font-size:14px;font-weight:800;line-height:1.3;}
+.dialogBox.extraDialogBox .extraSummaryText small{font-size:12px;font-weight:500;line-height:1.35;color:#45546E;}
+.dialogBox.extraDialogBox .extraStepProgress{margin:0 0 20px !important;gap:0;display:grid;}
+.dialogBox.extraDialogBox .extraStepBar{height:3px;border-radius:0;background:#D9E4F8;}
+.dialogBox.extraDialogBox .extraStepBar.active{background:#0050F2 !important;}
+.dialogBox.extraDialogBox .extraStepBar.done{background:#0050F2 !important;}
+.dialogBox.extraDialogBox .extraStepCard{padding:0 2px;}
+.dialogBox.extraDialogBox .extraStepHeader{display:flex;align-items:center;min-height:46px;position:relative;padding:0 0 0 22px;margin:0 0 18px;}
+.dialogBox.extraDialogBox .extraStepHeader:before{content:'';position:absolute;top:1px;bottom:1px;left:0;width:5px;border-radius:7px;background:#0050F2;}
+.dialogBox.extraDialogBox .extraStepHeader strong{font-size:23px;letter-spacing:-.025em;font-weight:850;line-height:1.2;color:#111111;}
+.dialogBox.extraDialogBox .extraStepHeader span{margin-top:3px !important;font-size:13px;line-height:1.35;font-weight:500;color:#66748A !important;}
+.dialogBox.extraDialogBox .iconLabel,
+.dialogBox.extraDialogBox .dateSectionTitle,
+.dialogBox.extraDialogBox .metaFieldTitle{display:flex;align-items:center;gap:8px;color:#1B2334 !important;font-size:13px !important;font-weight:800 !important;line-height:1.35;}
+.dialogBox.extraDialogBox .extraFieldIcon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 19px;width:19px;height:19px;color:#0050F2 !important;}
+.dialogBox.extraDialogBox .extraFieldIcon svg{display:block;width:19px;height:19px;}
+.dialogBox.extraDialogBox .requiredMark{color:#FF3264;}
+.dialogBox.extraDialogBox .iconLabel{margin:0 0 9px;}
+.dialogBox.extraDialogBox .textareaWrap .dialogTextarea{min-height:90px;padding:14px 16px 28px;border:1px solid #CBD5E5;border-radius:12px;background:white;font-size:14px;line-height:1.5;}
+.dialogBox.extraDialogBox .charCounter{right:12px;bottom:11px;color:#8190A7 !important;}
+.dialogBox.extraDialogBox .extraDateSections{grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;column-gap:22px !important;margin-top:20px;position:relative;}
+.dialogBox.extraDialogBox .extraDateSections:before{content:'';position:absolute;top:5px;bottom:1px;left:50%;width:1px;background:#D6DEEB;pointer-events:none;}
+.dialogBox.extraDialogBox .dateSectionTitle{margin-bottom:9px;}
+.dialogBox.extraDialogBox .dateHourGroup{grid-template-columns:minmax(0,1fr) 92px !important;gap:9px;}
+.dialogBox.extraDialogBox .dateHourGroup .pickerField{min-height:42px;height:42px;border-radius:10px;padding:0 11px;border:1px solid #CBD5E5;font-size:13px;gap:6px;}
+.dialogBox.extraDialogBox .dateHourGroup .pickerField span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dialogBox.extraDialogBox .dateHourGroup .pickerField em svg,
+.dialogBox.extraDialogBox .extraMetaField .pickerField em svg{width:18px;height:18px;display:block;}
+.dialogBox.extraDialogBox .dateHourGroup .pickerField em{color:#0050F2 !important;}
+.dialogBox.extraDialogBox .extraMetaRow{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:16px !important;margin-top:22px !important;}
+.dialogBox.extraDialogBox .metaFieldTitle{min-height:20px !important;margin-bottom:9px !important;white-space:normal;}
+.dialogBox.extraDialogBox .extraMetaField .pickerField{height:43px !important;min-height:43px !important;padding:0 11px !important;border-color:#CBD5E5 !important;border-radius:10px;}
+.dialogBox.extraDialogBox .extraMetaField .pickerField em{color:#0050F2 !important;}
+.dialogBox.extraDialogBox #extraForm .pickerField:hover{border-color:#91ACDA;}
+.dialogBox.extraDialogBox .dialogActions{margin-top:16px !important;padding-top:16px !important;}
+@media(max-width:760px){
+  .dialogBox.extraDialogBox{height:calc(100% - 16px) !important;max-height:calc(100% - 16px) !important;padding:19px 17px 16px !important;}
+  .dialogBox.extraDialogBox .dialogHeader{gap:10px;margin-bottom:16px !important;}
+  .dialogBox.extraDialogBox .extraDialogHeadingIcon{flex-basis:48px;width:48px;height:48px;border-radius:12px;}
+  .dialogBox.extraDialogBox .extraDialogHeadingIcon svg{width:29px;height:29px;}
+  .dialogBox.extraDialogBox .dialogTitle{font-size:22px;}
+  .dialogBox.extraDialogBox .extraWizardTop{grid-template-columns:minmax(120px,180px) minmax(0,1fr);gap:12px;}
+  .dialogBox.extraDialogBox .extraWizardTopActions{padding:9px 10px;min-height:55px;gap:7px;}
+  .dialogBox.extraDialogBox .extraWizardTopActions:before{left:-7px;}
+  .dialogBox.extraDialogBox .extraSummaryText strong{font-size:12px;}
+  .dialogBox.extraDialogBox .extraSummaryText small{font-size:11px;}
+  .dialogBox.extraDialogBox .extraDateSections{grid-template-columns:1fr !important;row-gap:18px;}
+  .dialogBox.extraDialogBox .extraDateSections:before{display:none;}
+  .dialogBox.extraDialogBox .extraMetaRow{grid-template-columns:1fr !important;gap:14px !important;}
+}
+@media(max-width:450px){
+  .dialogBox.extraDialogBox .extraWizardTop{grid-template-columns:1fr;gap:10px;align-items:stretch;}
+  .dialogBox.extraDialogBox .extraWizardTopActions:before{display:none;}
+  .dialogBox.extraDialogBox .extraQuantityInput{max-width:100%;}
+  .dialogBox.extraDialogBox .extraStepHeader strong{font-size:21px;}
+}
