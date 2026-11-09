@@ -2288,7 +2288,9 @@ html,body{
 .dialogBox.extraDialogBox .extraMetaField .pickerField em svg{width:18px;height:18px;display:block;}
 .dialogBox.extraDialogBox .dateHourGroup .pickerField em{color:#0050F2 !important;}
 .dialogBox.extraDialogBox .extraMetaRow{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:16px !important;margin-top:22px !important;}
-.dialogBox.extraDialogBox .metaFieldTitle{min-height:20px !important;margin-bottom:9px !important;white-space:normal;}
+/* v156.15 — Rótulos abreviados e seletores alinhados na mesma linha. */
+.dialogBox.extraDialogBox .metaFieldTitle{height:20px;min-height:20px !important;flex:0 0 20px;align-items:center !important;flex-wrap:nowrap;white-space:nowrap;margin-bottom:9px !important;}
+.dialogBox.extraDialogBox .extraMetaRow{align-items:stretch !important;}
 .dialogBox.extraDialogBox .extraMetaField .pickerField{height:43px !important;min-height:43px !important;padding:0 11px !important;border-color:#CBD5E5 !important;border-radius:10px;}
 .dialogBox.extraDialogBox .extraMetaField .pickerField em{color:#0050F2 !important;}
 .dialogBox.extraDialogBox #extraForm .pickerField:hover{border-color:#91ACDA;}
