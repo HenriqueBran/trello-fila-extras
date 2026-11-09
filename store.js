@@ -6,10 +6,20 @@ const DEFAULT_DATA = {
   historicoArquivado: {},
   fechamentoMensal: {},
   extrasAceitasCancelaveis: {},
-  userModes: {}
+  extraConfig: {
+    responsaveisSolicitantes: [],
+    squads: [],
+    responsaveisAtendimento: []
+  }
 };
 
 const memory = globalThis.__filaExtrasMemory || (globalThis.__filaExtrasMemory = {});
+
+function hasKvConfig() {
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  return !!(url && token);
+}
 
 function getSaoPauloParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -54,17 +64,54 @@ function shouldClosePreviousMonth(date = new Date()) {
   return p.day >= firstBusinessDayOfMonth(p.year, p.month);
 }
 
+
+function uniqCleanList(list) {
+  const seen = new Set();
+  return (Array.isArray(list) ? list : [])
+    .map(v => String(v || '').trim())
+    .filter(Boolean)
+    .filter(v => {
+      const key = v.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function normalizeExtraConfig(config) {
+  const cfg = config && typeof config === 'object' ? config : {};
+  const responsaveisAtendimento = Array.isArray(cfg.responsaveisAtendimento) ? cfg.responsaveisAtendimento.map(item => {
+    if (typeof item === 'string') {
+      const parts = item.split(/\s[-–—|/]\s|[-–—|/]/).map(v => v.trim()).filter(Boolean);
+      return { squad: parts[0] || '', nome: parts.slice(1).join(' - ') || '' };
+    }
+    return { squad: String(item?.squad || '').trim(), nome: String(item?.nome || item?.atendimento || '').trim() };
+  }).filter(item => item.squad && item.nome) : [];
+  const seenAtendimento = new Set();
+  return {
+    responsaveisSolicitantes: uniqCleanList(cfg.responsaveisSolicitantes),
+    squads: uniqCleanList(cfg.squads).filter(squad => String(squad || '').trim().toLowerCase() !== 'rotativo'),
+    responsaveisAtendimento: responsaveisAtendimento.filter(item => {
+      const key = `${item.squad.toLowerCase()}|${item.nome.toLowerCase()}`;
+      if (seenAtendimento.has(key)) return false;
+      seenAtendimento.add(key);
+      return true;
+    })
+  };
+}
+
 function normalize(data) {
   const currentMonth = ymFromParts(getSaoPauloParts());
-  const base = { ...DEFAULT_DATA, ...(data || {}) };
-  base.fila = Array.isArray(base.fila) ? base.fila : [];
-  base.extrasAtivas = Array.isArray(base.extrasAtivas) ? base.extrasAtivas : [];
-  base.historico = Array.isArray(base.historico) ? base.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
-  base.historicoMes = typeof base.historicoMes === 'string' && base.historicoMes ? base.historicoMes : currentMonth;
-  base.historicoArquivado = base.historicoArquivado && typeof base.historicoArquivado === 'object' ? base.historicoArquivado : {};
-  base.fechamentoMensal = base.fechamentoMensal && typeof base.fechamentoMensal === 'object' ? base.fechamentoMensal : {};
-  base.extrasAceitasCancelaveis = base.extrasAceitasCancelaveis && typeof base.extrasAceitasCancelaveis === 'object' ? base.extrasAceitasCancelaveis : {};
-  base.userModes = base.userModes && typeof base.userModes === 'object' ? base.userModes : {};
+  const src = data && typeof data === 'object' ? data : {};
+  const base = { ...DEFAULT_DATA };
+  base.fila = Array.isArray(src.fila) ? src.fila : [];
+  base.extrasAtivas = Array.isArray(src.extrasAtivas) ? src.extrasAtivas : [];
+  base.historico = Array.isArray(src.historico) ? src.historico.filter(h => h && h.acao !== 'CONFIGURAÇÃO') : [];
+  base.historicoMes = typeof src.historicoMes === 'string' && src.historicoMes ? src.historicoMes : currentMonth;
+  base.historicoArquivado = src.historicoArquivado && typeof src.historicoArquivado === 'object' ? src.historicoArquivado : {};
+  base.fechamentoMensal = src.fechamentoMensal && typeof src.fechamentoMensal === 'object' ? src.fechamentoMensal : {};
+  base.extrasAceitasCancelaveis = src.extrasAceitasCancelaveis && typeof src.extrasAceitasCancelaveis === 'object' ? src.extrasAceitasCancelaveis : {};
+  base.extraConfig = normalizeExtraConfig(src.extraConfig);
   return base;
 }
 
@@ -116,8 +163,8 @@ function parseKvResult(value) {
 }
 
 async function kvGet(key) {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null;
 
   const baseUrl = String(url).trim().replace(/\/+$/, '');
@@ -131,8 +178,8 @@ async function kvGet(key) {
 }
 
 async function kvSet(key, value) {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return false;
 
   const baseUrl = String(url).trim().replace(/\/+$/, '');
@@ -154,13 +201,13 @@ async function kvSet(key, value) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const boardId = String(req.query.boardId || '').trim();
   if (!boardId) return res.status(400).json({ error: 'boardId obrigatório' });
+  if (process.env.VERCEL && !hasKvConfig()) {
+    return res.status(503).json({ error: 'Persistência não configurada. Configure KV_REST_API_URL/KV_REST_API_TOKEN ou UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN.' });
+  }
   const key = `fila-extras:${boardId}`;
 
   try {
