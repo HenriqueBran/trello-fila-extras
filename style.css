@@ -2318,9 +2318,12 @@ html,body{
 }
 
 
-/* v156.17 — Apenas os textos destacados: nome e valores dos seletores sem negrito. */
+/* v156.18 — Nome da Pessoa da vez com a mesma tipografia e cor do status abaixo. */
 #coordenador #pessoaDaVez {
-  font-weight:700;
+  color:var(--muted);
+  font-size:16px;
+  font-weight:400;
+  line-height:normal;
 }
 .dialogBox.extraDialogBox #extraForm .pickerField {
   font-weight:500;
