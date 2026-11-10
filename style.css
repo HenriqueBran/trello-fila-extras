@@ -2333,6 +2333,100 @@ html,body{
 }
 
 
+
+
+/* v156.20 — 1ª seção do Coordenador no estilo do card do Membro. */
+#coordenador .coordHeroCard{
+  background:linear-gradient(135deg,var(--black),#161616 58%,#222 100%);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:24px;
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+}
+#coordenador .coordHeroCard::after{
+  content:'';
+  position:absolute;
+  width:180px;height:180px;
+  right:-60px;top:-80px;
+  background:radial-gradient(circle,rgba(0,80,242,.55),rgba(0,80,242,0) 65%);
+  pointer-events:none;
+}
+#coordenador .coordHeroHead{
+  display:flex;
+  align-items:center;
+  gap:20px;
+  margin-bottom:18px;
+  position:relative;
+  z-index:1;
+}
+#coordenador .coordHeroIcon{
+  display:flex;
+  width:52px;
+  height:52px;
+  flex:0 0 52px;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+}
+#coordenador .coordHeroIcon svg{width:42px;height:42px;display:block;}
+#coordenador .coordHeroSeparator{
+  display:block;
+  width:1px;
+  height:54px;
+  flex:0 0 1px;
+  background:rgba(255,255,255,.62);
+}
+#coordenador .coordHeroContent{display:flex;min-width:0;flex-direction:column;align-items:flex-start;gap:7px;}
+#coordenador .coordHeroContent h2{
+  margin:0;
+  color:#fff;
+  font-size:26px;
+  font-weight:800;
+  letter-spacing:-.025em;
+  line-height:1.15;
+}
+#coordenador .coordHeroBadge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:#FFFFFF;
+  color:#0f172a;
+  border-radius:999px;
+  padding:5px 13px;
+  line-height:1.15;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.06em;
+}
+#coordenador .coordHeroCard #pessoaDaVez,
+#coordenador .coordHeroCard #extraStatus,
+#coordenador .coordHeroCard p.muted.small{
+  position:relative;
+  z-index:1;
+}
+#coordenador .coordHeroCard #pessoaDaVez{
+  color:#ffffff;
+  font-size:34px;
+  font-weight:700;
+  line-height:1.15;
+  margin-bottom:10px;
+}
+#coordenador .coordHeroCard #extraStatus,
+#coordenador .coordHeroCard p.muted.small{
+  color:rgba(255,255,255,.82) !important;
+}
+#coordenador .coordHeroCard .actions{position:relative;z-index:1;margin:16px 0 14px;}
+#coordenador .coordHeroCard .actions .btn{box-shadow:none;}
+@media(max-width:800px){
+  #coordenador .coordHeroHead{gap:13px;}
+  #coordenador .coordHeroIcon{width:44px;height:44px;flex-basis:44px;}
+  #coordenador .coordHeroIcon svg{width:36px;height:36px;}
+  #coordenador .coordHeroSeparator{height:48px;}
+  #coordenador .coordHeroContent h2{font-size:21px;}
+  #coordenador .coordHeroCard #pessoaDaVez{font-size:28px;}
+}
+
 /* v156.18 — Nome da Pessoa da vez com a mesma tipografia e cor do status abaixo. */
 #coordenador #pessoaDaVez {
   color:var(--muted);
@@ -2506,4 +2600,53 @@ html,body{
   #membro .memberExtrasEmpty {min-height:155px;padding:17px 10px 20px;border-radius:15px;}
   #membro .memberExtrasEmpty strong {font-size:14px;}
   #membro .memberExtrasEmpty p {font-size:12px;}
+}
+
+
+/* v156.21 — Títulos do modo Membro compartilhando ícones e proporções do Coordenador. */
+#membro .memberSharedTitle {
+  display:inline-flex;
+  align-items:center;
+  gap:16px;
+  min-width:0;
+}
+#membro .memberSharedTitle h2 {
+  margin:0;
+  min-width:0;
+  line-height:1.25;
+  color:var(--black);
+}
+#membro .memberSharedIcon {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:45px;
+  height:45px;
+  flex:0 0 45px;
+  border-radius:12px;
+  background:#EFF1F5;
+  color:var(--black);
+}
+#membro .memberSharedIcon svg {
+  display:block;
+  width:24px;
+  height:24px;
+}
+#membro .memberQueueHeader { margin-bottom:16px; }
+#membro .memberHistoryHeader {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  column-gap:12px;
+  row-gap:8px;
+  margin-bottom:24px;
+}
+#membro .memberHistoryHeader .memberSharedTitle { gap:24px; }
+#membro .memberHistoryHeader .muted { margin-left:auto; }
+@media (max-width:640px) {
+  #membro .memberSharedTitle { gap:12px; }
+  #membro .memberSharedTitle h2 { font-size:18px; }
+  #membro .memberHistoryHeader { margin-bottom:20px; }
+  #membro .memberHistoryHeader .memberSharedTitle { gap:20px; }
 }
