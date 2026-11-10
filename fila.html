@@ -61,17 +61,8 @@
 
 
     <main id="coordenador" class="grid hide">
-      <section class="card full coordSectionCard coordHeroCard">
-        <div class="coordHeroHead">
-          <span class="coordHeroIcon" aria-hidden="true">
-            <svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"><path d="m22 7 16 9.1L22 25 6 16.1 22 7Z"/><path d="m7 24 15 9 15-9"/><path d="m7 30 15 9 15-9"/></svg>
-          </span>
-          <span class="coordHeroSeparator" aria-hidden="true"></span>
-          <div class="coordHeroContent">
-            <h2>Pessoa da vez</h2>
-            <span class="coordHeroBadge">COORDENADOR</span>
-          </div>
-        </div>
+      <section class="card full coordSectionCard">
+        <h2>Pessoa da vez</h2>
         <div id="pessoaDaVez" class="person">Nenhuma pessoa cadastrada</div>
         <div id="extraStatus" class="status muted">Nenhuma extra ativa.</div>
         <div class="actions">
@@ -1152,12 +1143,12 @@
     function render(){
       const heroTitle = $('heroBox')?.querySelector('h1');
       if(heroTitle){
-        heroTitle.textContent = mode === 'coordenador' ? 'Fila de Extras - Coordenador' : 'Fila de Extras';
+        heroTitle.textContent = 'Fila de Extras';
       }
       $('coordenador').classList.toggle('hide', mode !== 'coordenador');
       $('membro').classList.toggle('hide', mode !== 'membro');
       $('heroBox').classList.remove('heroCentered');
-      $('heroBox').classList.toggle('memberHero', mode === 'membro');
+      $('heroBox').classList.toggle('memberHero', mode === 'membro' || mode === 'coordenador');
       $('heroSubtitle').classList.add('hide');
       $('modoBadge').classList.toggle('hide', !mode);
       $('modoBadge').textContent = mode === 'coordenador' ? 'COORDENADOR' : mode === 'membro' ? 'MEMBRO' : '';
