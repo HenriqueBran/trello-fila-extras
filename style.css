@@ -2328,3 +2328,167 @@ html,body{
 .dialogBox.extraDialogBox #extraForm .pickerField {
   font-weight:500;
 }
+
+
+/* v156.19 — Modo Membro: cabeçalho e Extras ativas conforme referências,
+   preservando identidade CANTA e comportamento original. */
+#heroBox .memberHeroIcon,
+#heroBox .memberHeroSeparator { display:none; }
+#heroBox.memberHero {
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:20px;
+  padding:22px 28px;
+  min-height:114px;
+  background:linear-gradient(116deg,#111827 0%,#14213B 50%,#0E1627 100%);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:18px;
+  box-shadow:0 12px 30px rgba(9,16,32,.15);
+  text-align:left;
+}
+#heroBox.memberHero::after { display:none; }
+#heroBox.memberHero .memberHeroIcon {
+  display:flex;
+  width:52px;
+  height:52px;
+  flex:0 0 52px;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+}
+#heroBox.memberHero .memberHeroIcon svg { width:42px;height:42px;display:block; }
+#heroBox.memberHero .memberHeroSeparator {
+  display:block;
+  width:1px;
+  height:54px;
+  flex:0 0 1px;
+  background:rgba(255,255,255,.62);
+}
+#heroBox.memberHero .heroContent {display:flex;min-width:0;flex-direction:column;align-items:flex-start;gap:7px;}
+#heroBox.memberHero .heroContent h1 {
+  margin:0;
+  font-size:26px;
+  font-weight:800;
+  letter-spacing:-.025em;
+  line-height:1.15;
+  color:#fff;
+}
+#heroBox.memberHero #modoBadge {
+  position:absolute;
+  left:calc(28px + 52px + 20px + 1px + 20px);
+  bottom:16px;
+  margin:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:#FFFFFF;
+  padding:5px 13px;
+  line-height:1.15;
+  font-size:11px;
+  letter-spacing:.015em;
+  font-weight:900;
+  color:#18243A;
+  border-radius:999px;
+  box-shadow:0 2px 5px rgba(0,0,0,.12);
+}
+#heroBox.memberHero .heroContent {padding-bottom:22px;}
+#membro .memberActiveExtrasCard {
+  padding:16px;
+  border:1px solid #DFE5EF;
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 3px 12px rgba(0,80,242,.08),0 1px 4px rgba(12,27,55,.05);
+  min-width:0;
+}
+#membro .memberActiveExtrasHeading {
+  display:flex;
+  align-items:center;
+  gap:15px;
+  margin:0 6px 14px;
+}
+#membro .memberActiveExtrasHeadingIcon {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:54px;
+  height:54px;
+  flex:0 0 54px;
+  border-radius:12px;
+  color:#18243A;
+  background:#EFF1F5;
+}
+#membro .memberActiveExtrasHeadingIcon svg {display:block;width:29px;height:29px;}
+#membro .memberActiveExtrasHeadingText {min-width:0;}
+#membro .memberActiveExtrasHeadingText h2 {
+  font-size:22px;
+  font-weight:800;
+  letter-spacing:-.025em;
+  color:#151D30;
+  line-height:1.2;
+  margin:0 0 3px;
+}
+#membro .memberActiveExtrasHeadingText p {
+  font-size:13px;
+  font-weight:500;
+  color:#60708D;
+  margin:0;
+  line-height:1.4;
+}
+#membro .memberExtrasEmpty {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  width:100%;
+  min-height:156px;
+  padding:15px 12px 21px;
+  border-radius:18px;
+  background:linear-gradient(110deg,#F0F3F8 0%,#F3F5FA 55%,#EEF2F8 100%);
+  color:#1A2337;
+  text-align:center;
+}
+#membro .memberExtrasEmptyIcon {
+  display:block;
+  width:56px;
+  height:56px;
+  color:#8899B7;
+  margin:0 0 3px;
+}
+#membro .memberExtrasEmpty strong {
+  font-size:16px;
+  font-weight:800;
+  line-height:1.35;
+}
+#membro .memberExtrasEmpty p {
+  font-size:13px;
+  line-height:1.45;
+  color:#66748F;
+  margin:0;
+}
+#membro .memberActiveExtrasCard .extrasList {gap:12px;}
+#membro .memberActiveExtrasCard .extraCard {
+  padding:18px;
+  background:#F5F8FF;
+  border:1px solid #CEDCF6;
+  border-radius:16px;
+}
+@media(max-width:640px){
+  #heroBox.memberHero {gap:13px;padding:19px 18px;min-height:104px;border-radius:16px;}
+  #heroBox.memberHero .memberHeroIcon {width:44px;height:44px;flex-basis:44px;}
+  #heroBox.memberHero .memberHeroIcon svg {width:36px;height:36px;}
+  #heroBox.memberHero .memberHeroSeparator {height:48px;}
+  #heroBox.memberHero .heroContent h1 {font-size:21px;}
+  #heroBox.memberHero #modoBadge {left:calc(18px + 44px + 13px + 1px + 13px);bottom:13px;font-size:10px;padding:5px 12px;}
+  #heroBox.memberHero .heroContent {padding-bottom:21px;}
+  #membro .memberActiveExtrasCard {padding:12px;border-radius:17px;}
+  #membro .memberActiveExtrasHeading {margin:0 3px 13px;gap:12px;}
+  #membro .memberActiveExtrasHeadingIcon {width:49px;height:49px;flex-basis:49px;border-radius:11px;}
+  #membro .memberActiveExtrasHeadingIcon svg {width:26px;height:26px;}
+  #membro .memberActiveExtrasHeadingText h2 {font-size:19px;}
+  #membro .memberActiveExtrasHeadingText p {font-size:12px;}
+  #membro .memberExtrasEmpty {min-height:155px;padding:17px 10px 20px;border-radius:15px;}
+  #membro .memberExtrasEmpty strong {font-size:14px;}
+  #membro .memberExtrasEmpty p {font-size:12px;}
+}
