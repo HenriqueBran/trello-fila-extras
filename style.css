@@ -186,14 +186,14 @@ input:focus,select:focus,.dialogInput:focus,.dialogTextarea:focus{border-color:v
   align-items:center;
   justify-content:center;
   color:#000000;
-  width:18px;
-  height:18px;
-  flex:0 0 18px;
+  width:30px;
+  height:30px;
+  flex:0 0 30px;
 }
 #membro .memberSectionTitleIcon svg{
   display:block;
-  width:16px;
-  height:16px;
+  width:28px;
+  height:28px;
 }
 .sectionTitleHelpIcon{
   position:static;
