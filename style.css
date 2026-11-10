@@ -2320,7 +2320,7 @@ html,body{
 
 /* v156.17 — Apenas os textos destacados: nome e valores dos seletores sem negrito. */
 #coordenador #pessoaDaVez {
-  font-weight:500;
+  font-weight:700;
 }
 .dialogBox.extraDialogBox #extraForm .pickerField {
   font-weight:500;
