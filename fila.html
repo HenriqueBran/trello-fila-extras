@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fila de Extras</title>
   <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="./style.css?v=156.21" />
+  <link rel="stylesheet" href="./style.css?v=156.22" />
   <style>
     /* v133 - histórico ajustado */
     .histHead{display:grid !important;grid-template-columns:minmax(0,1fr) auto !important;gap:18px !important;align-items:flex-start !important;}
@@ -189,7 +189,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="16" rx="2.5"/><path d="M7.5 2.5v4M16.5 2.5v4M3.5 9h17"/><path d="m8.5 14.6 2.5 2.5 4.7-5"/></svg>
           </span>
           <div class="memberActiveExtrasHeadingText">
-            <h2 id="memberActiveExtrasTitle">Extras ativas</h2>
+            <h2 id="memberActiveExtrasTitle" tabindex="-1">Extras ativas</h2>
           </div>
         </div>
         <div id="membroExtraBox" aria-live="polite"></div>
@@ -1247,6 +1247,19 @@
       }
     }
 
+    // Abre diretamente a área de resposta dos extras do membro.
+    window.irParaExtrasAtivas = function(){
+      if(mode !== 'membro') return;
+      const secao = document.querySelector('#membro .memberActiveExtrasCard');
+      const titulo = document.getElementById('memberActiveExtrasTitle');
+      if(!secao) return;
+      if(titulo) titulo.focus({preventScroll:true});
+      secao.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start'
+      });
+    };
+
     function renderMembro(){
       const myUser = currentUsername();
       const total = data.fila.length;
@@ -1276,7 +1289,9 @@
             </div>
             <div class="memberIndividualFooter ${minhasExtras.length > 0 ? 'hasPendingExtra' : ''}">
               ${minhasExtras.length > 0 ? '' : `<p>${escapeHtml(statusVez)}</p>`}
-              <p class="${extraStatusClass}">${escapeHtml(extraStatus)}</p>
+              ${minhasExtras.length > 0
+                ? `<button type="button" class="${extraStatusClass}" onclick="irParaExtrasAtivas()" aria-controls="membroExtraBox" aria-label="${escapeHtml(extraStatus)}. Ir para Extras ativas">${escapeHtml(extraStatus)}</button>`
+                : `<p class="${extraStatusClass}">${escapeHtml(extraStatus)}</p>`}
             </div>
           </div>`;
       } else if(myUser){

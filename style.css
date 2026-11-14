@@ -1616,7 +1616,7 @@ html,body{
 .memberIndividualFooter.hasPendingExtra{
   grid-template-columns:1fr;
 }
-.memberIndividualFooter p.memberIndividualExtraAvailable{
+.memberIndividualFooter .memberIndividualExtraAvailable{
   grid-column:1 / -1;
   width:100%;
   min-height:44px;
@@ -1630,13 +1630,26 @@ html,body{
   box-shadow:0 12px 30px rgba(255,50,100,.34);
   animation:memberExtraPulse 1.05s ease-in-out infinite;
   transform-origin:center;
+  margin:0;
+  padding:12px;
+  border:0;
+  border-radius:14px;
+  font-family:inherit;
+  font-size:13px;
+  line-height:1.45;
+  cursor:pointer;
 }
+.memberIndividualFooter .memberIndividualExtraAvailable:focus-visible{
+  outline:3px solid var(--blue);
+  outline-offset:3px;
+}
+#membro .memberActiveExtrasCard{scroll-margin-top:16px;}
 @keyframes memberExtraPulse{
   0%,100%{opacity:1;transform:scale(1);box-shadow:0 12px 30px rgba(255,50,100,.34);filter:brightness(1)}
   50%{opacity:.76;transform:scale(1.012);box-shadow:0 16px 38px rgba(255,50,100,.52);filter:brightness(1.08)}
 }
 @media (prefers-reduced-motion:reduce){
-  .memberIndividualFooter p.memberIndividualExtraAvailable{animation:none}
+  .memberIndividualFooter .memberIndividualExtraAvailable{animation:none}
 }
 
 .memberIndividualFooter p.memberIndividualExtraUnavailable{
